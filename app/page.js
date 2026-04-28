@@ -1234,6 +1234,15 @@ export default function Page() {
     correctSoundRef.current.preload = "auto";
   }, []);
 
+  useEffect(() => {
+    if (!checked || !isCorrect) return;
+    if (!correctSoundRef.current) return;
+    correctSoundRef.current.currentTime = 0;
+    correctSoundRef.current.play().catch(() => {
+      // ブラウザの再生制限などは無視
+    });
+  }, [checked, isCorrect]);
+
   // 起動時にlocalStorageから学習履歴を復元（壊れていたら無視）
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1383,12 +1392,6 @@ export default function Page() {
     // スコアリング更新（totalは「次へ」で増やす）
     if (ok) {
       setScore((s) => s + 1);
-      if (correctSoundRef.current) {
-        correctSoundRef.current.currentTime = 0;
-        correctSoundRef.current.play().catch(() => {
-          // ブラウザの再生制限などは無視
-        });
-      }
       setStreak((st) => {
         const nextStreak = st + 1;
         setBestStreak((best) => Math.max(best, nextStreak));
