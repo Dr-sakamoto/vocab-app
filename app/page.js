@@ -1474,6 +1474,12 @@ export default function Page() {
     }
   }, [stats]);
 
+  if (activeView === "dashboard") {
+    return (
+      <ProgressDashboard stats={stats} onBack={() => setActiveView("study")} />
+    );
+  }
+
   if (!q) {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
@@ -1482,12 +1488,6 @@ export default function Page() {
           <p className="mt-3 text-zinc-700">問題データがありません。</p>
         </div>
       </div>
-    );
-  }
-
-  if (activeView === "dashboard") {
-    return (
-      <ProgressDashboard stats={stats} onBack={() => setActiveView("study")} />
     );
   }
 
