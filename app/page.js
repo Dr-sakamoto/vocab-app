@@ -713,6 +713,208 @@ const questions = [
     target: "fell for",
     answers: ["騙される"],
   },
+  {
+    sentence: "We intend to expand overseas markets within next fiscal year.",
+    target: "intend to",
+    answers: ["するつもりである"]
+  },
+  {
+    sentence: "The novel describes an adventure across unknown deserts and mountains.",
+    target: "adventure",
+    answers: ["冒険"]
+  },
+  {
+    sentence: "He loaded vegetables into a cart and headed to the market.",
+    target: "cart",
+    answers: ["荷車"]
+  },
+  {
+    sentence: "A strong earthquake damaged buildings across the coastal city severely.",
+    target: "earthquake",
+    answers: ["地震"]
+  },
+  {
+    sentence: "She moved with grace during the ballet performance on stage.",
+    target: "grace",
+    answers: ["優雅さ"]
+  },
+  {
+    sentence: "The child collected a shell washed up on the beach.",
+    target: "shell",
+    answers: ["貝殻"]
+  },
+  {
+    sentence: "Artisans weave silk threads into traditional fabrics by hand.",
+    target: "weave",
+    answers: ["織る"]
+  },
+  {
+    sentence: "He often boasts about his achievements during business meetings.",
+    target: "boast",
+    answers: ["自慢する"]
+  },
+  {
+    sentence: "The workers will knock down the old factory next month.",
+    target: "knock down",
+    answers: ["取り壊す"]
+  },
+  {
+    sentence: "The nurse applied a bandage to the athlete's injured arm.",
+    target: "bandage",
+    answers: ["包帯"]
+  },
+  {
+    sentence: "We had dinner and afterward discussed the project plan.",
+    target: "afterward",
+    answers: ["その後"]
+  },
+  {
+    sentence: "The manager will instruct employees on new safety rules tomorrow.",
+    target: "instruct",
+    answers: ["指示する"]
+  },
+  {
+    sentence: "Without food supply, animals in the forest may starve quickly.",
+    target: "starve",
+    answers: ["飢える"]
+  },
+  {
+    sentence: "The sun disappeared below the horizon as evening approached.",
+    target: "horizon",
+    answers: ["地平線"]
+  },
+  {
+    sentence: "Police decided to arrest the suspect after gathering evidence.",
+    target: "arrest",
+    answers: ["逮捕する"]
+  },
+  {
+    sentence: "The company had to lay off several workers due to cuts.",
+    target: "lay off",
+    answers: ["解雇する"]
+  },
+  {
+    sentence: "She received a scholarship from a prestigious university abroad.",
+    target: "prestigious",
+    answers: ["名声のある"]
+  },
+  {
+    sentence: "He studies geography to understand human and environmental relations.",
+    target: "geography",
+    answers: ["地理学"]
+  },
+  {
+    sentence: "The price is charged per item sold in the store.",
+    target: "per",
+    answers: ["〜ごとに"]
+  },
+  {
+    sentence: "You should not take his statement at face value.",
+    target: "at face value",
+    answers: ["額面通り"]
+  },
+  {
+    sentence: "The machine tends to act up when it overheats.",
+    target: "act up",
+    answers: ["不調になる"]
+  },
+  {
+    sentence: "A beggar sat near the station asking for spare change.",
+    target: "beggar",
+    answers: ["乞食"]
+  },
+  {
+    sentence: "The warmth of the fire made everyone feel comfortable.",
+    target: "warmth",
+    answers: ["温もり"]
+  },
+  {
+    sentence: "The government tried to stabilize the economy after the crisis.",
+    target: "stabilize",
+    answers: ["安定させる"]
+  },
+  {
+    sentence: "Cows were grazing peacefully in the green meadow.",
+    target: "meadow",
+    answers: ["牧草地"]
+  },
+  {
+    sentence: "The editor refused to water down the critical report.",
+    target: "water down",
+    answers: ["弱める"]
+  },
+  {
+    sentence: "Children played near the fountain in the park center.",
+    target: "fountain",
+    answers: ["噴水"]
+  },
+  {
+    sentence: "The factory will phase out outdated machines gradually.",
+    target: "phase out",
+    answers: ["段階的に廃止する"]
+  },
+  {
+    sentence: "The ice became thin and dangerous during early spring.",
+    target: "thin",
+    answers: ["薄い"]
+  },
+  {
+    sentence: "A replacement for the damaged part arrived in two days.",
+    target: "replacement",
+    answers: ["代替"]
+  },
+  {
+    sentence: "The bird remained in a small cage inside the shop.",
+    target: "cage",
+    answers: ["鳥かご"]
+  },
+  {
+    sentence: "She managed to get past the security guard unnoticed.",
+    target: "get past",
+    answers: ["通り抜ける"]
+  },
+  {
+    sentence: "He is talented; what is more, he is hardworking.",
+    target: "what is more",
+    answers: ["その上"]
+  },
+  {
+    sentence: "They sent an invitation to all guests for the wedding.",
+    target: "invitation",
+    answers: ["招待"]
+  },
+  {
+    sentence: "The container was filled with imported goods from abroad.",
+    target: "container",
+    answers: ["容器"]
+  },
+  {
+    sentence: "He felt jealous when his friend got a promotion.",
+    target: "jealous",
+    answers: ["嫉妬している"]
+  },
+  {
+    sentence: "The museum displayed a marble statue from ancient Rome.",
+    target: "marble",
+    answers: ["大理石"]
+  },
+  {
+    sentence: "A private tutor helped him improve his math scores.",
+    target: "tutor",
+    answers: ["家庭教師"]
+  },
+  {
+    sentence: "The leaders hope to unite the community after conflict.",
+    target: "unite",
+    answers: ["団結する"]
+  },
+  {
+    sentence: "His argument is in substance the same as the proposal.",
+    target: "in substance",
+    answers: ["実質的に"]
+  }
+    
+  
   // 例: 複数正解対応
   // {
   //   sentence: "He is very smart.",
