@@ -1450,14 +1450,7 @@ export default function Page() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="text-xl font-semibold">英単語クイズ</h1>
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setActiveView("dashboard")}
-              className="inline-flex h-9 items-center justify-center rounded-xl border bg-white px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
-            >
-              進捗ダッシュボード
-            </button>
-            <div
+              <div
               className="h-2 w-32 overflow-hidden rounded-full bg-zinc-200"
               role="progressbar"
               aria-label="progress"
