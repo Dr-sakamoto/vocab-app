@@ -954,6 +954,116 @@ function countLvAtLeast1(statsArr) {
   return statsArr.filter((s) => masteryLevel(s) >= 1).length;
 }
 
+function normalizeProgressEntry(entry) {
+  return {
+    correct: Number(entry?.correct) || 0,
+    wrong: Number(entry?.wrong) || 0,
+    lastWrongAt:
+      typeof entry?.lastWrongAt === "number" ? entry.lastWrongAt : null,
+    lastLevelDownAt:
+      typeof entry?.lastLevelDownAt === "number"
+        ? entry.lastLevelDownAt
+        : null,
+    hallOfFameUntil:
+      typeof entry?.hallOfFameUntil === "number"
+        ? entry.hallOfFameUntil
+        : null,
+  };
+}
+
+function getNextNetThreshold(level) {
+  if (level <= 0) return 1;
+  if (level === 1) return 3;
+  if (level === 2) return 5;
+  if (level === 3) return 8;
+  if (level === 4) return 11;
+  return Number.POSITIVE_INFINITY;
+}
+
+const HALL_OF_FAME_DAYS = 7;
+
+/**
+ * 10問のスロット構成で次の出題リストを作る
+ * @param {Array<object>} vocabItems
+ * @param {Array<object>} progressData
+ * @param {number} [now]
+ */
+function getNextQuestions(vocabItems, progressData, now = Date.now()) {
+  const rows = vocabItems.map((item, index) => {
+    const progress = normalizeProgressEntry(progressData?.[index]);
+    const level = masteryLevel(progress);
+    const netScore = progress.correct - progress.wrong;
+    const nextThreshold = getNextNetThreshold(level);
+    const reachDistance = Math.max(0, nextThreshold - netScore);
+    const isHallOfFame =
+      level >= 5 && progress.hallOfFameUntil && progress.hallOfFameUntil > now;
+    const weakPriority =
+      Math.max(0, progress.wrong - progress.correct) * 10 +
+      (progress.lastWrongAt ? 20 : 0) +
+      (progress.lastLevelDownAt ? 30 : 0);
+    const reviewPriority =
+      (5 - Math.min(level, 4)) * 20 +
+      (progress.lastLevelDownAt ? 20 : 0) +
+      (progress.lastWrongAt ? 10 : 0);
+
+    return {
+      item,
+      progress,
+      level,
+      netScore,
+      reachDistance,
+      isHallOfFame,
+      weakPriority,
+      reviewPriority,
+    };
+  });
+
+  const freshPool = rows.filter((row) => row.level === 0 && !row.isHallOfFame);
+  const weakPool = rows.filter(
+    (row) => row.level >= 1 && row.level < 5 && !row.isHallOfFame,
+  );
+  const reviewPool = rows.filter(
+    (row) => row.level >= 1 && row.level <= 4 && !row.isHallOfFame,
+  );
+
+  const freshCandidates = freshPool.sort(() => Math.random() - 0.5).slice(0, 3);
+  const selectedIds = new Set(freshCandidates.map((row) => row.item.id));
+
+  const weakCandidates = weakPool
+    .filter((row) => !selectedIds.has(row.item.id))
+    .sort((a, b) => b.weakPriority - a.weakPriority)
+    .slice(0, 2);
+  weakCandidates.forEach((row) => selectedIds.add(row.item.id));
+
+  const reviewCandidates = reviewPool
+    .filter((row) => !selectedIds.has(row.item.id))
+    .sort((a, b) => b.reviewPriority - a.reviewPriority)
+    .slice(0, 5);
+  reviewCandidates.forEach((row) => selectedIds.add(row.item.id));
+
+  const selectedRows = [...reviewCandidates, ...freshCandidates, ...weakCandidates];
+
+  const fallbackRows = rows.filter(
+    (row) => !selectedIds.has(row.item.id) && !row.isHallOfFame,
+  );
+  while (selectedRows.length < 10 && fallbackRows.length > 0) {
+    selectedRows.push(fallbackRows.shift());
+  }
+
+  const chosenRows = selectedRows.slice(0, 10);
+  return {
+    questions: chosenRows.map((row) => row.item),
+    reachModeIds: chosenRows
+      .filter((row) => row.reachDistance <= 1 && row.level < 5)
+      .map((row) => row.item.id),
+    slotSummary: {
+      review: reviewCandidates.length,
+      fresh: freshCandidates.length,
+      weak: weakCandidates.length,
+    },
+  };
+}
+
 /** 円グラフの帯・凡例で共通利用（Lv.1〜5 は習熟が上がるほど濃い緑系） */
 const LEVEL_RING_COLORS = {
   0: "#d4d4d8",
@@ -1185,9 +1295,15 @@ export default function Page() {
     return Math.floor(Math.random() * n);
   }, []);
 
-  // 問題別の正誤（VOCAB_ITEMS と同じ長さの配列）
+  // 問題別の正誤・メタ情報（VOCAB_ITEMS と同じ長さの配列）
   const [stats, setStats] = useState(() =>
-    VOCAB_ITEMS.map(() => ({ correct: 0, wrong: 0 })),
+    VOCAB_ITEMS.map(() => ({
+      correct: 0,
+      wrong: 0,
+      lastWrongAt: null,
+      lastLevelDownAt: null,
+      hallOfFameUntil: null,
+    })),
   );
 
   // localStorage復元が完了したか（無限ループ/上書きを防ぐ）
@@ -1199,6 +1315,8 @@ export default function Page() {
   const [total, setTotal] = useState(1);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
+  const [questionQueue, setQuestionQueue] = useState([]);
+  const [reachModeIds, setReachModeIds] = useState([]);
 
   // 出題状態
   // SSR/CSRで初回描画を一致させる（hydration mismatch対策）
@@ -1215,6 +1333,7 @@ export default function Page() {
   const resultReadyRef = useRef(false);
 
   const q = VOCAB_ITEMS[index];
+  const isReachMode = reachModeIds.includes(q?.id);
   const correctSoundRef = useRef(null);
 
   const normalizedAnswers = useMemo(() => {
@@ -1251,46 +1370,72 @@ export default function Page() {
 
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        didLoadFromStorageRef.current = true;
-        return;
-      }
+      const baseProgress = VOCAB_ITEMS.map(() => ({
+        correct: 0,
+        wrong: 0,
+        lastWrongAt: null,
+        lastLevelDownAt: null,
+        hallOfFameUntil: null,
+      }));
+      let progressRows = baseProgress;
 
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
-        didLoadFromStorageRef.current = true;
-        return;
-      }
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const map = new Map();
+          for (const item of parsed) {
+            if (!item || typeof item !== "object") continue;
+            const correct = Number(item.correct);
+            const wrong = Number(item.wrong);
+            const safe = {
+              correct: Number.isFinite(correct) && correct >= 0 ? correct : 0,
+              wrong: Number.isFinite(wrong) && wrong >= 0 ? wrong : 0,
+              lastWrongAt:
+                typeof item.lastWrongAt === "number" ? item.lastWrongAt : null,
+              lastLevelDownAt:
+                typeof item.lastLevelDownAt === "number"
+                  ? item.lastLevelDownAt
+                  : null,
+              hallOfFameUntil:
+                typeof item.hallOfFameUntil === "number"
+                  ? item.hallOfFameUntil
+                  : null,
+            };
+            if (typeof item.id === "string") {
+              map.set(item.id, safe);
+              continue;
+            }
+            const target = item.target;
+            if (typeof target === "string") {
+              const idx = VOCAB_ITEMS.findIndex((v) => v.target === target);
+              if (idx >= 0) map.set(VOCAB_ITEMS[idx].id, safe);
+            }
+          }
 
-      // targetをキーにしてマージする
-      const map = new Map();
-      for (const item of parsed) {
-        if (!item || typeof item !== "object") continue;
-        const correct = Number(item.correct);
-        const wrong = Number(item.wrong);
-        const safe = {
-          correct: Number.isFinite(correct) && correct >= 0 ? correct : 0,
-          wrong: Number.isFinite(wrong) && wrong >= 0 ? wrong : 0,
-        };
-        if (typeof item.id === "string") {
-          map.set(item.id, safe);
-          continue;
+          progressRows = VOCAB_ITEMS.map((v) => {
+            const saved = map.get(v.id);
+            return saved ?? {
+              correct: 0,
+              wrong: 0,
+              lastWrongAt: null,
+              lastLevelDownAt: null,
+              hallOfFameUntil: null,
+            };
+          });
         }
-        // 以前の保存形式（target のみ）との互換
-        const target = item.target;
-        if (typeof target === "string") {
-          const idx = VOCAB_ITEMS.findIndex((v) => v.target === target);
-          if (idx >= 0) map.set(VOCAB_ITEMS[idx].id, safe);
-        }
       }
 
-      setStats((prev) =>
-        VOCAB_ITEMS.map((v, i) => {
-          const saved = map.get(v.id);
-          const base = prev[i] ?? { correct: 0, wrong: 0 };
-          return saved ? { correct: saved.correct, wrong: saved.wrong } : base;
-        }),
+      setStats(progressRows);
+
+      const nextBatch = getNextQuestions(VOCAB_ITEMS, progressRows, Date.now());
+      const nextQueue = nextBatch.questions.map((q) =>
+        VOCAB_ITEMS.findIndex((item) => item.id === q.id),
       );
+      setQuestionQueue(nextQueue);
+      setReachModeIds(nextBatch.reachModeIds);
+      if (nextQueue.length > 0) {
+        setIndex(nextQueue[0]);
+      }
     } catch {
       // JSONが壊れている等は無視して初期化のまま
     } finally {
@@ -1305,12 +1450,24 @@ export default function Page() {
     if (!didLoadFromStorageRef.current) return;
 
     try {
-      const payload = VOCAB_ITEMS.map((v, i) => ({
-        id: v.id,
-        target: v.target,
-        correct: stats[i]?.correct ?? 0,
-        wrong: stats[i]?.wrong ?? 0,
-      }));
+      const payload = VOCAB_ITEMS.map((v, i) => {
+        const row = stats[i] ?? {
+          correct: 0,
+          wrong: 0,
+          lastWrongAt: null,
+          lastLevelDownAt: null,
+          hallOfFameUntil: null,
+        };
+        return {
+          id: v.id,
+          target: v.target,
+          correct: row.correct,
+          wrong: row.wrong,
+          lastWrongAt: row.lastWrongAt,
+          lastLevelDownAt: row.lastLevelDownAt,
+          hallOfFameUntil: row.hallOfFameUntil,
+        };
+      });
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
       // 保存できない環境（容量不足等）は黙って無視
@@ -1380,13 +1537,33 @@ export default function Page() {
     setIsCorrect(ok);
     setChecked(true);
 
-    // 問題別 correct / wrong 更新（immutable）
+    const now = Date.now();
+    // 問題別 correct / wrong 更新と metadata を保持する
     setStats((prev) => {
       const next = [...prev];
-      const cur = next[index] ?? { correct: 0, wrong: 0 };
-      next[index] = ok
-        ? { correct: cur.correct + 1, wrong: cur.wrong }
-        : { correct: cur.correct, wrong: cur.wrong + 1 };
+      const cur = next[index] ?? {
+        correct: 0,
+        wrong: 0,
+        lastWrongAt: null,
+        lastLevelDownAt: null,
+        hallOfFameUntil: null,
+      };
+      const updated = ok
+        ? { ...cur, correct: cur.correct + 1 }
+        : {
+            ...cur,
+            wrong: cur.wrong + 1,
+            lastWrongAt: now,
+          };
+      const oldLevel = masteryLevel(cur);
+      const newLevel = masteryLevel(updated);
+      if (!ok && oldLevel > newLevel) {
+        updated.lastLevelDownAt = now;
+      }
+      if (ok && oldLevel < 5 && newLevel >= 5) {
+        updated.hallOfFameUntil = now + HALL_OF_FAME_DAYS * 24 * 60 * 60 * 1000;
+      }
+      next[index] = updated;
       return next;
     });
 
@@ -1415,9 +1592,11 @@ export default function Page() {
     // 次の問題に切り替わったタイミングで問題番号を+1
     setTotal((t) => t + 1);
 
-    const nextIndex = pickNextQuestionIndex(index, seenInPlayRef.current);
-    if (nextIndex === null) {
-      // 未出題がもう無い場合（問題数が少ない等）
+    const nextIndex =
+      questionQueue.length > total
+        ? questionQueue[total]
+        : pickNextQuestionIndex(index, seenInPlayRef.current);
+    if (nextIndex === null || typeof nextIndex === "undefined") {
       setShowResult(true);
       return;
     }
@@ -1433,15 +1612,20 @@ export default function Page() {
     setTotal(1);
     setStreak(0);
     setBestStreak(0);
-    // 累積の正解・不正解は localStorage に残すため、ここでは stats はリセットしない
-    const newIndex = pickRandomAnyQuestionIndex();
+    const nextBatch = getNextQuestions(VOCAB_ITEMS, stats, Date.now());
+    const nextQueue = nextBatch.questions.map((q) =>
+      VOCAB_ITEMS.findIndex((item) => item.id === q.id),
+    );
+    setQuestionQueue(nextQueue);
+    setReachModeIds(nextBatch.reachModeIds);
+    const newIndex = nextQueue[0] ?? pickRandomAnyQuestionIndex();
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
     setInput("");
     setChecked(false);
     setIsCorrect(false);
     setShowResult(false);
-  }, [pickRandomAnyQuestionIndex]);
+  }, [pickRandomAnyQuestionIndex, stats]);
 
   useEffect(() => {
     if (!showResult) {
@@ -1563,6 +1747,11 @@ export default function Page() {
         </div>
 
         <div className="mt-5 rounded-xl bg-zinc-50 p-4">
+          {isReachMode && (
+            <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              あと1問正解で Lv が上がる単語です！
+            </div>
+          )}
           <div className="text-lg leading-8">
             {renderSentenceWithTarget(q.sentence, q.target)}
           </div>
