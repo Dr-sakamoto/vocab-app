@@ -1122,6 +1122,7 @@ function ProgressDashboard({ stats, onBack }) {
 function normalizeAnswer(value) {
   return String(value ?? "")
     .normalize("NFKC") // 全角/半角などを寄せる
+    .replace(/[\u007E\uFF5E\u301C\u223C]/g, "〜") // 波ダッシュは統一
     .trim() // 要件: 空白除去
     .replace(/\s+/g, "") // 余分な空白ゆれ吸収（"悪 影響 のある" など）
     .toLowerCase(); // 英字が混ざっても大小ゆれ吸収
