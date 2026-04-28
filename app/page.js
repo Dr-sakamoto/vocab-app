@@ -1607,6 +1607,11 @@ export default function Page() {
     setIsCorrect(false);
   };
 
+  const openDashboard = useCallback(() => {
+    setShowResult(false);
+    setActiveView("dashboard");
+  }, []);
+
   const restart = useCallback(() => {
     setScore(0);
     setTotal(1);
@@ -1659,16 +1664,6 @@ export default function Page() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <h1 className="text-xl font-semibold">結果</h1>
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowResult(false);
-                  setActiveView("dashboard");
-                }}
-                className="inline-flex h-9 items-center justify-center rounded-xl border bg-white px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
-              >
-                進捗ダッシュボード
-              </button>
               <div className="text-sm text-zinc-500">
                 Score: {score} / {PLAY_LIMIT}
               </div>
@@ -1693,10 +1688,7 @@ export default function Page() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setShowResult(false);
-                setActiveView("dashboard");
-              }}
+              onClick={openDashboard}
               className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
             >
               進捗ダッシュボード
