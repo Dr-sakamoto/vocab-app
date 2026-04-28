@@ -524,7 +524,7 @@ const questions = [
     answers: ["酸素"],
   },
   {
-    sentence: "He came down with a cold after working too hard.",
+    sentence: "I’m afraid I’ve come down with a cold.",
     target: "come down with",
     answers: ["病気にかかる"],
   },
