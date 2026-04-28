@@ -1459,7 +1459,10 @@ export default function Page() {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => setActiveView("dashboard")}
+                onClick={() => {
+                  setShowResult(false);
+                  setActiveView("dashboard");
+                }}
                 className="inline-flex h-9 items-center justify-center rounded-xl border bg-white px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
               >
                 進捗ダッシュボード
