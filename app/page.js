@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const questions = [
   {
@@ -1179,11 +1179,11 @@ export default function Page() {
   /** study = クイズ画面 / dashboard = 進捗 */
   const [activeView, setActiveView] = useState("study");
 
-  const pickRandomAnyQuestionIndex = () => {
+  const pickRandomAnyQuestionIndex = useCallback(() => {
     const n = VOCAB_ITEMS.length;
     if (n <= 1) return 0;
     return Math.floor(Math.random() * n);
-  };
+  }, []);
 
   // 問題別の正誤（VOCAB_ITEMS と同じ長さの配列）
   const [stats, setStats] = useState(() =>
@@ -1428,7 +1428,7 @@ export default function Page() {
     setIsCorrect(false);
   };
 
-  const restart = () => {
+  const restart = useCallback(() => {
     setScore(0);
     setTotal(1);
     setStreak(0);
@@ -1441,7 +1441,7 @@ export default function Page() {
     setChecked(false);
     setIsCorrect(false);
     setShowResult(false);
-  };
+  }, [pickRandomAnyQuestionIndex]);
 
   useEffect(() => {
     if (!showResult) {
@@ -1499,13 +1499,23 @@ export default function Page() {
             <div className="mt-2 text-sm text-zinc-600">最高ストリーク: {bestStreak}</div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={restart}
               className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-5 font-medium text-white hover:bg-zinc-800"
             >
               もう一度（10問）
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowResult(false);
+                setActiveView("dashboard");
+              }}
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+            >
+              進捗ダッシュボード
             </button>
           </div>
         </div>
