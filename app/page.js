@@ -491,7 +491,7 @@ const questions = [
   {
     sentence: "She studied hard in order to achieve her goals.",
     target: "in order to",
-    answers: ["〜するために"],
+    answers: ["するために"],
   },
   {
     sentence: "He was a pioneer in the field of modern science.",
