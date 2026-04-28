@@ -1283,6 +1283,15 @@ function pickRandomIndex(indices) {
   return indices[Math.floor(Math.random() * indices.length)];
 }
 
+function shuffleArray(array) {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export default function Page() {
   // 出題設定
   const PLAY_LIMIT = 10;
@@ -1436,6 +1445,7 @@ export default function Page() {
       setReachModeIds(nextBatch.reachModeIds);
       if (nextQueue.length > 0) {
         setIndex(nextQueue[0]);
+        seenInPlayRef.current = new Set([nextQueue[0]]);
       }
     } catch {
       // JSONが壊れている等は無視して初期化のまま
@@ -1475,7 +1485,7 @@ export default function Page() {
     }
   }, [stats]);
 
-  if (showResult || activeView === "result") {
+  if (showResult) {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
@@ -1628,6 +1638,10 @@ export default function Page() {
     } else {
       setStreak(0);
     }
+
+    if (total >= PLAY_LIMIT) {
+      openResult();
+    }
   };
 
   const next = () => {
@@ -1640,12 +1654,12 @@ export default function Page() {
     }
 
     // 次の問題に切り替わったタイミングで問題番号を+1
-    setTotal((t) => t + 1);
+    setTotal((t) => Math.min(t + 1, PLAY_LIMIT));
 
     const nextIndex =
       questionQueue.length > total
         ? questionQueue[total]
-        : pickNextQuestionIndex(index, seenInPlayRef.current);
+        : pickNextQuestionIndex(index, seenInPlayRef.current, index);
     if (nextIndex === null || typeof nextIndex === "undefined") {
       openResult();
       return;
@@ -1659,7 +1673,7 @@ export default function Page() {
 
   const openResult = useCallback(() => {
     setShowResult(true);
-    setActiveView("result");
+    setActiveView("study");
   }, []);
 
   const openDashboard = useCallback(() => {
