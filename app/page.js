@@ -1211,6 +1211,7 @@ export default function Page() {
   const [checked, setChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const resultReadyRef = useRef(false);
 
   const q = VOCAB_ITEMS[index];
 
@@ -1425,16 +1426,26 @@ export default function Page() {
   };
 
   useEffect(() => {
-    if (!showResult) return;
+    if (!showResult) {
+      resultReadyRef.current = false;
+      return;
+    }
+
+    // 結果画面を表示してから、Enter 再開を有効にする
+    resultReadyRef.current = false;
+    const timeout = window.setTimeout(() => {
+      resultReadyRef.current = true;
+    }, 50);
 
     const handleKeyDown = (event) => {
-      if (event.key === "Enter") {
-        restart();
-      }
+      if (event.key !== "Enter") return;
+      if (!resultReadyRef.current) return;
+      restart();
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
+      window.clearTimeout(timeout);
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [showResult, restart]);
