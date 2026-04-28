@@ -721,7 +721,201 @@ const questions = [
   // },
 ];
 
+/** 各問題に安定した ID（localStorage で「単語単位」を識別するため） */
+const VOCAB_ITEMS = questions.map((q, i) => ({
+  ...q,
+  id: `w${i}`,
+}));
+
 const STORAGE_KEY = "vocab-progress";
+
+/**
+ * 習熟レベル（0〜5）
+ * ベース: net = 正解数 − 不正解数。未チャレンジは 0。
+ */
+function masteryLevel(stat) {
+  const c = stat?.correct ?? 0;
+  const w = stat?.wrong ?? 0;
+  const net = c - w;
+  const attempts = c + w;
+  if (attempts === 0) return 0;
+  if (net <= -3) return 0;
+  if (net <= 0) return 1;
+  if (net <= 2) return 2;
+  if (net <= 4) return 3;
+  if (net <= 7) return 4;
+  return 5;
+}
+
+/** Lv.1 以上の単語数（ダッシュボードの分子） */
+function countLvAtLeast1(statsArr) {
+  return statsArr.filter((s) => masteryLevel(s) >= 1).length;
+}
+
+/** 円グラフの帯・凡例で共通利用（Lv.1〜5 は習熟が上がるほど濃い緑系） */
+const LEVEL_RING_COLORS = {
+  0: "#d4d4d8",
+  1: "#fef08a",
+  2: "#fde047",
+  3: "#a3e635",
+  4: "#4ade80",
+  5: "#15803d",
+};
+
+function buildMasteryConicGradient(levelCounts) {
+  const total = levelCounts.reduce((a, b) => a + b, 0);
+  if (total === 0) {
+    return `conic-gradient(from -90deg, ${LEVEL_RING_COLORS[0]} 0deg 360deg)`;
+  }
+
+  let angle = 0;
+  const stops = [];
+  for (let lv = 0; lv <= 5; lv++) {
+    const sweep = (levelCounts[lv] / total) * 360;
+    if (sweep <= 0) continue;
+    stops.push(`${LEVEL_RING_COLORS[lv]} ${angle}deg ${angle + sweep}deg`);
+    angle += sweep;
+  }
+
+  if (stops.length === 0) {
+    return `conic-gradient(from -90deg, ${LEVEL_RING_COLORS[0]} 0deg 360deg)`;
+  }
+
+  return `conic-gradient(from -90deg, ${stops.join(", ")})`;
+}
+
+/**
+ * Lv.0〜5 を扇状に色分けしたドーナツ（conic-gradient）
+ * 中央は Lv.1 以上の割合（従来どおり）
+ */
+function MasteryDonutChart({ levelCounts, lv1PlusPct }) {
+  const clamped = Math.max(0, Math.min(100, lv1PlusPct));
+  const ariaParts = [0, 1, 2, 3, 4, 5].map(
+    (lv) =>
+      `レベル${lv}が${levelCounts[lv]}語`,
+  );
+  const chartLabel = `習熟度の円グラフ。${ariaParts.join("。")}。Lv.1以上の割合は${Math.round(clamped)}パーセント。`;
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <div
+        className="relative inline-flex h-[152px] w-[152px] shrink-0 items-center justify-center"
+        role="img"
+        aria-label={chartLabel}
+      >
+        <div
+          className="absolute inset-0 rounded-full shadow-sm transition-[background] duration-500"
+          style={{
+            background: buildMasteryConicGradient(levelCounts),
+            WebkitMask:
+              "radial-gradient(circle, transparent 52%, black calc(52% + 1px))",
+            mask: "radial-gradient(circle, transparent 52%, black calc(52% + 1px))",
+          }}
+          aria-hidden
+        />
+        <div className="pointer-events-none relative z-10 text-center">
+          <div className="text-2xl font-semibold tabular-nums text-emerald-900">
+            {Math.round(clamped)}%
+          </div>
+          <div className="text-[11px] leading-tight text-zinc-500">
+            Lv.1以上の割合
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-zinc-600">
+        {[1, 2, 3, 4, 5].map((lv) => (
+          <span key={lv} className="inline-flex items-center gap-1.5">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-sm ring-1 ring-black/10"
+              style={{ backgroundColor: LEVEL_RING_COLORS[lv] }}
+              aria-hidden
+            />
+            Lv.{lv}
+          </span>
+        ))}
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-sm ring-1 ring-black/10"
+            style={{ backgroundColor: LEVEL_RING_COLORS[0] }}
+            aria-hidden
+          />
+          Lv.0（未・苦手）
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ProgressDashboard({ stats, onBack }) {
+  const totalWords = VOCAB_ITEMS.length;
+  const lv1Plus = countLvAtLeast1(stats);
+  const pct = totalWords === 0 ? 0 : (lv1Plus / totalWords) * 100;
+
+  const levelCounts = [0, 1, 2, 3, 4, 5].map((lv) =>
+    stats.filter((s) => masteryLevel(s) === lv).length,
+  );
+
+  return (
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
+      <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-xl font-semibold">進捗ダッシュボード</h1>
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex h-10 items-center justify-center rounded-xl border bg-white px-4 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+          >
+            学習に戻る
+          </button>
+        </div>
+
+        <p className="mt-2 text-sm text-zinc-600">
+          全単語{" "}
+          <span className="font-semibold tabular-nums">{totalWords}</span>{" "}
+          語のうち、習熟 <span className="font-semibold">Lv.1 以上</span>{" "}
+          （一度は正のネットスコアになった単語）が{" "}
+          <span className="font-semibold tabular-nums">{lv1Plus}</span>{" "}
+          語です。
+        </p>
+
+        <div className="mt-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start sm:justify-around">
+          <MasteryDonutChart levelCounts={levelCounts} lv1PlusPct={pct} />
+
+          <div className="w-full max-w-sm space-y-3">
+            <h2 className="text-sm font-semibold text-zinc-800">
+              レベル別の単語数
+            </h2>
+            <ul className="space-y-2 text-sm">
+              {[5, 4, 3, 2, 1, 0].map((lv) => (
+                <li
+                  key={lv}
+                  className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2"
+                >
+                  <span className="flex items-center gap-2 text-zinc-600">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-sm ring-1 ring-black/10"
+                      style={{ backgroundColor: LEVEL_RING_COLORS[lv] }}
+                      aria-hidden
+                    />
+                    Lv.{lv}
+                    {lv === 0 ? "（未・苦手）" : ""}
+                  </span>
+                  <span className="tabular-nums font-medium">
+                    {levelCounts[lv]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs leading-relaxed text-zinc-500">
+              Lv.は「正解−不正解」のネットに応じて 0〜5。未出題は Lv.0。
+              英検学習では同じ問題に繰り返し答えるほどネットが上がります。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function normalizeAnswer(value) {
   return String(value ?? "")
@@ -763,15 +957,18 @@ export default function Page() {
   // 出題設定
   const PLAY_LIMIT = 10;
 
+  /** study = クイズ画面 / dashboard = 進捗 */
+  const [activeView, setActiveView] = useState("study");
+
   const pickRandomAnyQuestionIndex = () => {
-    const n = questions.length;
+    const n = VOCAB_ITEMS.length;
     if (n <= 1) return 0;
     return Math.floor(Math.random() * n);
   };
 
-  // 問題別の正誤（questions自体は触らず、別stateで持つ）
+  // 問題別の正誤（VOCAB_ITEMS と同じ長さの配列）
   const [stats, setStats] = useState(() =>
-    questions.map(() => ({ correct: 0, wrong: 0 })),
+    VOCAB_ITEMS.map(() => ({ correct: 0, wrong: 0 })),
   );
 
   // localStorage復元が完了したか（無限ループ/上書きを防ぐ）
@@ -796,7 +993,7 @@ export default function Page() {
   const [isCorrect, setIsCorrect] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
-  const q = questions[index];
+  const q = VOCAB_ITEMS[index];
 
   const normalizedAnswers = useMemo(() => {
     return (q?.answers ?? []).map(normalizeAnswer);
@@ -831,19 +1028,27 @@ export default function Page() {
       const map = new Map();
       for (const item of parsed) {
         if (!item || typeof item !== "object") continue;
-        const target = item.target;
-        if (typeof target !== "string") continue;
         const correct = Number(item.correct);
         const wrong = Number(item.wrong);
-        map.set(target, {
+        const safe = {
           correct: Number.isFinite(correct) && correct >= 0 ? correct : 0,
           wrong: Number.isFinite(wrong) && wrong >= 0 ? wrong : 0,
-        });
+        };
+        if (typeof item.id === "string") {
+          map.set(item.id, safe);
+          continue;
+        }
+        // 以前の保存形式（target のみ）との互換
+        const target = item.target;
+        if (typeof target === "string") {
+          const idx = VOCAB_ITEMS.findIndex((v) => v.target === target);
+          if (idx >= 0) map.set(VOCAB_ITEMS[idx].id, safe);
+        }
       }
 
       setStats((prev) =>
-        questions.map((q, i) => {
-          const saved = map.get(q.target);
+        VOCAB_ITEMS.map((v, i) => {
+          const saved = map.get(v.id);
           const base = prev[i] ?? { correct: 0, wrong: 0 };
           return saved ? { correct: saved.correct, wrong: saved.wrong } : base;
         }),
@@ -862,8 +1067,9 @@ export default function Page() {
     if (!didLoadFromStorageRef.current) return;
 
     try {
-      const payload = questions.map((q, i) => ({
-        target: q.target,
+      const payload = VOCAB_ITEMS.map((v, i) => ({
+        id: v.id,
+        target: v.target,
         correct: stats[i]?.correct ?? 0,
         wrong: stats[i]?.wrong ?? 0,
       }));
@@ -884,11 +1090,17 @@ export default function Page() {
     );
   }
 
+  if (activeView === "dashboard") {
+    return (
+      <ProgressDashboard stats={stats} onBack={() => setActiveView("study")} />
+    );
+  }
+
   const progress = `${total} / ${PLAY_LIMIT}`;
   const progressPct = Math.max(0, Math.min(100, (total / PLAY_LIMIT) * 100));
 
   const pickNextQuestionIndex = (avoidIndex, seenSet) => {
-    const n = questions.length;
+    const n = VOCAB_ITEMS.length;
     if (n <= 1) return 0;
 
     // すでに出た問題を除外（1プレイ内で重複させない）
@@ -978,7 +1190,7 @@ export default function Page() {
     setScore(0);
     setTotal(1);
     setStreak(0);
-    setStats(questions.map(() => ({ correct: 0, wrong: 0 })));
+    // 累積の正解・不正解は localStorage に残すため、ここでは stats はリセットしない
     const newIndex = pickRandomAnyQuestionIndex();
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
@@ -992,10 +1204,19 @@ export default function Page() {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="flex items-baseline justify-between gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <h1 className="text-xl font-semibold">結果</h1>
-            <div className="text-sm text-zinc-500">
-              Score: {score} / {PLAY_LIMIT}
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveView("dashboard")}
+                className="inline-flex h-9 items-center justify-center rounded-xl border bg-white px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+              >
+                進捗ダッシュボード
+              </button>
+              <div className="text-sm text-zinc-500">
+                Score: {score} / {PLAY_LIMIT}
+              </div>
             </div>
           </div>
 
@@ -1024,9 +1245,16 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
       <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="flex items-baseline justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="text-xl font-semibold">英単語クイズ</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveView("dashboard")}
+              className="inline-flex h-9 items-center justify-center rounded-xl border bg-white px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+            >
+              進捗ダッシュボード
+            </button>
             <div
               className="h-2 w-32 overflow-hidden rounded-full bg-zinc-200"
               role="progressbar"
