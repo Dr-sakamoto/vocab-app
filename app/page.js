@@ -1424,6 +1424,21 @@ export default function Page() {
     setShowResult(false);
   };
 
+  useEffect(() => {
+    if (!showResult) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Enter") {
+        restart();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showResult, restart]);
+
   if (showResult) {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
@@ -1497,7 +1512,7 @@ export default function Page() {
             <span>最高ストリーク: {bestStreak}</span>
             {checked && isCorrect && getPraiseMessage(streak) && (
               <span
-                className={`text-2xl font-black uppercase tracking-[0.18em] ${getPraiseMessage(streak).color}`}
+                className={`text-sm font-medium ${getPraiseMessage(streak).color}`}
               >
                 {getPraiseMessage(streak).label}
               </span>
