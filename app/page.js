@@ -405,7 +405,7 @@ const questions = [
   },
   {
     sentence: "They carefully mapped out their business strategy.",
-    target: "map out",
+    target: "mapped out",
     answers: ["綿密に計画する"],
   },
   {
