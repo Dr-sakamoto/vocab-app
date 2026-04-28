@@ -1181,6 +1181,7 @@ export default function Page() {
   // total = 現在の問題番号（1〜10）
   const [total, setTotal] = useState(1);
   const [streak, setStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
 
   // 出題状態
   // SSR/CSRで初回描画を一致させる（hydration mismatch対策）
@@ -1357,7 +1358,11 @@ export default function Page() {
     // スコアリング更新（totalは「次へ」で増やす）
     if (ok) {
       setScore((s) => s + 1);
-      setStreak((st) => st + 1);
+      setStreak((st) => {
+        const nextStreak = st + 1;
+        setBestStreak((best) => Math.max(best, nextStreak));
+        return nextStreak;
+      });
     } else {
       setStreak(0);
     }
@@ -1392,6 +1397,7 @@ export default function Page() {
     setScore(0);
     setTotal(1);
     setStreak(0);
+    setBestStreak(0);
     // 累積の正解・不正解は localStorage に残すため、ここでは stats はリセットしない
     const newIndex = pickRandomAnyQuestionIndex();
     setIndex(newIndex);
@@ -1427,7 +1433,7 @@ export default function Page() {
               最終スコア: <span className="font-semibold">{score}</span> /{" "}
               {PLAY_LIMIT}
             </div>
-            <div className="mt-2 text-sm text-zinc-600">Streak: {streak}</div>
+            <div className="mt-2 text-sm text-zinc-600">最高ストリーク: {bestStreak}</div>
           </div>
 
           <div className="mt-6">
@@ -1471,7 +1477,7 @@ export default function Page() {
           <div>
             Score: {score} / {PLAY_LIMIT}
           </div>
-          <div>Streak: {streak}</div>
+          <div>最高ストリーク: {bestStreak}</div>
         </div>
 
         <div className="mt-5 rounded-xl bg-zinc-50 p-4">
