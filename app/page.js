@@ -1214,6 +1214,7 @@ export default function Page() {
   const resultReadyRef = useRef(false);
 
   const q = VOCAB_ITEMS[index];
+  const correctSoundRef = useRef(null);
 
   const normalizedAnswers = useMemo(() => {
     return (q?.answers ?? []).map(normalizeAnswer);
@@ -1224,6 +1225,13 @@ export default function Page() {
     const initial = pickRandomAnyQuestionIndex();
     setIndex(initial);
     seenInPlayRef.current = new Set([initial]);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    correctSoundRef.current = new Audio("/success.mp3");
+    correctSoundRef.current.volume = 0.75;
+    correctSoundRef.current.preload = "auto";
   }, []);
 
   // 起動時にlocalStorageから学習履歴を復元（壊れていたら無視）
@@ -1375,6 +1383,12 @@ export default function Page() {
     // スコアリング更新（totalは「次へ」で増やす）
     if (ok) {
       setScore((s) => s + 1);
+      if (correctSoundRef.current) {
+        correctSoundRef.current.currentTime = 0;
+        correctSoundRef.current.play().catch(() => {
+          // ブラウザの再生制限などは無視
+        });
+      }
       setStreak((st) => {
         const nextStreak = st + 1;
         setBestStreak((best) => Math.max(best, nextStreak));
