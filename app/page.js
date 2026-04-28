@@ -1475,7 +1475,7 @@ export default function Page() {
     }
   }, [stats]);
 
-  if (showResult) {
+  if (showResult || activeView === "result") {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
@@ -1520,7 +1520,13 @@ export default function Page() {
 
   if (activeView === "dashboard") {
     return (
-      <ProgressDashboard stats={stats} onBack={() => setActiveView("study")} />
+      <ProgressDashboard
+        stats={stats}
+        onBack={() => {
+          setShowResult(false);
+          setActiveView("study");
+        }}
+      />
     );
   }
 
@@ -1629,7 +1635,7 @@ export default function Page() {
 
     // 10問目を終えたら結果表示（totalは10/10のまま）
     if (total >= PLAY_LIMIT) {
-      setShowResult(true);
+      openResult();
       return;
     }
 
@@ -1641,7 +1647,7 @@ export default function Page() {
         ? questionQueue[total]
         : pickNextQuestionIndex(index, seenInPlayRef.current);
     if (nextIndex === null || typeof nextIndex === "undefined") {
-      setShowResult(true);
+      openResult();
       return;
     }
     seenInPlayRef.current.add(nextIndex);
@@ -1650,6 +1656,11 @@ export default function Page() {
     setChecked(false);
     setIsCorrect(false);
   };
+
+  const openResult = useCallback(() => {
+    setShowResult(true);
+    setActiveView("result");
+  }, []);
 
   const openDashboard = useCallback(() => {
     setShowResult(false);
@@ -1674,6 +1685,7 @@ export default function Page() {
     setChecked(false);
     setIsCorrect(false);
     setShowResult(false);
+    setActiveView("study");
   }, [pickRandomAnyQuestionIndex, stats]);
 
   useEffect(() => {
