@@ -1144,6 +1144,22 @@ function renderSentenceWithTarget(sentence, target) {
   );
 }
 
+function getPraiseMessage(streak) {
+  if (streak >= 9 && streak <= 10) {
+    return { label: "MARVELOUS !!!", color: "text-red-600" };
+  }
+  if (streak >= 7 && streak <= 8) {
+    return { label: "AMAZING !!", color: "text-violet-600" };
+  }
+  if (streak >= 5 && streak <= 6) {
+    return { label: "EXCELLENT !", color: "text-blue-600" };
+  }
+  if (streak >= 3 && streak <= 4) {
+    return { label: "GOOD", color: "text-sky-400" };
+  }
+  return null;
+}
+
 // priority = wrong / (correct + 1)
 function calcPriority(stat) {
   const correct = stat?.correct ?? 0;
@@ -1505,7 +1521,14 @@ export default function Page() {
             <div className="mt-3">
               {isCorrect ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
-                  正解！
+                  <div className="text-base font-semibold">正解！</div>
+                  {getPraiseMessage(streak) && (
+                    <div
+                      className={`mt-2 text-3xl font-black uppercase tracking-[0.28em] ${getPraiseMessage(streak).color}`}
+                    >
+                      {getPraiseMessage(streak).label}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900">
