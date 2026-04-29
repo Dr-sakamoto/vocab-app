@@ -42,7 +42,9 @@ export default function ResultScreen({
                 <div className="text-3xl font-semibold tabular-nums text-emerald-950">
                   {evaluation.score}
                 </div>
-                <div className="text-xs text-emerald-700">/ 100</div>
+                <div className="text-xs text-emerald-700">
+                  / {evaluation.maxScore ?? 100}
+                </div>
               </div>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-emerald-900">
