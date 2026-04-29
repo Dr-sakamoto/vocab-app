@@ -320,7 +320,10 @@ export default function Page() {
     setIsCorrect(false);
   };
 
-  const openDashboard = useCallback(() => {
+  const [dashboardReturnView, setDashboardReturnView] = useState("study");
+
+  const openDashboard = useCallback((returnView = "study") => {
+    setDashboardReturnView(returnView);
     setActiveView("dashboard");
   }, []);
 
@@ -387,7 +390,7 @@ export default function Page() {
       <ProgressDashboard
         stats={stats}
         totalWords={VOCAB_ITEMS.length}
-        onBack={() => setActiveView("study")}
+        onBack={() => setActiveView(dashboardReturnView)}
       />
     );
   }
@@ -410,13 +413,22 @@ export default function Page() {
         <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm text-center">
           <h1 className="text-3xl font-semibold">英単語クイズ</h1>
           <p className="mt-4 text-zinc-600">Enter を押して 1プレイを開始します。</p>
-          <button
-            type="button"
-            onClick={startGame}
-            className="mt-8 inline-flex h-12 items-center justify-center rounded-xl bg-zinc-900 px-6 text-white hover:bg-zinc-800"
-          >
-            1プレイ開始
-          </button>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={startGame}
+              className="inline-flex h-12 items-center justify-center rounded-xl bg-zinc-900 px-6 text-white hover:bg-zinc-800"
+            >
+              1プレイ開始
+            </button>
+            <button
+              type="button"
+              onClick={() => openDashboard("start")}
+              className="inline-flex h-12 items-center justify-center rounded-xl border border-zinc-200 bg-white px-6 text-zinc-900 hover:bg-zinc-50"
+            >
+              進捗を見る
+            </button>
+          </div>
         </div>
       </div>
     );
