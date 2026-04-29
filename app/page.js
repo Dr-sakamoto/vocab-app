@@ -1178,6 +1178,7 @@ export default function Page() {
 
   /** study = クイズ画面 / dashboard = 進捗 */
   const [activeView, setActiveView] = useState("study");
+  const isResultView = activeView === "result";
 
   const pickRandomAnyQuestionIndex = useCallback(() => {
     const n = VOCAB_ITEMS.length;
@@ -1211,7 +1212,6 @@ export default function Page() {
   const [input, setInput] = useState("");
   const [checked, setChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [showResult, setShowResult] = useState(false);
   const resultReadyRef = useRef(false);
 
   const q = VOCAB_ITEMS[index];
@@ -1322,7 +1322,6 @@ export default function Page() {
       <ProgressDashboard
         stats={stats}
         onBack={() => {
-          setShowResult(false);
           setActiveView("study");
         }}
       />
@@ -1379,7 +1378,7 @@ export default function Page() {
 
   const checkAnswer = () => {
     // 二重加算防止
-    if (checked || showResult) return;
+    if (checked || isResultView) return;
 
     const user = normalizeAnswer(input);
     const ok = normalizedAnswers.includes(user);
@@ -1410,11 +1409,11 @@ export default function Page() {
   };
 
   const next = () => {
-    if (!checked || showResult) return;
+    if (!checked || isResultView) return;
 
     // 10問目を終えたら結果表示（totalは10/10のまま）
     if (total >= PLAY_LIMIT) {
-      setShowResult(true);
+      setActiveView("result");
       return;
     }
 
@@ -1424,7 +1423,7 @@ export default function Page() {
     const nextIndex = pickNextQuestionIndex(index, seenInPlayRef.current);
     if (nextIndex === null) {
       // 未出題がもう無い場合（問題数が少ない等）
-      setShowResult(true);
+      setActiveView("result");
       return;
     }
     seenInPlayRef.current.add(nextIndex);
@@ -1446,11 +1445,11 @@ export default function Page() {
     setInput("");
     setChecked(false);
     setIsCorrect(false);
-    setShowResult(false);
+    setActiveView("study");
   }, [pickRandomAnyQuestionIndex]);
 
   useEffect(() => {
-    if (!showResult) {
+    if (!isResultView) {
       resultReadyRef.current = false;
       return;
     }
@@ -1472,9 +1471,9 @@ export default function Page() {
       window.clearTimeout(timeout);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [showResult, restart]);
+  }, [isResultView, restart]);
 
-  if (showResult) {
+  if (isResultView) {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
@@ -1484,7 +1483,6 @@ export default function Page() {
               <button
                 type="button"
                 onClick={() => {
-                  setShowResult(false);
                   setActiveView("dashboard");
                 }}
                 className="inline-flex h-9 items-center justify-center rounded-xl border bg-white px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
@@ -1516,7 +1514,6 @@ export default function Page() {
             <button
               type="button"
               onClick={() => {
-                setShowResult(false);
                 setActiveView("dashboard");
               }}
               className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
