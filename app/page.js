@@ -71,8 +71,8 @@ export default function Page() {
   // 出題設定
   const PLAY_LIMIT = 10;
 
-  /** study = クイズ画面 / dashboard = 進捗 */
-  const [activeView, setActiveView] = useState("study");
+  /** start = スタート画面 / study = クイズ画面 / dashboard = 進捗 */
+  const [activeView, setActiveView] = useState("start");
 
   const pickRandomAnyQuestionIndex = useCallback(() => {
     const n = VOCAB_ITEMS.length;
@@ -324,6 +324,10 @@ export default function Page() {
     setActiveView("dashboard");
   }, []);
 
+  const startGame = useCallback(() => {
+    setActiveView("study");
+  }, []);
+
   const restart = useCallback(() => {
     setScore(0);
     setTotal(1);
@@ -338,6 +342,20 @@ export default function Page() {
     setIsCorrect(false);
     setActiveView("study");
   }, [pickRandomAnyQuestionIndex]);
+
+  useEffect(() => {
+    if (activeView !== "start") return;
+
+    const handleKeyDown = (event) => {
+      if (event.key !== "Enter") return;
+      startGame();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeView, startGame]);
 
   useEffect(() => {
     if (activeView !== "result") {
@@ -383,6 +401,24 @@ export default function Page() {
         onRestart={restart}
         onOpenDashboard={openDashboard}
       />
+    );
+  }
+
+  if (activeView === "start") {
+    return (
+      <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
+        <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm text-center">
+          <h1 className="text-3xl font-semibold">英単語クイズ</h1>
+          <p className="mt-4 text-zinc-600">Enter を押して 1プレイを開始します。</p>
+          <button
+            type="button"
+            onClick={startGame}
+            className="mt-8 inline-flex h-12 items-center justify-center rounded-xl bg-zinc-900 px-6 text-white hover:bg-zinc-800"
+          >
+            1プレイ開始
+          </button>
+        </div>
+      </div>
     );
   }
 
