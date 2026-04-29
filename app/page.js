@@ -211,28 +211,6 @@ export default function Page() {
     }
   }, [stats]);
 
-  if (activeView === "dashboard") {
-    return (
-      <ProgressDashboard
-        stats={stats}
-        totalWords={VOCAB_ITEMS.length}
-        onBack={() => setActiveView("study")}
-      />
-    );
-  }
-
-  if (activeView === "result") {
-    return (
-      <ResultScreen
-        score={score}
-        bestStreak={bestStreak}
-        playLimit={PLAY_LIMIT}
-        onRestart={restart}
-        onOpenDashboard={openDashboard}
-      />
-    );
-  }
-
   if (!q) {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
@@ -361,28 +339,6 @@ export default function Page() {
     setActiveView("study");
   }, [pickRandomAnyQuestionIndex]);
 
-  if (activeView === "dashboard") {
-    return (
-      <ProgressDashboard
-        stats={stats}
-        totalWords={VOCAB_ITEMS.length}
-        onBack={() => setActiveView("study")}
-      />
-    );
-  }
-
-  if (activeView === "result") {
-    return (
-      <ResultScreen
-        score={score}
-        bestStreak={bestStreak}
-        playLimit={PLAY_LIMIT}
-        onRestart={restart}
-        onOpenDashboard={openDashboard}
-      />
-    );
-  }
-
   useEffect(() => {
     if (activeView !== "result") {
       resultReadyRef.current = false;
@@ -407,6 +363,28 @@ export default function Page() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [activeView, restart]);
+
+  if (activeView === "dashboard") {
+    return (
+      <ProgressDashboard
+        stats={stats}
+        totalWords={VOCAB_ITEMS.length}
+        onBack={() => setActiveView("study")}
+      />
+    );
+  }
+
+  if (activeView === "result") {
+    return (
+      <ResultScreen
+        score={score}
+        bestStreak={bestStreak}
+        playLimit={PLAY_LIMIT}
+        onRestart={restart}
+        onOpenDashboard={openDashboard}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
