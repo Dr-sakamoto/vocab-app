@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
 
+import { evaluatePlay } from "@/lib/playEvaluation";
 import { QUESTIONS } from "@/lib/vocab";
 
 /** 各問題に安定した ID（localStorage で「単語単位」を識別するため） */
@@ -118,6 +119,7 @@ export default function Page() {
   const [total, setTotal] = useState(1);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
+  const [sessionAnswers, setSessionAnswers] = useState([]);
 
   // 出題状態
   // SSR/CSRで初回描画を一致させる（hydration mismatch対策）
@@ -147,6 +149,19 @@ export default function Page() {
   const normalizedAnswers = useMemo(() => {
     return (q?.answers ?? []).map(normalizeAnswer);
   }, [q]);
+
+  const playEvaluation = useMemo(
+    () =>
+      evaluatePlay({
+        answers: sessionAnswers,
+        score,
+        playLimit: PLAY_LIMIT,
+        bestStreak,
+        unlockedPoolSize,
+        poolBaseSize: Math.min(INITIAL_POOL_SIZE, VOCAB_ITEMS.length),
+      }),
+    [bestStreak, score, sessionAnswers, PLAY_LIMIT, unlockedPoolSize],
+  );
 
   // 初回マウント後にランダム出題へ切り替える（初回SSRと一致させた後でOK）
   useEffect(() => {
@@ -301,8 +316,18 @@ export default function Page() {
 
     const user = normalizeAnswer(input);
     const ok = normalizedAnswers.includes(user);
+    const previousStat = stats[index] ?? { correct: 0, wrong: 0 };
     setIsCorrect(ok);
     setChecked(true);
+    setSessionAnswers((prev) => [
+      ...prev,
+      {
+        id: q.id,
+        correct: ok,
+        previousCorrect: previousStat.correct ?? 0,
+        previousWrong: previousStat.wrong ?? 0,
+      },
+    ]);
 
     // 問題別 correct / wrong 更新（immutable）
     setStats((prev) => {
@@ -382,6 +407,7 @@ export default function Page() {
     setTotal(1);
     setStreak(0);
     setBestStreak(0);
+    setSessionAnswers([]);
     // 累積の正解・不正解は localStorage に残すため、ここでは stats はリセットしない
     const newIndex = pickNextQuestionIndex(null, new Set()) ?? 0;
     setIndex(newIndex);
@@ -477,6 +503,7 @@ export default function Page() {
         unlockedPoolSize={unlockedPoolSize}
         totalWords={VOCAB_ITEMS.length}
         unlockedThisRun={lastUnlockCount}
+        evaluation={playEvaluation}
         onRestart={restart}
         onOpenDashboard={() => openDashboard("result")}
         onBackToStart={backToStart}

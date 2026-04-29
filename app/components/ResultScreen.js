@@ -7,6 +7,7 @@ export default function ResultScreen({
   unlockedPoolSize,
   totalWords,
   unlockedThisRun,
+  evaluation,
   onRestart,
   onOpenDashboard,
   onBackToStart,
@@ -22,6 +23,49 @@ export default function ResultScreen({
             </div>
           </div>
         </div>
+
+        {evaluation && (
+          <div className="mt-5 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                  Learning Grade
+                </div>
+                <div className="mt-1 text-3xl font-semibold text-emerald-950">
+                  {evaluation.grade}
+                  <span className="ml-3 align-middle text-base font-medium text-emerald-800">
+                    {evaluation.title}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-semibold tabular-nums text-emerald-950">
+                  {evaluation.score}
+                </div>
+                <div className="text-xs text-emerald-700">/ 100</div>
+              </div>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-emerald-900">
+              {evaluation.message}
+            </p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {evaluation.breakdown.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-lg bg-white/70 px-3 py-2 text-sm text-emerald-950 ring-1 ring-emerald-900/5"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{item.label}</span>
+                    <span className="tabular-nums">
+                      {item.points} / {item.max}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-emerald-700">{item.detail}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-5 rounded-xl bg-zinc-50 p-4">
           <div className="text-lg leading-8">
