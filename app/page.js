@@ -14,6 +14,10 @@ const VOCAB_ITEMS = QUESTIONS.map((q, i) => ({
 
 const STORAGE_KEY = "vocab-progress";
 
+function getPartOfSpeech(q) {
+  return q?.partOfSpeech ?? "word";
+}
+
 function normalizeAnswer(value) {
   return String(value ?? "")
     .normalize("NFKC") // 全角/半角などを寄せる
@@ -455,7 +459,7 @@ export default function Page() {
 
         <div className="mt-5 rounded-xl bg-zinc-50 px-4 py-6 text-center">
           <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Word
+            {getPartOfSpeech(q)}
           </div>
           <div className="mt-2 break-words text-4xl font-semibold text-zinc-950 sm:text-5xl">
             {q.target}
