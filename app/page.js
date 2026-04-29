@@ -23,23 +23,6 @@ function normalizeAnswer(value) {
     .toLowerCase(); // 英字が混ざっても大小ゆれ吸収
 }
 
-function renderSentenceWithTarget(sentence, target) {
-  const idx = sentence.indexOf(target);
-  if (idx === -1) return <span>{sentence}</span>;
-
-  const before = sentence.slice(0, idx);
-  const match = sentence.slice(idx, idx + target.length);
-  const after = sentence.slice(idx + target.length);
-
-  return (
-    <span>
-      {before}
-      <span className="font-bold underline underline-offset-4">{match}</span>
-      {after}
-    </span>
-  );
-}
-
 function getPraiseMessage(streak) {
   if (streak >= 9 && streak <= 10) {
     return { label: "MARVELOUS!!!", color: "text-red-600" };
@@ -290,9 +273,6 @@ export default function Page() {
       setStreak(0);
     }
 
-    if (total >= PLAY_LIMIT) {
-      setActiveView("result");
-    }
   };
 
   const next = () => {
@@ -440,7 +420,7 @@ export default function Page() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="text-xl font-semibold">英単語クイズ</h1>
           <div className="flex flex-wrap items-center justify-end gap-3">
-              <div
+            <div
               className="h-2 w-32 overflow-hidden rounded-full bg-zinc-200"
               role="progressbar"
               aria-label="progress"
@@ -473,15 +453,18 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="mt-5 rounded-xl bg-zinc-50 p-4">
-          <div className="text-lg leading-8">
-            {renderSentenceWithTarget(q.sentence, q.target)}
+        <div className="mt-5 rounded-xl bg-zinc-50 px-4 py-6 text-center">
+          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+            Word
+          </div>
+          <div className="mt-2 break-words text-4xl font-semibold text-zinc-950 sm:text-5xl">
+            {q.target}
           </div>
         </div>
 
         <div className="mt-5">
           <label className="block text-sm font-medium text-zinc-700">
-            太字＋下線の単語の日本語訳
+            英単語の日本語訳
           </label>
           <input
             value={input}
