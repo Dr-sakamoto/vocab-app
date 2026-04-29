@@ -1,6 +1,13 @@
 "use client";
 
-export default function ResultScreen({ score, bestStreak, playLimit, onRestart, onOpenDashboard }) {
+export default function ResultScreen({
+  score,
+  bestStreak,
+  playLimit,
+  onRestart,
+  onOpenDashboard,
+  onBackToStart,
+}) {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
       <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
@@ -34,6 +41,13 @@ export default function ResultScreen({ score, bestStreak, playLimit, onRestart, 
             className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
           >
             進捗ダッシュボード
+          </button>
+          <button
+            type="button"
+            onClick={onBackToStart}
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+          >
+            スタートに戻る
           </button>
         </div>
       </div>

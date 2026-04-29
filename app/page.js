@@ -311,11 +311,7 @@ export default function Page() {
     setActiveView("dashboard");
   }, []);
 
-  const startGame = useCallback(() => {
-    setActiveView("study");
-  }, []);
-
-  const restart = useCallback(() => {
+  const resetPlayState = useCallback(() => {
     setScore(0);
     setTotal(1);
     setStreak(0);
@@ -327,8 +323,22 @@ export default function Page() {
     setInput("");
     setChecked(false);
     setIsCorrect(false);
-    setActiveView("study");
   }, [pickRandomAnyQuestionIndex]);
+
+  const startGame = useCallback(() => {
+    resetPlayState();
+    setActiveView("study");
+  }, [resetPlayState]);
+
+  const restart = useCallback(() => {
+    resetPlayState();
+    setActiveView("study");
+  }, [resetPlayState]);
+
+  const backToStart = useCallback(() => {
+    resetPlayState();
+    setActiveView("start");
+  }, [resetPlayState]);
 
   useEffect(() => {
     if (activeView !== "start") return;
@@ -387,6 +397,7 @@ export default function Page() {
         playLimit={PLAY_LIMIT}
         onRestart={restart}
         onOpenDashboard={() => openDashboard("result")}
+        onBackToStart={backToStart}
       />
     );
   }
