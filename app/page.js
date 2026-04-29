@@ -13,6 +13,12 @@ const VOCAB_ITEMS = QUESTIONS.map((q, i) => ({
 }));
 
 const STORAGE_KEY = "vocab-progress";
+const POOL_STORAGE_KEY = "vocab-active-pool-size";
+
+const INITIAL_POOL_SIZE = 60;
+const UNLOCK_ACCURACY = 0.8;
+const UNLOCK_STEP = 30;
+const PERFECT_UNLOCK_STEP = 50;
 
 function getPartOfSpeech(q) {
   return q?.partOfSpeech ?? "word";
@@ -43,15 +49,52 @@ function getPraiseMessage(streak) {
   return null;
 }
 
-// priority = wrong / (correct + 1)
-function calcPriority(stat) {
-  const correct = stat?.correct ?? 0;
-  const wrong = stat?.wrong ?? 0;
-  return wrong / (correct + 1);
-}
-
 function pickRandomIndex(indices) {
   return indices[Math.floor(Math.random() * indices.length)];
+}
+
+function getAttempts(stat) {
+  return (stat?.correct ?? 0) + (stat?.wrong ?? 0);
+}
+
+function weightedPickIndex(indices, getWeight) {
+  const weighted = indices.map((i) => ({
+    index: i,
+    weight: Math.max(0.01, getWeight(i)),
+  }));
+  const total = weighted.reduce((sum, item) => sum + item.weight, 0);
+  let cursor = Math.random() * total;
+
+  for (const item of weighted) {
+    cursor -= item.weight;
+    if (cursor <= 0) return item.index;
+  }
+
+  return weighted.at(-1)?.index ?? null;
+}
+
+function getQuestionWeight(stat, currentAccuracy) {
+  const correct = stat?.correct ?? 0;
+  const wrong = stat?.wrong ?? 0;
+  const attempts = correct + wrong;
+
+  if (attempts === 0) {
+    return currentAccuracy < 0.65 ? 0.25 : 1.8;
+  }
+
+  const weakness = wrong / (correct + 1);
+  const confidenceBooster = correct >= 2 && wrong === 0 ? 0.45 : 1;
+  const recoveryBoost = wrong > 0 ? 2.2 + weakness * 3 : 0;
+  const stillLearningBoost = Math.max(0, 3 - correct) * 0.35;
+
+  return (1 + recoveryBoost + stillLearningBoost) * confidenceBooster;
+}
+
+function getUnlockStep(score, playLimit) {
+  const accuracy = score / playLimit;
+  if (accuracy >= 1) return PERFECT_UNLOCK_STEP;
+  if (accuracy >= UNLOCK_ACCURACY) return UNLOCK_STEP;
+  return 0;
 }
 
 export default function Page() {
@@ -60,12 +103,6 @@ export default function Page() {
 
   /** start = スタート画面 / study = クイズ画面 / dashboard = 進捗 */
   const [activeView, setActiveView] = useState("start");
-
-  const pickRandomAnyQuestionIndex = useCallback(() => {
-    const n = VOCAB_ITEMS.length;
-    if (n <= 1) return 0;
-    return Math.floor(Math.random() * n);
-  }, []);
 
   // 問題別の正誤（VOCAB_ITEMS と同じ長さの配列）
   const [stats, setStats] = useState(() =>
@@ -93,22 +130,25 @@ export default function Page() {
   const [input, setInput] = useState("");
   const [checked, setChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [dashboardReturnView, setDashboardReturnView] = useState("study");
+  const [unlockedPoolSize, setUnlockedPoolSize] = useState(() =>
+    Math.min(INITIAL_POOL_SIZE, VOCAB_ITEMS.length),
+  );
+  const [lastUnlockCount, setLastUnlockCount] = useState(0);
   const resultReadyRef = useRef(false);
+  const resultUnlockAppliedRef = useRef(false);
 
   const q = VOCAB_ITEMS[index];
   const correctSoundRef = useRef(null);
+  const answeredCount = checked ? total : total - 1;
+  const currentSessionAccuracy =
+    answeredCount <= 0 ? 1 : score / answeredCount;
 
   const normalizedAnswers = useMemo(() => {
     return (q?.answers ?? []).map(normalizeAnswer);
   }, [q]);
 
   // 初回マウント後にランダム出題へ切り替える（初回SSRと一致させた後でOK）
-  useEffect(() => {
-    const initial = pickRandomAnyQuestionIndex();
-    setIndex(initial);
-    seenInPlayRef.current = new Set([initial]);
-  }, []);
-
   useEffect(() => {
     if (typeof window === "undefined") return;
     correctSoundRef.current = new Audio("/success.mp3");
@@ -131,6 +171,18 @@ export default function Page() {
     if (!window.localStorage) return;
 
     try {
+      const rawPoolSize = window.localStorage.getItem(POOL_STORAGE_KEY);
+      const savedPoolSize = Number(rawPoolSize);
+      if (Number.isFinite(savedPoolSize) && savedPoolSize > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setUnlockedPoolSize(
+          Math.max(
+            Math.min(INITIAL_POOL_SIZE, VOCAB_ITEMS.length),
+            Math.min(Math.floor(savedPoolSize), VOCAB_ITEMS.length),
+          ),
+        );
+      }
+
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) {
         didLoadFromStorageRef.current = true;
@@ -198,53 +250,50 @@ export default function Page() {
     }
   }, [stats]);
 
-  if (!q) {
-    return (
-      <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
-        <div className="w-full max-w-xl rounded-2xl border bg-white p-6">
-          <h1 className="text-xl font-semibold">英単語クイズ</h1>
-          <p className="mt-3 text-zinc-700">問題データがありません。</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!window.localStorage) return;
+    if (!didLoadFromStorageRef.current) return;
+
+    try {
+      window.localStorage.setItem(POOL_STORAGE_KEY, String(unlockedPoolSize));
+    } catch {
+      // 保存できない環境（容量不足等）は黙って無視
+    }
+  }, [unlockedPoolSize]);
 
   const progress = `${total} / ${PLAY_LIMIT}`;
   const progressPct = Math.max(0, Math.min(100, (total / PLAY_LIMIT) * 100));
 
-  const pickNextQuestionIndex = (avoidIndex, seenSet) => {
-    const n = VOCAB_ITEMS.length;
-    if (n <= 1) return 0;
+  const pickNextQuestionIndex = useCallback(
+    (avoidIndex, seenSet) => {
+      const poolLimit = Math.max(1, Math.min(unlockedPoolSize, VOCAB_ITEMS.length));
+      let candidates = Array.from({ length: poolLimit }, (_, i) => i).filter(
+        (i) => !seenSet?.has(i),
+      );
 
-    // すでに出た問題を除外（1プレイ内で重複させない）
-    const remaining = Array.from({ length: n }, (_, i) => i).filter(
-      (i) => !seenSet?.has(i),
-    );
-    if (remaining.length === 0) return null;
-
-    const useWeakness = Math.random() < 0.7;
-
-    // 70%: priority高めの問題からランダム
-    if (useWeakness) {
-      const ranked = remaining
-        .sort((a, b) => calcPriority(stats[b]) - calcPriority(stats[a]));
-
-      // 上位30%（最低1問）からランダム抽出
-      const topK = Math.max(1, Math.ceil(ranked.length * 0.3));
-      let pool = ranked.slice(0, topK);
-      if (typeof avoidIndex === "number" && pool.length > 1) {
-        pool = pool.filter((i) => i !== avoidIndex);
+      if (typeof avoidIndex === "number" && candidates.length > 1) {
+        candidates = candidates.filter((i) => i !== avoidIndex);
       }
-      return pickRandomIndex(pool);
-    }
+      if (candidates.length === 0) return null;
 
-    // 30%: 全体からランダム
-    let pool = remaining;
-    if (typeof avoidIndex === "number" && pool.length > 1) {
-      pool = pool.filter((i) => i !== avoidIndex);
-    }
-    return pickRandomIndex(pool);
-  };
+      const fresh = candidates.filter((i) => getAttempts(stats[i]) === 0);
+      const practiced = candidates.filter((i) => getAttempts(stats[i]) > 0);
+      const shouldTryFresh =
+        fresh.length > 0 &&
+        (practiced.length === 0 ||
+          (currentSessionAccuracy >= 0.7 && Math.random() < 0.28));
+
+      if (shouldTryFresh) {
+        return pickRandomIndex(fresh);
+      }
+
+      return weightedPickIndex(candidates, (i) =>
+        getQuestionWeight(stats[i], currentSessionAccuracy),
+      );
+    },
+    [currentSessionAccuracy, stats, unlockedPoolSize],
+  );
 
   const checkAnswer = () => {
     // 二重加算防止
@@ -279,11 +328,29 @@ export default function Page() {
 
   };
 
+  const applyPoolUnlock = useCallback((finalScore) => {
+    if (resultUnlockAppliedRef.current) return;
+    resultUnlockAppliedRef.current = true;
+
+    const step = getUnlockStep(finalScore, PLAY_LIMIT);
+    if (step <= 0) {
+      setLastUnlockCount(0);
+      return;
+    }
+
+    setUnlockedPoolSize((prev) => {
+      const nextSize = Math.min(prev + step, VOCAB_ITEMS.length);
+      setLastUnlockCount(nextSize - prev);
+      return nextSize;
+    });
+  }, []);
+
   const next = () => {
     if (!checked || activeView === "result") return;
 
     // 10問目を終えたら結果表示（totalは10/10のまま）
     if (total >= PLAY_LIMIT) {
+      applyPoolUnlock(score);
       setActiveView("result");
       return;
     }
@@ -294,6 +361,7 @@ export default function Page() {
     const nextIndex = pickNextQuestionIndex(index, seenInPlayRef.current);
     if (nextIndex === null) {
       // 未出題がもう無い場合（問題数が少ない等）
+      applyPoolUnlock(score);
       setActiveView("result");
       return;
     }
@@ -303,8 +371,6 @@ export default function Page() {
     setChecked(false);
     setIsCorrect(false);
   };
-
-  const [dashboardReturnView, setDashboardReturnView] = useState("study");
 
   const openDashboard = useCallback((returnView = "study") => {
     setDashboardReturnView(returnView);
@@ -317,13 +383,15 @@ export default function Page() {
     setStreak(0);
     setBestStreak(0);
     // 累積の正解・不正解は localStorage に残すため、ここでは stats はリセットしない
-    const newIndex = pickRandomAnyQuestionIndex();
+    const newIndex = pickNextQuestionIndex(null, new Set()) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
     setInput("");
     setChecked(false);
     setIsCorrect(false);
-  }, [pickRandomAnyQuestionIndex]);
+    setLastUnlockCount(0);
+    resultUnlockAppliedRef.current = false;
+  }, [pickNextQuestionIndex]);
 
   const startGame = useCallback(() => {
     resetPlayState();
@@ -379,6 +447,17 @@ export default function Page() {
     };
   }, [activeView, restart]);
 
+  if (!q) {
+    return (
+      <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
+        <div className="w-full max-w-xl rounded-2xl border bg-white p-6">
+          <h1 className="text-xl font-semibold">英単語クイズ</h1>
+          <p className="mt-3 text-zinc-700">問題データがありません。</p>
+        </div>
+      </div>
+    );
+  }
+
   if (activeView === "dashboard") {
     return (
       <ProgressDashboard
@@ -395,6 +474,9 @@ export default function Page() {
         score={score}
         bestStreak={bestStreak}
         playLimit={PLAY_LIMIT}
+        unlockedPoolSize={unlockedPoolSize}
+        totalWords={VOCAB_ITEMS.length}
+        unlockedThisRun={lastUnlockCount}
         onRestart={restart}
         onOpenDashboard={() => openDashboard("result")}
         onBackToStart={backToStart}
@@ -408,6 +490,13 @@ export default function Page() {
         <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm text-center">
           <h1 className="text-3xl font-semibold">英単語クイズ</h1>
           <p className="mt-4 text-zinc-600">Enter を押して 1プレイを開始します。</p>
+          <p className="mt-2 text-sm text-zinc-500">
+            現在の出題プール:{" "}
+            <span className="font-semibold tabular-nums text-zinc-700">
+              {unlockedPoolSize}
+            </span>{" "}
+            / {VOCAB_ITEMS.length} 語
+          </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-center">
             <button
               type="button"
@@ -455,6 +544,9 @@ export default function Page() {
         <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-zinc-600">
           <div>
             Score: {score} / {PLAY_LIMIT}
+          </div>
+          <div>
+            Pool: {unlockedPoolSize} / {VOCAB_ITEMS.length}
           </div>
           <div className="inline-flex items-center gap-2">
             <span>最高ストリーク: {bestStreak}</span>

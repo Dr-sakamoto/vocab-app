@@ -4,6 +4,9 @@ export default function ResultScreen({
   score,
   bestStreak,
   playLimit,
+  unlockedPoolSize,
+  totalWords,
+  unlockedThisRun,
   onRestart,
   onOpenDashboard,
   onBackToStart,
@@ -25,6 +28,14 @@ export default function ResultScreen({
             最終スコア: <span className="font-semibold">{score}</span> / {playLimit}
           </div>
           <div className="mt-2 text-sm text-zinc-600">最高ストリーク: {bestStreak}</div>
+          <div className="mt-2 text-sm text-zinc-600">
+            出題プール: {unlockedPoolSize} / {totalWords} 語
+          </div>
+          {unlockedThisRun > 0 && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+              新単語が {unlockedThisRun} 語 解放されました
+            </div>
+          )}
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
