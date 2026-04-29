@@ -361,6 +361,28 @@ export default function Page() {
     setActiveView("study");
   }, [pickRandomAnyQuestionIndex]);
 
+  if (activeView === "dashboard") {
+    return (
+      <ProgressDashboard
+        stats={stats}
+        totalWords={VOCAB_ITEMS.length}
+        onBack={() => setActiveView("study")}
+      />
+    );
+  }
+
+  if (activeView === "result") {
+    return (
+      <ResultScreen
+        score={score}
+        bestStreak={bestStreak}
+        playLimit={PLAY_LIMIT}
+        onRestart={restart}
+        onOpenDashboard={openDashboard}
+      />
+    );
+  }
+
   useEffect(() => {
     if (activeView !== "result") {
       resultReadyRef.current = false;
