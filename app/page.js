@@ -311,6 +311,10 @@ export default function Page() {
     } else {
       setStreak(0);
     }
+
+    if (total >= PLAY_LIMIT) {
+      setActiveView("result");
+    }
   };
 
   const next = () => {
