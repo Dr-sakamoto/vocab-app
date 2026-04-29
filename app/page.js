@@ -322,13 +322,10 @@ export default function Page() {
 
   const [dashboardReturnView, setDashboardReturnView] = useState("study");
 
-  const openDashboard = useCallback(
-    (returnView = activeView) => {
-      setDashboardReturnView(returnView);
-      setActiveView("dashboard");
-    },
-    [activeView],
-  );
+  const openDashboard = useCallback((returnView = "study") => {
+    setDashboardReturnView(returnView);
+    setActiveView("dashboard");
+  }, []);
 
   const startGame = useCallback(() => {
     setActiveView("study");
@@ -405,7 +402,7 @@ export default function Page() {
         bestStreak={bestStreak}
         playLimit={PLAY_LIMIT}
         onRestart={restart}
-        onOpenDashboard={openDashboard}
+        onOpenDashboard={() => openDashboard("result")}
       />
     );
   }
