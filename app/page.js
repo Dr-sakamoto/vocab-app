@@ -322,10 +322,13 @@ export default function Page() {
 
   const [dashboardReturnView, setDashboardReturnView] = useState("study");
 
-  const openDashboard = useCallback((returnView = "study") => {
-    setDashboardReturnView(returnView);
-    setActiveView("dashboard");
-  }, []);
+  const openDashboard = useCallback(
+    (returnView = activeView) => {
+      setDashboardReturnView(returnView);
+      setActiveView("dashboard");
+    },
+    [activeView],
+  );
 
   const startGame = useCallback(() => {
     setActiveView("study");

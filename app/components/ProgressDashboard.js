@@ -124,7 +124,7 @@ export default function ProgressDashboard({ stats, totalWords, onBack }) {
             onClick={onBack}
             className="inline-flex h-10 items-center justify-center rounded-xl border bg-white px-4 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
           >
-            学習に戻る
+            戻る
           </button>
         </div>
 
