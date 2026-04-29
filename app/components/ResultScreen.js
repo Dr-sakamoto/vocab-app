@@ -1,3 +1,5 @@
+"use client";
+
 export default function ResultScreen({ score, bestStreak, playLimit, onRestart, onOpenDashboard }) {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">

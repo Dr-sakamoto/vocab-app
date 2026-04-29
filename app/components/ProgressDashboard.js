@@ -1,3 +1,5 @@
+"use client";
+
 const LEVEL_RING_COLORS = {
   0: "#d4d4d8",
   1: "#fef08a",
