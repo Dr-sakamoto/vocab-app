@@ -8,6 +8,9 @@ import ResultScreen from "./components/ResultScreen";
 import { computeSessionXP, evaluatePlay } from "@/lib/playEvaluation";
 import { getPoolTier } from "@/lib/monster";
 import { QUESTIONS } from "@/lib/vocab";
+import SyncButton from "./components/SyncButton";
+
+
 
 /** 各問題に安定した ID */
 const VOCAB_ITEMS = QUESTIONS.map((q, i) => ({ ...q, id: `w${i}` }));
@@ -343,6 +346,34 @@ export default function Page() {
   const restart    = useCallback(() => { resetPlayState(); setActiveView("study"); }, [resetPlayState]);
   const backToStart = useCallback(() => { resetPlayState(); setActiveView("start"); }, [resetPlayState]);
 
+
+const handleMerged = useCallback(
+  ({ stats: mergedStats, unlockedPoolSize: mergedPool, monsterTotalXP: mergedXP }) => {
+    setStats(mergedStats);
+    setUnlockedPoolSize(mergedPool);
+    setMonsterTotalXP(mergedXP);
+
+    // localStorage も即時更新
+    try {
+      window.localStorage.setItem(POOL_STORAGE_KEY, String(mergedPool));
+      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(mergedXP));
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(
+          VOCAB_ITEMS.map((v, i) => ({
+            id: v.id,
+            target: v.target,
+            correct: mergedStats[i]?.correct ?? 0,
+            wrong: mergedStats[i]?.wrong ?? 0,
+          }))
+        )
+      );
+    } catch { /* ignore */ }
+  },
+  []
+);
+
+
   // ── キーボードショートカット ───────────────────────────────────────────────
   useEffect(() => {
     if (activeView !== "start") return;
@@ -446,6 +477,12 @@ export default function Page() {
               >
                 進捗を見る
               </button>
+                <SyncButton
+    stats={stats}
+    unlockedPoolSize={unlockedPoolSize}
+    monsterTotalXP={monsterTotalXP}
+    onMerged={handleMerged}
+  />
             </div>
           </div>
 

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "英単語クイズ",
-  description: "英単語を日本語訳で復習するクイズアプリ",
+  title: "ポケモン英単語クイズ",
+  description: "英単語を記述式で答えるポケモンのクイズゲーム",
 };
 
 export default function RootLayout({
