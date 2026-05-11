@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MonsterCompanion from "./components/MonsterCompanion";
+import PokemonBox from "./components/PokemonBox";
 import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
 
 import { computeSessionXP, evaluatePlay } from "@/lib/playEvaluation";
-import { getPoolTier, levelFromTotalXP } from "@/lib/monster";
+import { clampMonsterXP, DEFAULT_MONSTER_LINE_ID, getPoolTier, levelFromTotalXP, normalizeMonsterLineId } from "@/lib/monster";
 import { QUESTIONS } from "@/lib/vocab";
 import SyncButton from "./components/SyncButton";
 
@@ -18,6 +19,7 @@ const VOCAB_ITEMS = QUESTIONS.map((q, i) => ({ ...q, id: `w${i}` }));
 const STORAGE_KEY        = "vocab-progress";
 const POOL_STORAGE_KEY   = "vocab-active-pool-size";
 const MONSTER_STORAGE_KEY = "monster-total-xp";
+const MONSTER_LINE_STORAGE_KEY = "monster-line-id";
 
 const INITIAL_POOL_SIZE  = 60;
 const UNLOCK_ACCURACY    = 0.8;
@@ -108,6 +110,8 @@ export default function Page() {
 
   // ── モンスター累計 XP ──────────────────────────────────────────────────────
   const [monsterTotalXP, setMonsterTotalXP] = useState(0);
+  const [selectedMonsterLineId, setSelectedMonsterLineId] = useState(DEFAULT_MONSTER_LINE_ID);
+  const [isPokemonBoxOpen, setIsPokemonBoxOpen] = useState(false);
 
   const resultReadyRef          = useRef(false);
   const resultUnlockAppliedRef  = useRef(false);
@@ -169,11 +173,13 @@ export default function Page() {
 
       // モンスター XP
       const rawXP = window.localStorage.getItem(MONSTER_STORAGE_KEY);
-      const savedXP = Number(rawXP);
+      const savedXP = clampMonsterXP(rawXP);
       if (Number.isFinite(savedXP) && savedXP >= 0) {
         monsterTotalXPRef.current = savedXP;
         setMonsterTotalXP(savedXP);
       }
+      const savedMonsterLineId = window.localStorage.getItem(MONSTER_LINE_STORAGE_KEY);
+      setSelectedMonsterLineId(normalizeMonsterLineId(savedMonsterLineId));
 
       // 単語進捗
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -230,6 +236,11 @@ export default function Page() {
     if (!didLoadFromStorageRef.current) return;
     try { window.localStorage.setItem(MONSTER_STORAGE_KEY, String(monsterTotalXP)); } catch { /* 無視 */ }
   }, [monsterTotalXP]);
+
+  useEffect(() => {
+    if (!didLoadFromStorageRef.current) return;
+    try { window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, selectedMonsterLineId); } catch { /* 無視 */ }
+  }, [selectedMonsterLineId]);
 
   // ── 出題 ──────────────────────────────────────────────────────────────────
   const progress    = `${total} / ${PLAY_LIMIT}`;
@@ -315,10 +326,11 @@ export default function Page() {
       playLimit:        PLAY_LIMIT,
     });
     const previousXP = monsterTotalXPRef.current;
-    const nextXP = previousXP + gained;
+    const nextXP = clampMonsterXP(previousXP + gained);
     const didLevelUp = levelFromTotalXP(nextXP) > levelFromTotalXP(previousXP);
 
-    setMonsterTotalXP(prev => prev + gained);
+    monsterTotalXPRef.current = nextXP;
+    setMonsterTotalXP(nextXP);
     if (didLevelUp && levelUpSoundRef.current) {
       levelUpSoundRef.current.currentTime = 0;
       levelUpSoundRef.current.play().catch(() => {});
@@ -370,15 +382,16 @@ export default function Page() {
 
 const handleMerged = useCallback(
   ({ stats: mergedStats, unlockedPoolSize: mergedPool, monsterTotalXP: mergedXP }) => {
+    const cappedMergedXP = clampMonsterXP(mergedXP);
     setStats(mergedStats);
     setUnlockedPoolSize(mergedPool);
-    monsterTotalXPRef.current = mergedXP;
-    setMonsterTotalXP(mergedXP);
+    monsterTotalXPRef.current = cappedMergedXP;
+    setMonsterTotalXP(cappedMergedXP);
 
     // localStorage も即時更新
     try {
       window.localStorage.setItem(POOL_STORAGE_KEY, String(mergedPool));
-      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(mergedXP));
+      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(cappedMergedXP));
       window.localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(
@@ -399,7 +412,10 @@ const handleMerged = useCallback(
   // ── キーボードショートカット ───────────────────────────────────────────────
   useEffect(() => {
     if (activeView !== "start") return;
-    const fn = e => { if (e.key === "Enter") startGame(); };
+    const fn = e => {
+      if (e.key !== "Enter" || e.target?.closest?.("button")) return;
+      startGame();
+    };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
   }, [activeView, startGame]);
@@ -452,6 +468,7 @@ const handleMerged = useCallback(
         unlockedThisRun={lastUnlockCount}
         evaluation={playEvaluation}
         monsterTotalXP={monsterTotalXP}
+        selectedMonsterLineId={selectedMonsterLineId}
         onRestart={restart}
         onOpenDashboard={() => openDashboard("result")}
         onBackToStart={backToStart}
@@ -499,6 +516,14 @@ const handleMerged = useCallback(
               >
                 進捗を見る
               </button>
+              <button
+                type="button"
+                onClick={() => setIsPokemonBoxOpen(open => !open)}
+                aria-expanded={isPokemonBoxOpen}
+                className="inline-flex h-12 items-center justify-center rounded-xl border border-zinc-200 bg-white px-6 text-zinc-900 hover:bg-zinc-50"
+              >
+                ポケモン
+              </button>
                 <SyncButton
     stats={stats}
     unlockedPoolSize={unlockedPoolSize}
@@ -509,7 +534,15 @@ const handleMerged = useCallback(
           </div>
 
           {/* モンスター */}
-          <MonsterCompanion totalXP={monsterTotalXP} size="lg" />
+          {isPokemonBoxOpen && (
+            <PokemonBox
+              selectedLineId={selectedMonsterLineId}
+              totalXP={monsterTotalXP}
+              onSelect={setSelectedMonsterLineId}
+            />
+          )}
+
+          <MonsterCompanion totalXP={monsterTotalXP} size="lg" lineId={selectedMonsterLineId} />
         </div>
       </div>
     );

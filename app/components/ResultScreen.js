@@ -11,6 +11,7 @@ export default function ResultScreen({
   unlockedThisRun,
   evaluation,
   monsterTotalXP,   // 今セッション分を加算済みの累計 XP
+  selectedMonsterLineId,
   onRestart,
   onOpenDashboard,
   onBackToStart,
@@ -32,6 +33,7 @@ export default function ResultScreen({
           totalXP={monsterTotalXP}
           gainedXP={xp ?? 0}
           size="md"
+          lineId={selectedMonsterLineId}
         />
 
         {/* ── グレード + XP ── */}
