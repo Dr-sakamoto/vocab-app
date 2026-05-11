@@ -6,7 +6,7 @@ import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
 
 import { computeSessionXP, evaluatePlay } from "@/lib/playEvaluation";
-import { getPoolTier } from "@/lib/monster";
+import { getPoolTier, levelFromTotalXP } from "@/lib/monster";
 import { QUESTIONS } from "@/lib/vocab";
 import SyncButton from "./components/SyncButton";
 
@@ -114,6 +114,8 @@ export default function Page() {
 
   const q = VOCAB_ITEMS[index];
   const correctSoundRef = useRef(null);
+  const levelUpSoundRef = useRef(null);
+  const monsterTotalXPRef = useRef(0);
   const answeredCount   = checked ? total : total - 1;
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
 
@@ -133,6 +135,10 @@ export default function Page() {
     correctSoundRef.current = new Audio("/success.mp3");
     correctSoundRef.current.volume = 0.75;
     correctSoundRef.current.preload = "auto";
+
+    levelUpSoundRef.current = new Audio("/levelup.mp3");
+    levelUpSoundRef.current.volume = 0.85;
+    levelUpSoundRef.current.preload = "auto";
   }, []);
 
   useEffect(() => {
@@ -140,6 +146,10 @@ export default function Page() {
     correctSoundRef.current.currentTime = 0;
     correctSoundRef.current.play().catch(() => {});
   }, [checked, isCorrect]);
+
+  useEffect(() => {
+    monsterTotalXPRef.current = monsterTotalXP;
+  }, [monsterTotalXP]);
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -160,7 +170,10 @@ export default function Page() {
       // モンスター XP
       const rawXP = window.localStorage.getItem(MONSTER_STORAGE_KEY);
       const savedXP = Number(rawXP);
-      if (Number.isFinite(savedXP) && savedXP >= 0) setMonsterTotalXP(savedXP);
+      if (Number.isFinite(savedXP) && savedXP >= 0) {
+        monsterTotalXPRef.current = savedXP;
+        setMonsterTotalXP(savedXP);
+      }
 
       // 単語進捗
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -301,7 +314,15 @@ export default function Page() {
       unlockedPoolSize: currentPoolSize,
       playLimit:        PLAY_LIMIT,
     });
+    const previousXP = monsterTotalXPRef.current;
+    const nextXP = previousXP + gained;
+    const didLevelUp = levelFromTotalXP(nextXP) > levelFromTotalXP(previousXP);
+
     setMonsterTotalXP(prev => prev + gained);
+    if (didLevelUp && levelUpSoundRef.current) {
+      levelUpSoundRef.current.currentTime = 0;
+      levelUpSoundRef.current.play().catch(() => {});
+    }
   }, []); // すべての入力をパラメータで受け取るので deps 不要
 
   // ── 次へ ───────────────────────────────────────────────────────────────────
@@ -351,6 +372,7 @@ const handleMerged = useCallback(
   ({ stats: mergedStats, unlockedPoolSize: mergedPool, monsterTotalXP: mergedXP }) => {
     setStats(mergedStats);
     setUnlockedPoolSize(mergedPool);
+    monsterTotalXPRef.current = mergedXP;
     setMonsterTotalXP(mergedXP);
 
     // localStorage も即時更新
