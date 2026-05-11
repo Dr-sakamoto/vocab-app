@@ -7,7 +7,17 @@ import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
 
 import { computeSessionXP, evaluatePlay } from "@/lib/playEvaluation";
-import { clampMonsterXP, DEFAULT_MONSTER_LINE_ID, getPoolTier, levelFromTotalXP, normalizeMonsterLineId } from "@/lib/monster";
+import {
+  clampMonsterXP,
+  DEFAULT_MONSTER_COLLECTION,
+  getActiveMonster,
+  getPoolTier,
+  levelFromTotalXP,
+  normalizeMonsterCollection,
+  normalizeMonsterLineId,
+  setActiveMonster,
+  updateMonsterXP,
+} from "@/lib/monster";
 import { QUESTIONS } from "@/lib/vocab";
 import SyncButton from "./components/SyncButton";
 
@@ -20,6 +30,7 @@ const STORAGE_KEY        = "vocab-progress";
 const POOL_STORAGE_KEY   = "vocab-active-pool-size";
 const MONSTER_STORAGE_KEY = "monster-total-xp";
 const MONSTER_LINE_STORAGE_KEY = "monster-line-id";
+const MONSTER_COLLECTION_STORAGE_KEY = "monster-collection";
 
 const INITIAL_POOL_SIZE  = 60;
 const UNLOCK_ACCURACY    = 0.8;
@@ -108,9 +119,10 @@ export default function Page() {
   );
   const [lastUnlockCount, setLastUnlockCount] = useState(0);
 
-  // ── モンスター累計 XP ──────────────────────────────────────────────────────
-  const [monsterTotalXP, setMonsterTotalXP] = useState(0);
-  const [selectedMonsterLineId, setSelectedMonsterLineId] = useState(DEFAULT_MONSTER_LINE_ID);
+  // ── モンスター個体 ────────────────────────────────────────────────────────
+  const [monsterCollection, setMonsterCollection] = useState(() =>
+    normalizeMonsterCollection(DEFAULT_MONSTER_COLLECTION),
+  );
   const [isPokemonBoxOpen, setIsPokemonBoxOpen] = useState(false);
 
   const resultReadyRef          = useRef(false);
@@ -119,7 +131,8 @@ export default function Page() {
   const q = VOCAB_ITEMS[index];
   const correctSoundRef = useRef(null);
   const levelUpSoundRef = useRef(null);
-  const monsterTotalXPRef = useRef(0);
+  const monsterCollectionRef = useRef(monsterCollection);
+  const activeMonster = getActiveMonster(monsterCollection);
   const answeredCount   = checked ? total : total - 1;
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
 
@@ -152,8 +165,8 @@ export default function Page() {
   }, [checked, isCorrect]);
 
   useEffect(() => {
-    monsterTotalXPRef.current = monsterTotalXP;
-  }, [monsterTotalXP]);
+    monsterCollectionRef.current = monsterCollection;
+  }, [monsterCollection]);
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -174,12 +187,15 @@ export default function Page() {
       // モンスター XP
       const rawXP = window.localStorage.getItem(MONSTER_STORAGE_KEY);
       const savedXP = clampMonsterXP(rawXP);
-      if (Number.isFinite(savedXP) && savedXP >= 0) {
-        monsterTotalXPRef.current = savedXP;
-        setMonsterTotalXP(savedXP);
-      }
       const savedMonsterLineId = window.localStorage.getItem(MONSTER_LINE_STORAGE_KEY);
-      setSelectedMonsterLineId(normalizeMonsterLineId(savedMonsterLineId));
+      const rawCollection = window.localStorage.getItem(MONSTER_COLLECTION_STORAGE_KEY);
+      const savedCollection = rawCollection ? JSON.parse(rawCollection) : null;
+      const normalizedCollection = normalizeMonsterCollection(savedCollection, {
+        lineId: normalizeMonsterLineId(savedMonsterLineId),
+        totalXP: savedXP,
+      });
+      monsterCollectionRef.current = normalizedCollection;
+      setMonsterCollection(normalizedCollection);
 
       // 単語進捗
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -234,13 +250,13 @@ export default function Page() {
 
   useEffect(() => {
     if (!didLoadFromStorageRef.current) return;
-    try { window.localStorage.setItem(MONSTER_STORAGE_KEY, String(monsterTotalXP)); } catch { /* 無視 */ }
-  }, [monsterTotalXP]);
-
-  useEffect(() => {
-    if (!didLoadFromStorageRef.current) return;
-    try { window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, selectedMonsterLineId); } catch { /* 無視 */ }
-  }, [selectedMonsterLineId]);
+    try {
+      const active = getActiveMonster(monsterCollection);
+      window.localStorage.setItem(MONSTER_COLLECTION_STORAGE_KEY, JSON.stringify(monsterCollection));
+      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(active.totalXP));
+      window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, active.lineId);
+    } catch { /* 無視 */ }
+  }, [monsterCollection]);
 
   // ── 出題 ──────────────────────────────────────────────────────────────────
   const progress    = `${total} / ${PLAY_LIMIT}`;
@@ -325,12 +341,15 @@ export default function Page() {
       unlockedPoolSize: currentPoolSize,
       playLimit:        PLAY_LIMIT,
     });
-    const previousXP = monsterTotalXPRef.current;
+    const currentCollection = monsterCollectionRef.current;
+    const currentMonster = getActiveMonster(currentCollection);
+    const previousXP = currentMonster.totalXP;
     const nextXP = clampMonsterXP(previousXP + gained);
     const didLevelUp = levelFromTotalXP(nextXP) > levelFromTotalXP(previousXP);
 
-    monsterTotalXPRef.current = nextXP;
-    setMonsterTotalXP(nextXP);
+    const nextCollection = updateMonsterXP(currentCollection, currentMonster.id, () => nextXP);
+    monsterCollectionRef.current = nextCollection;
+    setMonsterCollection(nextCollection);
     if (didLevelUp && levelUpSoundRef.current) {
       levelUpSoundRef.current.currentTime = 0;
       levelUpSoundRef.current.play().catch(() => {});
@@ -381,17 +400,20 @@ export default function Page() {
 
 
 const handleMerged = useCallback(
-  ({ stats: mergedStats, unlockedPoolSize: mergedPool, monsterTotalXP: mergedXP }) => {
-    const cappedMergedXP = clampMonsterXP(mergedXP);
+  ({ stats: mergedStats, unlockedPoolSize: mergedPool, monsterCollection: mergedCollection }) => {
+    const normalizedCollection = normalizeMonsterCollection(mergedCollection);
+    const active = getActiveMonster(normalizedCollection);
     setStats(mergedStats);
     setUnlockedPoolSize(mergedPool);
-    monsterTotalXPRef.current = cappedMergedXP;
-    setMonsterTotalXP(cappedMergedXP);
+    monsterCollectionRef.current = normalizedCollection;
+    setMonsterCollection(normalizedCollection);
 
     // localStorage も即時更新
     try {
       window.localStorage.setItem(POOL_STORAGE_KEY, String(mergedPool));
-      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(cappedMergedXP));
+      window.localStorage.setItem(MONSTER_COLLECTION_STORAGE_KEY, JSON.stringify(normalizedCollection));
+      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(active.totalXP));
+      window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, active.lineId);
       window.localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(
@@ -467,8 +489,7 @@ const handleMerged = useCallback(
         totalWords={VOCAB_ITEMS.length}
         unlockedThisRun={lastUnlockCount}
         evaluation={playEvaluation}
-        monsterTotalXP={monsterTotalXP}
-        selectedMonsterLineId={selectedMonsterLineId}
+        monster={activeMonster}
         onRestart={restart}
         onOpenDashboard={() => openDashboard("result")}
         onBackToStart={backToStart}
@@ -527,7 +548,7 @@ const handleMerged = useCallback(
                 <SyncButton
     stats={stats}
     unlockedPoolSize={unlockedPoolSize}
-    monsterTotalXP={monsterTotalXP}
+    monsterCollection={monsterCollection}
     onMerged={handleMerged}
   />
             </div>
@@ -536,13 +557,12 @@ const handleMerged = useCallback(
           {/* モンスター */}
           {isPokemonBoxOpen && (
             <PokemonBox
-              selectedLineId={selectedMonsterLineId}
-              totalXP={monsterTotalXP}
-              onSelect={setSelectedMonsterLineId}
+              collection={monsterCollection}
+              onSelect={monsterId => setMonsterCollection(prev => setActiveMonster(prev, monsterId))}
             />
           )}
 
-          <MonsterCompanion totalXP={monsterTotalXP} size="lg" lineId={selectedMonsterLineId} />
+          <MonsterCompanion monster={activeMonster} size="lg" />
         </div>
       </div>
     );

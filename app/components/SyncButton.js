@@ -13,7 +13,7 @@ import {
 export default function SyncButton({
   stats,
   unlockedPoolSize,
-  monsterTotalXP,
+  monsterCollection,
   onMerged,
 }) {
   const [user, setUser] = useState(null);
@@ -28,7 +28,7 @@ export default function SyncButton({
       const merged = await downloadAndMerge({
         stats,
         unlockedPoolSize,
-        monsterTotalXP,
+        monsterCollection,
       });
       await uploadProgress(merged);
       onMerged(merged);
@@ -41,7 +41,7 @@ export default function SyncButton({
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
-  }, [monsterTotalXP, onMerged, stats, unlockedPoolSize]);
+  }, [monsterCollection, onMerged, stats, unlockedPoolSize]);
 
   useEffect(() => {
     let disposed = false;

@@ -9,9 +9,11 @@ import { getMonsterState } from "@/lib/monster";
  * @param {number}  gainedXP  - 今セッションで獲得した XP（進化判定・+XP表示に使用）
  * @param {"sm"|"md"|"lg"} size
  */
-export default function MonsterCompanion({ totalXP = 0, gainedXP = 0, size = "md", lineId }) {
-  const current = getMonsterState(totalXP, lineId);
-  const prev    = gainedXP > 0 ? getMonsterState(Math.max(0, totalXP - gainedXP), lineId) : null;
+export default function MonsterCompanion({ monster = null, totalXP = 0, gainedXP = 0, size = "md", lineId }) {
+  const monsterXP = monster?.totalXP ?? totalXP;
+  const monsterLineId = monster?.lineId ?? lineId;
+  const current = getMonsterState(monsterXP, monsterLineId);
+  const prev    = gainedXP > 0 ? getMonsterState(Math.max(0, monsterXP - gainedXP), monsterLineId) : null;
   const evolved = prev !== null && prev.species.id !== current.species.id;
 
   const spriteSize = size === "sm" ? 56 : size === "lg" ? 112 : 80;

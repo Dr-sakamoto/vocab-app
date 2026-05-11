@@ -1,23 +1,24 @@
 "use client";
 
-import { getAvailableMonsterLines, getMonsterState } from "@/lib/monster";
+import { getMonsterLine, getMonsterState, normalizeMonsterCollection } from "@/lib/monster";
 
-export default function PokemonBox({ selectedLineId, totalXP = 0, onSelect }) {
-  const lines = getAvailableMonsterLines();
+export default function PokemonBox({ collection, onSelect }) {
+  const normalized = normalizeMonsterCollection(collection);
 
   return (
     <div className="rounded-xl border bg-white p-4 shadow-sm">
       <div className="grid grid-cols-3 gap-3">
-        {lines.map(line => {
-          const current = getMonsterState(totalXP, line.id);
-          const selected = line.id === selectedLineId;
+        {normalized.monsters.map(monster => {
+          const line = getMonsterLine(monster.lineId);
+          const current = getMonsterState(monster.totalXP, monster.lineId);
+          const selected = monster.id === normalized.activeId;
 
           return (
             <button
-              key={line.id}
+              key={monster.id}
               type="button"
-              onClick={() => onSelect(line.id)}
-              aria-label={line.name}
+              onClick={() => onSelect(monster.id)}
+              aria-label={`${line.name} Lv. ${current.level}`}
               aria-pressed={selected}
               className={[
                 "group flex aspect-square flex-col items-center justify-center rounded-lg border-2 bg-zinc-50 p-2 transition",
@@ -40,6 +41,9 @@ export default function PokemonBox({ selectedLineId, totalXP = 0, onSelect }) {
               />
               <span className="mt-1 max-w-full truncate text-xs font-medium text-zinc-700">
                 {current.species.name}
+              </span>
+              <span className="text-[11px] tabular-nums text-zinc-400">
+                Lv. {current.level}
               </span>
             </button>
           );
