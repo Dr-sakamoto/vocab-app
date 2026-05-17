@@ -49,10 +49,10 @@ function normalizeAnswer(value) {
 }
 
 function getPraiseMessage(streak) {
-  if (streak >= 9)  return { label: "MARVELOUS!!!", color: "text-red-600" };
-  if (streak >= 7)  return { label: "AMAZING!!",   color: "text-violet-600" };
-  if (streak >= 5)  return { label: "EXCELLENT!",  color: "text-blue-600" };
-  if (streak >= 3)  return { label: "GOOD",        color: "text-sky-400" };
+  if (streak >= 8)  return { label: "MARVELOUS!!!", color: "text-red-600" };
+  if (streak >= 6)  return { label: "AMAZING!!",   color: "text-violet-600" };
+  if (streak >= 4)  return { label: "EXCELLENT!",  color: "text-blue-600" };
+  if (streak >= 2)  return { label: "GOOD",        color: "text-sky-400" };
   return null;
 }
 
