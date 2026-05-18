@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MonsterCompanion from "./components/MonsterCompanion";
 import PokemonBox from "./components/PokemonBox";
+import PokemonParty from "./components/PokemonParty";
 import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
 
@@ -16,7 +16,8 @@ import {
   normalizeMonsterCollection,
   normalizeMonsterLineId,
   setActiveMonster,
-  updateMonsterXP,
+  swapMonsterLocations,
+  updatePartyXP,
 } from "@/lib/monster";
 import { QUESTIONS } from "@/lib/vocab";
 import SyncButton from "./components/SyncButton";
@@ -352,7 +353,7 @@ export default function Page() {
     const nextXP = clampMonsterXP(previousXP + gained);
     const didLevelUp = levelFromTotalXP(nextXP) > levelFromTotalXP(previousXP);
 
-    const nextCollection = updateMonsterXP(currentCollection, currentMonster.id, () => nextXP);
+    const nextCollection = updatePartyXP(currentCollection, gained);
     monsterCollectionRef.current = nextCollection;
     setMonsterCollection(nextCollection);
     if (didLevelUp && levelUpSoundRef.current) {
@@ -545,7 +546,7 @@ const handleMerged = useCallback(
               </button>
               <button
                 type="button"
-                onClick={() => setIsPokemonBoxOpen(open => !open)}
+                onClick={() => setIsPokemonBoxOpen(true)}
                 aria-expanded={isPokemonBoxOpen}
                 className="inline-flex h-12 items-center justify-center rounded-xl border border-zinc-200 bg-white px-6 text-zinc-900 hover:bg-zinc-50"
               >
@@ -564,11 +565,17 @@ const handleMerged = useCallback(
           {isPokemonBoxOpen && (
             <PokemonBox
               collection={monsterCollection}
-              onSelect={monsterId => setMonsterCollection(prev => setActiveMonster(prev, monsterId))}
+              onClose={() => setIsPokemonBoxOpen(false)}
+              onSwap={(first, second) =>
+                setMonsterCollection(prev => swapMonsterLocations(prev, first, second))
+              }
             />
           )}
 
-          <MonsterCompanion monster={activeMonster} size="lg" />
+          <PokemonParty
+            collection={monsterCollection}
+            onSelect={monsterId => setMonsterCollection(prev => setActiveMonster(prev, monsterId))}
+          />
         </div>
       </div>
     );
