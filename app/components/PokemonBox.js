@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   getBoxMonsters,
   getMonsterState,
+  getPartyCount,
   getPartySlots,
   normalizeMonsterCollection,
 } from "@/lib/monster";
@@ -17,13 +18,22 @@ function MonsterTile({ monster, location, selected, active, buddySlot, boxTile, 
     selected.id === location.id;
 
   if (!monster) {
+    const canReceive = selected && selected.area !== "party";
     return (
-      <div
-        className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-emerald-200 bg-emerald-50/70 text-2xl font-light text-emerald-200"
+      <button
+        type="button"
+        onClick={() => canReceive && onPick(location)}
+        disabled={!canReceive}
+        className={[
+          "flex aspect-square items-center justify-center rounded-lg border border-dashed text-2xl font-light transition",
+          canReceive
+            ? "border-sky-300 bg-sky-50 text-sky-400 ring-2 ring-sky-200"
+            : "border-emerald-200 bg-emerald-50/70 text-emerald-200",
+        ].join(" ")}
         aria-label="empty"
       >
         +
-      </div>
+      </button>
     );
   }
 
@@ -69,13 +79,42 @@ function MonsterTile({ monster, location, selected, active, buddySlot, boxTile, 
   );
 }
 
-export default function PokemonBox({ collection, onClose, onSwap }) {
+function BoxDropTarget({ selected, disabled, onPick }) {
+  const active = selected?.area === "party" && !disabled;
+  return (
+    <button
+      type="button"
+      onClick={() => active && onPick({ area: "remove" })}
+      disabled={!active}
+      aria-label="send to box"
+      className={[
+        "mt-3 flex h-14 w-full items-center justify-center rounded-xl border-2 border-dashed transition",
+        active
+          ? "border-sky-300 bg-sky-50 text-sky-600 ring-2 ring-sky-200"
+          : "border-zinc-200 bg-white text-zinc-300",
+      ].join(" ")}
+    >
+      <span className="text-2xl leading-none">↓▭</span>
+    </button>
+  );
+}
+
+export default function PokemonBox({ collection, onClose, onSwap, onRemove }) {
   const normalized = normalizeMonsterCollection(collection);
   const partySlots = getPartySlots(normalized);
   const boxMonsters = getBoxMonsters(normalized);
+  const partyCount = getPartyCount(normalized);
   const [selected, setSelected] = useState(null);
 
   const pick = location => {
+    if (location.area === "remove") {
+      if (selected?.area === "party") onRemove?.(selected.index);
+      setSelected(null);
+      return;
+    }
+
+    if (location.area === "party" && location.id === null && !selected) return;
+
     if (!selected) {
       setSelected(location);
       return;
@@ -129,6 +168,11 @@ export default function PokemonBox({ collection, onClose, onSwap }) {
               />
             ))}
           </div>
+          <BoxDropTarget
+            selected={selected}
+            disabled={partyCount <= 1}
+            onPick={pick}
+          />
         </section>
 
         <section className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3">

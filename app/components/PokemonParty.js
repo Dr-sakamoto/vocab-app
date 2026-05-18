@@ -1,6 +1,6 @@
 "use client";
 
-import { getMonsterState, getPartySlots, normalizeMonsterCollection } from "@/lib/monster";
+import { getPartyCount, getMonsterState, getPartySlots, normalizeMonsterCollection } from "@/lib/monster";
 
 export default function PokemonParty({ collection, onSelect }) {
   const normalized = normalizeMonsterCollection(collection);
@@ -11,7 +11,7 @@ export default function PokemonParty({ collection, onSelect }) {
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-semibold text-zinc-900">Party</h2>
         <span className="text-xs text-zinc-400">
-          {normalized.partyIds.length} / {slots.length}
+          {getPartyCount(normalized)} / {slots.length}
         </span>
       </div>
 

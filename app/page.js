@@ -6,6 +6,11 @@ import PokemonParty from "./components/PokemonParty";
 import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
 
+import {
+  applyCaptureResultToCollection,
+  getUnlockedHabitats,
+  rollCaptureEncounter,
+} from "@/lib/capture";
 import { evaluatePlay } from "@/lib/playEvaluation";
 import {
   clampMonsterXP,
@@ -15,6 +20,7 @@ import {
   levelFromTotalXP,
   normalizeMonsterCollection,
   normalizeMonsterLineId,
+  sendPartySlotToBox,
   setActiveMonster,
   swapMonsterLocations,
   updatePartyXP,
@@ -106,6 +112,7 @@ export default function Page() {
   const [bestStreak, setBestStreak]   = useState(0);
   const [sessionAnswers, setSessionAnswers] = useState([]);
   const [resultEvaluation, setResultEvaluation] = useState(null);
+  const [captureResult, setCaptureResult] = useState(null);
 
   const [index, setIndex]             = useState(0);
   const seenInPlayRef = useRef(null);
@@ -353,7 +360,16 @@ export default function Page() {
     const nextXP = clampMonsterXP(previousXP + gained);
     const didLevelUp = levelFromTotalXP(nextXP) > levelFromTotalXP(previousXP);
 
-    const nextCollection = updatePartyXP(currentCollection, gained);
+    const leveledCollection = updatePartyXP(currentCollection, gained);
+
+    const capture = rollCaptureEncounter({
+      grade: finalEvaluation.grade,
+      unlockedPoolSize: currentPoolSize,
+      habitatVisits: leveledCollection.habitatVisits,
+      seed: `${Date.now()}-${Math.random()}`,
+    });
+    const nextCollection = applyCaptureResultToCollection(leveledCollection, capture);
+    setCaptureResult(capture);
     monsterCollectionRef.current = nextCollection;
     setMonsterCollection(nextCollection);
     if (didLevelUp && levelUpSoundRef.current) {
@@ -394,6 +410,7 @@ export default function Page() {
   const resetPlayState = useCallback(() => {
     setScore(0); setTotal(1); setStreak(0); setBestStreak(0); setSessionAnswers([]);
     setResultEvaluation(null);
+    setCaptureResult(null);
     const newIndex = pickNextQuestionIndex(null, new Set()) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
@@ -460,6 +477,7 @@ const handleMerged = useCallback(
 
   // ── 現在の tier（スタート画面用） ─────────────────────────────────────────
   const currentTier = getPoolTier(unlockedPoolSize);
+  const unlockedHabitats = getUnlockedHabitats(unlockedPoolSize);
 
   // ─────────────────────────────────────────────────────────────────────────
   // ビュー分岐
@@ -496,6 +514,7 @@ const handleMerged = useCallback(
         totalWords={VOCAB_ITEMS.length}
         unlockedThisRun={lastUnlockCount}
         evaluation={resultEvaluation ?? playEvaluation}
+        captureResult={captureResult}
         monster={activeMonster}
         onRestart={restart}
         onOpenDashboard={() => openDashboard("result")}
@@ -526,6 +545,12 @@ const handleMerged = useCallback(
                 出題プール:{" "}
                 <span className="font-semibold text-zinc-700">{unlockedPoolSize}</span>
                 {" "}/ {VOCAB_ITEMS.length} 語
+              </span>
+            </div>
+            <div className="mt-2 text-sm text-zinc-500">
+              生息地:{" "}
+              <span className="font-semibold text-zinc-700">
+                {unlockedHabitats.map(habitat => habitat.name).join(" / ") || "なし"}
               </span>
             </div>
 
@@ -568,6 +593,9 @@ const handleMerged = useCallback(
               onClose={() => setIsPokemonBoxOpen(false)}
               onSwap={(first, second) =>
                 setMonsterCollection(prev => swapMonsterLocations(prev, first, second))
+              }
+              onRemove={partyIndex =>
+                setMonsterCollection(prev => sendPartySlotToBox(prev, partyIndex))
               }
             />
           )}
