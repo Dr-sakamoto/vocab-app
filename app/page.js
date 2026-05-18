@@ -19,17 +19,22 @@ import {
   updateMonsterXP,
 } from "@/lib/monster";
 import { QUESTIONS } from "@/lib/vocab";
+import SyncButton from "./components/SyncButton";
+
+
 
 /** 各問題に安定した ID */
 const VOCAB_ITEMS = QUESTIONS.map((q, i) => ({ ...q, id: `w${i}` }));
 
-const STORAGE_KEY         = "vocab-progress";
-const POOL_STORAGE_KEY    = "vocab-active-pool-size";
+const STORAGE_KEY        = "vocab-progress";
+const POOL_STORAGE_KEY   = "vocab-active-pool-size";
 const MONSTER_STORAGE_KEY = "monster-total-xp";
+const MONSTER_LINE_STORAGE_KEY = "monster-line-id";
+const MONSTER_COLLECTION_STORAGE_KEY = "monster-collection";
 
-const INITIAL_POOL_SIZE   = 60;
-const UNLOCK_ACCURACY     = 0.8;
-const UNLOCK_STEP         = 30;
+const INITIAL_POOL_SIZE  = 60;
+const UNLOCK_ACCURACY    = 0.8;
+const UNLOCK_STEP        = 30;
 const PERFECT_UNLOCK_STEP = 50;
 
 function getPartOfSpeech(q) { return q?.partOfSpeech ?? "word"; }
@@ -79,7 +84,7 @@ function getQuestionWeight(stat, currentAccuracy) {
 
 function getUnlockStep(score, playLimit) {
   const accuracy = score / playLimit;
-  if (accuracy >= 1)              return PERFECT_UNLOCK_STEP;
+  if (accuracy >= 1)             return PERFECT_UNLOCK_STEP;
   if (accuracy >= UNLOCK_ACCURACY) return UNLOCK_STEP;
   return 0;
 }
@@ -114,7 +119,7 @@ export default function Page() {
   );
   const [lastUnlockCount, setLastUnlockCount] = useState(0);
 
-   // ── モンスター個体 ────────────────────────────────────────────────────────
+  // ── モンスター個体 ────────────────────────────────────────────────────────
   const [monsterCollection, setMonsterCollection] = useState(() =>
     normalizeMonsterCollection(DEFAULT_MONSTER_COLLECTION),
   );
@@ -141,17 +146,16 @@ export default function Page() {
     [bestStreak, score, sessionAnswers, unlockedPoolSize],
   );
 
-  // ── モンスター累計 XP ──────────────────────────────────────────────────────
-  const [monsterTotalXP, setMonsterTotalXP] = useState(0);
-
-
-
   // ── 音声 ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
     correctSoundRef.current = new Audio("/success.mp3");
     correctSoundRef.current.volume = 0.75;
     correctSoundRef.current.preload = "auto";
+
+    levelUpSoundRef.current = new Audio("/levelup.mp3");
+    levelUpSoundRef.current.volume = 0.85;
+    levelUpSoundRef.current.preload = "auto";
   }, []);
 
   useEffect(() => {
@@ -160,10 +164,15 @@ export default function Page() {
     correctSoundRef.current.play().catch(() => {});
   }, [checked, isCorrect]);
 
+  useEffect(() => {
+    monsterCollectionRef.current = monsterCollection;
+  }, [monsterCollection]);
+
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined" || !window.localStorage) return;
     try {
+      // プールサイズ
       const rawPool = window.localStorage.getItem(POOL_STORAGE_KEY);
       const savedPool = Number(rawPool);
       if (Number.isFinite(savedPool) && savedPool > 0) {
@@ -175,10 +184,20 @@ export default function Page() {
         );
       }
 
+      // モンスター XP
       const rawXP = window.localStorage.getItem(MONSTER_STORAGE_KEY);
-      const savedXP = Number(rawXP);
-      if (Number.isFinite(savedXP) && savedXP >= 0) setMonsterTotalXP(savedXP);
+      const savedXP = clampMonsterXP(rawXP);
+      const savedMonsterLineId = window.localStorage.getItem(MONSTER_LINE_STORAGE_KEY);
+      const rawCollection = window.localStorage.getItem(MONSTER_COLLECTION_STORAGE_KEY);
+      const savedCollection = rawCollection ? JSON.parse(rawCollection) : null;
+      const normalizedCollection = normalizeMonsterCollection(savedCollection, {
+        lineId: normalizeMonsterLineId(savedMonsterLineId),
+        totalXP: savedXP,
+      });
+      monsterCollectionRef.current = normalizedCollection;
+      setMonsterCollection(normalizedCollection);
 
+      // 単語進捗
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) { didLoadFromStorageRef.current = true; return; }
       const parsed = JSON.parse(raw);
@@ -231,8 +250,13 @@ export default function Page() {
 
   useEffect(() => {
     if (!didLoadFromStorageRef.current) return;
-    try { window.localStorage.setItem(MONSTER_STORAGE_KEY, String(monsterTotalXP)); } catch { /* 無視 */ }
-  }, [monsterTotalXP]);
+    try {
+      const active = getActiveMonster(monsterCollection);
+      window.localStorage.setItem(MONSTER_COLLECTION_STORAGE_KEY, JSON.stringify(monsterCollection));
+      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(active.totalXP));
+      window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, active.lineId);
+    } catch { /* 無視 */ }
+  }, [monsterCollection]);
 
   // ── 出題 ──────────────────────────────────────────────────────────────────
   const progress    = `${total} / ${PLAY_LIMIT}`;
@@ -293,9 +317,8 @@ export default function Page() {
     }
   };
 
-  // ── プレイ終了処理 ────────────────────────────────────────────────────────
-  // ※ XPずれ修正: computeSessionXP に answers を渡し evaluatePlay と同一値を算出
-  const applyEndOfPlay = useCallback((finalScore, currentPoolSize, finalAnswers) => {
+  // ── プレイ終了処理（プール解放 + XP 付与）────────────────────────────────
+  const applyEndOfPlay = useCallback((finalScore, finalBestStreak, currentPoolSize) => {
     if (resultUnlockAppliedRef.current) return;
     resultUnlockAppliedRef.current = true;
 
@@ -311,14 +334,26 @@ export default function Page() {
       setLastUnlockCount(0);
     }
 
-    // モンスター XP 付与（evaluatePlay と同一ロジックで計算）
+    // モンスター XP 付与（純粋関数で計算するのでクロージャ問題なし）
     const { totalXP: gained } = computeSessionXP({
-      answers:          finalAnswers,
       score:            finalScore,
+      bestStreak:       finalBestStreak,
       unlockedPoolSize: currentPoolSize,
       playLimit:        PLAY_LIMIT,
     });
-    setMonsterTotalXP(prev => prev + gained);
+    const currentCollection = monsterCollectionRef.current;
+    const currentMonster = getActiveMonster(currentCollection);
+    const previousXP = currentMonster.totalXP;
+    const nextXP = clampMonsterXP(previousXP + gained);
+    const didLevelUp = levelFromTotalXP(nextXP) > levelFromTotalXP(previousXP);
+
+    const nextCollection = updateMonsterXP(currentCollection, currentMonster.id, () => nextXP);
+    monsterCollectionRef.current = nextCollection;
+    setMonsterCollection(nextCollection);
+    if (didLevelUp && levelUpSoundRef.current) {
+      levelUpSoundRef.current.currentTime = 0;
+      levelUpSoundRef.current.play().catch(() => {});
+    }
   }, []); // すべての入力をパラメータで受け取るので deps 不要
 
   // ── 次へ ───────────────────────────────────────────────────────────────────
@@ -326,7 +361,7 @@ export default function Page() {
     if (!checked || activeView === "result") return;
 
     if (total >= PLAY_LIMIT) {
-      applyEndOfPlay(score, unlockedPoolSize, sessionAnswers);
+      applyEndOfPlay(score, bestStreak, unlockedPoolSize);
       setActiveView("result");
       return;
     }
@@ -334,7 +369,7 @@ export default function Page() {
     setTotal(t => t + 1);
     const nextIndex = pickNextQuestionIndex(index, seenInPlayRef.current);
     if (nextIndex === null) {
-      applyEndOfPlay(score, unlockedPoolSize, sessionAnswers);
+      applyEndOfPlay(score, bestStreak, unlockedPoolSize);
       setActiveView("result");
       return;
     }
@@ -364,7 +399,7 @@ export default function Page() {
   const backToStart = useCallback(() => { resetPlayState(); setActiveView("start"); }, [resetPlayState]);
 
 
-  const handleMerged = useCallback(
+const handleMerged = useCallback(
   ({ stats: mergedStats, unlockedPoolSize: mergedPool, monsterCollection: mergedCollection }) => {
     const normalizedCollection = normalizeMonsterCollection(mergedCollection);
     const active = getActiveMonster(normalizedCollection);
@@ -399,7 +434,10 @@ export default function Page() {
   // ── キーボードショートカット ───────────────────────────────────────────────
   useEffect(() => {
     if (activeView !== "start") return;
-    const fn = e => { if (e.key === "Enter") startGame(); };
+    const fn = e => {
+      if (e.key !== "Enter" || e.target?.closest?.("button")) return;
+      startGame();
+    };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
   }, [activeView, startGame]);
@@ -413,7 +451,7 @@ export default function Page() {
     return () => { window.clearTimeout(tid); window.removeEventListener("keydown", fn); };
   }, [activeView, restart]);
 
-  // ── 現在の tier ──────────────────────────────────────────────────────────
+  // ── 現在の tier（スタート画面用） ─────────────────────────────────────────
   const currentTier = getPoolTier(unlockedPoolSize);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -451,7 +489,7 @@ export default function Page() {
         totalWords={VOCAB_ITEMS.length}
         unlockedThisRun={lastUnlockCount}
         evaluation={playEvaluation}
-        monsterTotalXP={monsterTotalXP}
+        monster={activeMonster}
         onRestart={restart}
         onOpenDashboard={() => openDashboard("result")}
         onBackToStart={backToStart}
@@ -499,7 +537,7 @@ export default function Page() {
               >
                 進捗を見る
               </button>
-               <button
+              <button
                 type="button"
                 onClick={() => setIsPokemonBoxOpen(open => !open)}
                 aria-expanded={isPokemonBoxOpen}
@@ -507,6 +545,12 @@ export default function Page() {
               >
                 ポケモン
               </button>
+                <SyncButton
+    stats={stats}
+    unlockedPoolSize={unlockedPoolSize}
+    monsterCollection={monsterCollection}
+    onMerged={handleMerged}
+  />
             </div>
           </div>
 
@@ -517,7 +561,8 @@ export default function Page() {
               onSelect={monsterId => setMonsterCollection(prev => setActiveMonster(prev, monsterId))}
             />
           )}
-          <MonsterCompanion totalXP={monsterTotalXP} size="lg" />
+
+          <MonsterCompanion monster={activeMonster} size="lg" />
         </div>
       </div>
     );
