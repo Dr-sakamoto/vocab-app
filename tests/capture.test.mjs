@@ -65,6 +65,21 @@ test("capture results are reproducible with the same seed", () => {
   assert.deepEqual(rollCaptureEncounter(input), rollCaptureEncounter(input));
 });
 
+test("capture can use a habitat chosen before the play starts", () => {
+  const route2 = HABITATS.find(habitat => habitat.id === "route-2");
+  const result = rollCaptureEncounter({
+    grade: "S",
+    unlockedPoolSize: 120,
+    habitatVisits: {},
+    seed: "preselected-habitat",
+    habitat: route2,
+  });
+
+  assert.equal(result.caught, true);
+  assert.equal(result.habitat.id, "route-2");
+  assert.ok(["pidgey", "rattata", "caterpie", "weedle"].includes(result.lineId));
+});
+
 test("all habitat encounter lines are defined monster lines", () => {
   for (const habitat of HABITATS) {
     for (const encounters of Object.values(habitat.versionEncounters)) {

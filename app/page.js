@@ -8,7 +8,7 @@ import ResultScreen from "./components/ResultScreen";
 
 import {
   applyCaptureResultToCollection,
-  getUnlockedHabitats,
+  pickHabitat,
   rollCaptureEncounter,
 } from "@/lib/capture";
 import { evaluatePlay } from "@/lib/playEvaluation";
@@ -113,6 +113,7 @@ export default function Page() {
   const [sessionAnswers, setSessionAnswers] = useState([]);
   const [resultEvaluation, setResultEvaluation] = useState(null);
   const [captureResult, setCaptureResult] = useState(null);
+  const [currentHabitat, setCurrentHabitat] = useState(null);
 
   const [index, setIndex]             = useState(0);
   const seenInPlayRef = useRef(null);
@@ -141,6 +142,7 @@ export default function Page() {
   const correctSoundRef = useRef(null);
   const levelUpSoundRef = useRef(null);
   const monsterCollectionRef = useRef(monsterCollection);
+  const currentHabitatRef = useRef(null);
   const activeMonster = getActiveMonster(monsterCollection);
   const answeredCount   = checked ? total : total - 1;
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
@@ -154,6 +156,17 @@ export default function Page() {
     () => evaluatePlay({ answers: sessionAnswers, score, playLimit: PLAY_LIMIT, bestStreak, unlockedPoolSize }),
     [bestStreak, score, sessionAnswers, unlockedPoolSize],
   );
+
+  const selectNextHabitat = useCallback((poolSize = unlockedPoolSize, collection = monsterCollectionRef.current) => {
+    const habitat = pickHabitat({
+      unlockedPoolSize: poolSize,
+      habitatVisits: collection?.habitatVisits ?? {},
+      rng: Math.random,
+    });
+    currentHabitatRef.current = habitat;
+    setCurrentHabitat(habitat);
+    return habitat;
+  }, [unlockedPoolSize]);
 
   // ── 音声 ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -182,15 +195,16 @@ export default function Page() {
     if (typeof window === "undefined" || !window.localStorage) return;
     try {
       // プールサイズ
+      let loadedPoolSize = Math.min(INITIAL_POOL_SIZE, VOCAB_ITEMS.length);
       const rawPool = window.localStorage.getItem(POOL_STORAGE_KEY);
       const savedPool = Number(rawPool);
       if (Number.isFinite(savedPool) && savedPool > 0) {
-        setUnlockedPoolSize(
-          Math.max(
-            Math.min(INITIAL_POOL_SIZE, VOCAB_ITEMS.length),
-            Math.min(Math.floor(savedPool), VOCAB_ITEMS.length),
-          ),
+        loadedPoolSize = Math.max(
+          Math.min(INITIAL_POOL_SIZE, VOCAB_ITEMS.length),
+          Math.min(Math.floor(savedPool), VOCAB_ITEMS.length),
         );
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setUnlockedPoolSize(loadedPoolSize);
       }
 
       // モンスター XP
@@ -205,6 +219,13 @@ export default function Page() {
       });
       monsterCollectionRef.current = normalizedCollection;
       setMonsterCollection(normalizedCollection);
+      const loadedHabitat = pickHabitat({
+        unlockedPoolSize: loadedPoolSize,
+        habitatVisits: normalizedCollection.habitatVisits,
+        rng: Math.random,
+      });
+      currentHabitatRef.current = loadedHabitat;
+      setCurrentHabitat(loadedHabitat);
 
       // 単語進捗
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -327,7 +348,7 @@ export default function Page() {
   };
 
   // ── プレイ終了処理（プール解放 + XP 付与）────────────────────────────────
-  const applyEndOfPlay = useCallback((finalScore, finalBestStreak, currentPoolSize, finalAnswers) => {
+  const applyEndOfPlay = useCallback((finalScore, finalBestStreak, currentPoolSize, finalAnswers, finalHabitat) => {
     if (resultUnlockAppliedRef.current) return;
     resultUnlockAppliedRef.current = true;
 
@@ -367,6 +388,7 @@ export default function Page() {
       unlockedPoolSize: currentPoolSize,
       habitatVisits: leveledCollection.habitatVisits,
       seed: `${Date.now()}-${Math.random()}`,
+      habitat: finalHabitat,
     });
     const nextCollection = applyCaptureResultToCollection(leveledCollection, capture);
     setCaptureResult(capture);
@@ -383,7 +405,7 @@ export default function Page() {
     if (!checked || activeView === "result") return;
 
     if (total >= PLAY_LIMIT) {
-      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers);
+      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers, currentHabitatRef.current);
       setActiveView("result");
       return;
     }
@@ -391,7 +413,7 @@ export default function Page() {
     setTotal(t => t + 1);
     const nextIndex = pickNextQuestionIndex(index, seenInPlayRef.current);
     if (nextIndex === null) {
-      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers);
+      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers, currentHabitatRef.current);
       setActiveView("result");
       return;
     }
@@ -411,12 +433,13 @@ export default function Page() {
     setScore(0); setTotal(1); setStreak(0); setBestStreak(0); setSessionAnswers([]);
     setResultEvaluation(null);
     setCaptureResult(null);
+    selectNextHabitat();
     const newIndex = pickNextQuestionIndex(null, new Set()) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
     setInput(""); setChecked(false); setIsCorrect(false); setLastUnlockCount(0);
     resultUnlockAppliedRef.current = false;
-  }, [pickNextQuestionIndex]);
+  }, [pickNextQuestionIndex, selectNextHabitat]);
 
   const startGame  = useCallback(() => { resetPlayState(); setActiveView("study"); }, [resetPlayState]);
   const restart    = useCallback(() => { resetPlayState(); setActiveView("study"); }, [resetPlayState]);
@@ -431,6 +454,7 @@ const handleMerged = useCallback(
     setUnlockedPoolSize(mergedPool);
     monsterCollectionRef.current = normalizedCollection;
     setMonsterCollection(normalizedCollection);
+    selectNextHabitat(mergedPool, normalizedCollection);
 
     // localStorage も即時更新
     try {
@@ -451,7 +475,7 @@ const handleMerged = useCallback(
       );
     } catch { /* ignore */ }
   },
-  []
+  [selectNextHabitat]
 );
 
 
@@ -477,7 +501,11 @@ const handleMerged = useCallback(
 
   // ── 現在の tier（スタート画面用） ─────────────────────────────────────────
   const currentTier = getPoolTier(unlockedPoolSize);
-  const unlockedHabitats = getUnlockedHabitats(unlockedPoolSize);
+
+  useEffect(() => {
+    if (currentHabitatRef.current) return;
+    selectNextHabitat();
+  }, [selectNextHabitat]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // ビュー分岐
@@ -550,7 +578,7 @@ const handleMerged = useCallback(
             <div className="mt-2 text-sm text-zinc-500">
               現在地:{" "}
               <span className="font-semibold text-zinc-700">
-                {unlockedHabitats.map(habitat => habitat.name).join(" / ") || "なし"}
+                {currentHabitat?.name || "なし"}
               </span>
             </div>
 
