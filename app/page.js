@@ -6,7 +6,7 @@ import PokemonBox from "./components/PokemonBox";
 import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
 
-import { computeSessionXP, evaluatePlay } from "@/lib/playEvaluation";
+import { evaluatePlay } from "@/lib/playEvaluation";
 import {
   clampMonsterXP,
   DEFAULT_MONSTER_COLLECTION,
@@ -104,6 +104,7 @@ export default function Page() {
   const [streak, setStreak]           = useState(0);
   const [bestStreak, setBestStreak]   = useState(0);
   const [sessionAnswers, setSessionAnswers] = useState([]);
+  const [resultEvaluation, setResultEvaluation] = useState(null);
 
   const [index, setIndex]             = useState(0);
   const seenInPlayRef = useRef(null);
@@ -318,9 +319,18 @@ export default function Page() {
   };
 
   // ── プレイ終了処理（プール解放 + XP 付与）────────────────────────────────
-  const applyEndOfPlay = useCallback((finalScore, finalBestStreak, currentPoolSize) => {
+  const applyEndOfPlay = useCallback((finalScore, finalBestStreak, currentPoolSize, finalAnswers) => {
     if (resultUnlockAppliedRef.current) return;
     resultUnlockAppliedRef.current = true;
+
+    const finalEvaluation = evaluatePlay({
+      answers: finalAnswers,
+      score: finalScore,
+      playLimit: PLAY_LIMIT,
+      bestStreak: finalBestStreak,
+      unlockedPoolSize: currentPoolSize,
+    });
+    setResultEvaluation(finalEvaluation);
 
     // プール解放
     const step = getUnlockStep(finalScore, PLAY_LIMIT);
@@ -334,13 +344,8 @@ export default function Page() {
       setLastUnlockCount(0);
     }
 
-    // モンスター XP 付与（純粋関数で計算するのでクロージャ問題なし）
-    const { totalXP: gained } = computeSessionXP({
-      score:            finalScore,
-      bestStreak:       finalBestStreak,
-      unlockedPoolSize: currentPoolSize,
-      playLimit:        PLAY_LIMIT,
-    });
+    // モンスター XP 付与（結果画面に表示する XP と同じ値を使う）
+    const gained = finalEvaluation.xp ?? 0;
     const currentCollection = monsterCollectionRef.current;
     const currentMonster = getActiveMonster(currentCollection);
     const previousXP = currentMonster.totalXP;
@@ -361,7 +366,7 @@ export default function Page() {
     if (!checked || activeView === "result") return;
 
     if (total >= PLAY_LIMIT) {
-      applyEndOfPlay(score, bestStreak, unlockedPoolSize);
+      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers);
       setActiveView("result");
       return;
     }
@@ -369,7 +374,7 @@ export default function Page() {
     setTotal(t => t + 1);
     const nextIndex = pickNextQuestionIndex(index, seenInPlayRef.current);
     if (nextIndex === null) {
-      applyEndOfPlay(score, bestStreak, unlockedPoolSize);
+      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers);
       setActiveView("result");
       return;
     }
@@ -387,6 +392,7 @@ export default function Page() {
 
   const resetPlayState = useCallback(() => {
     setScore(0); setTotal(1); setStreak(0); setBestStreak(0); setSessionAnswers([]);
+    setResultEvaluation(null);
     const newIndex = pickNextQuestionIndex(null, new Set()) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
@@ -488,7 +494,7 @@ const handleMerged = useCallback(
         unlockedPoolSize={unlockedPoolSize}
         totalWords={VOCAB_ITEMS.length}
         unlockedThisRun={lastUnlockCount}
-        evaluation={playEvaluation}
+        evaluation={resultEvaluation ?? playEvaluation}
         monster={activeMonster}
         onRestart={restart}
         onOpenDashboard={() => openDashboard("result")}

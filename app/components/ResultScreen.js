@@ -3,13 +3,9 @@
 import MonsterCompanion from "./MonsterCompanion";
 
 export default function ResultScreen({
-  score,
-  bestStreak,
-  playLimit,
-  unlockedPoolSize,
-  totalWords,
   unlockedThisRun,
   evaluation,
+  monster,
   monsterTotalXP,
   onRestart,
   onOpenDashboard,
@@ -32,6 +28,7 @@ export default function ResultScreen({
 
         {/* ── モンスター ── */}
         <MonsterCompanion
+          monster={monster}
           totalXP={monsterTotalXP}
           gainedXP={xp ?? 0}
           size="md"
