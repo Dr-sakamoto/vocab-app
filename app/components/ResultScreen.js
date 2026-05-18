@@ -10,7 +10,7 @@ export default function ResultScreen({
   totalWords,
   unlockedThisRun,
   evaluation,
-  monster,
+  monsterTotalXP,
   onRestart,
   onOpenDashboard,
   onBackToStart,
@@ -21,15 +21,18 @@ export default function ResultScreen({
     <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
       <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm space-y-5">
 
-        {/* ── ヘッダー ── */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="text-xl font-semibold">結果</h1>
-          <div className="text-sm text-zinc-500">{score} / {playLimit} 正解</div>
-        </div>
+        {/* ── もう一度（最上部に配置） ── */}
+        <button
+          type="button"
+          onClick={onRestart}
+          className="w-full inline-flex h-12 items-center justify-center rounded-xl bg-zinc-900 px-5 font-medium text-white hover:bg-zinc-800 text-base"
+        >
+          もう一度（10問）
+        </button>
 
         {/* ── モンスター ── */}
         <MonsterCompanion
-          monster={monster}
+          totalXP={monsterTotalXP}
           gainedXP={xp ?? 0}
           size="md"
         />
@@ -102,26 +105,15 @@ export default function ResultScreen({
           </div>
         )}
 
-        {/* ── 補足情報 ── */}
-        <div className="rounded-xl bg-zinc-50 p-4 space-y-1.5 text-sm text-zinc-600">
-          <div>最高ストリーク: <span className="font-semibold">{bestStreak}</span></div>
-          <div>出題プール: {unlockedPoolSize} / {totalWords} 語</div>
-          {unlockedThisRun > 0 && (
-            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
-              🔓 新単語が {unlockedThisRun} 語 解放されました
-            </div>
-          )}
-        </div>
+        {/* ── 新単語解放通知 ── */}
+        {unlockedThisRun > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+            🔓 新単語が {unlockedThisRun} 語 解放されました
+          </div>
+        )}
 
-        {/* ── アクション ── */}
+        {/* ── サブアクション ── */}
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={onRestart}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-5 font-medium text-white hover:bg-zinc-800"
-          >
-            もう一度（10問）
-          </button>
           <button
             type="button"
             onClick={onOpenDashboard}
