@@ -548,7 +548,7 @@ const handleMerged = useCallback(
               </span>
             </div>
             <div className="mt-2 text-sm text-zinc-500">
-              生息地:{" "}
+              現在地:{" "}
               <span className="font-semibold text-zinc-700">
                 {unlockedHabitats.map(habitat => habitat.name).join(" / ") || "なし"}
               </span>

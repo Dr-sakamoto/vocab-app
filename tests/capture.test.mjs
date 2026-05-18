@@ -2,14 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  HABITATS,
   applyCaptureResultToCollection,
   getUnlockedHabitats,
   normalizeVersionedEncounters,
   rollCaptureEncounter,
 } from "../lib/capture.js";
-import { DEFAULT_MONSTER_COLLECTION } from "../lib/monster.js";
+import { DEFAULT_MONSTER_COLLECTION, getMonsterLine } from "../lib/monster.js";
 
-test("1ばんどうろ is unlocked at the initial pool size", () => {
+test("Route 1 is unlocked at the initial pool size", () => {
   assert.deepEqual(
     getUnlockedHabitats(60).map(habitat => habitat.id),
     ["route-1"],
@@ -40,7 +41,7 @@ test("version encounter rates are averaged by version", () => {
   ]);
 });
 
-test("S rank always reaches the route 1 encounter table when unlocked", () => {
+test("S rank always reaches the route 1 encounter table when only route 1 is unlocked", () => {
   const result = rollCaptureEncounter({
     grade: "S",
     unlockedPoolSize: 60,
@@ -56,7 +57,7 @@ test("S rank always reaches the route 1 encounter table when unlocked", () => {
 test("capture results are reproducible with the same seed", () => {
   const input = {
     grade: "A",
-    unlockedPoolSize: 60,
+    unlockedPoolSize: 1200,
     habitatVisits: { "route-1": 2 },
     seed: "same-seed",
   };
@@ -64,10 +65,20 @@ test("capture results are reproducible with the same seed", () => {
   assert.deepEqual(rollCaptureEncounter(input), rollCaptureEncounter(input));
 });
 
-test("applying a caught result fills an open party slot and increments habitat visits", () => {
+test("all habitat encounter lines are defined monster lines", () => {
+  for (const habitat of HABITATS) {
+    for (const encounters of Object.values(habitat.versionEncounters)) {
+      for (const encounter of encounters) {
+        assert.equal(getMonsterLine(encounter.lineId).id, encounter.lineId);
+      }
+    }
+  }
+});
+
+test("applying a caught result adds a boxed pokemon and increments habitat visits", () => {
   const result = {
     caught: true,
-    habitat: { id: "route-1", name: "1ばんどうろ" },
+    habitat: { id: "route-1", name: "Route 1" },
     lineId: "pidgey",
     monsterId: "caught-pidgey-test",
   };
@@ -76,5 +87,5 @@ test("applying a caught result fills an open party slot and increments habitat v
 
   assert.equal(next.monsters.some(monster => monster.id === "caught-pidgey-test"), true);
   assert.equal(next.habitatVisits["route-1"], 1);
-  assert.equal(next.partyIds.includes("caught-pidgey-test"), true);
+  assert.equal(next.partyIds.includes("caught-pidgey-test"), false);
 });
