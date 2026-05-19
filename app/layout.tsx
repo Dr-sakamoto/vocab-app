@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Toaster } from "react-hot-toast";
+<Toaster position="top-left" />
 
 export const metadata: Metadata = {
   title: "ポケモン英単語クイズ",
