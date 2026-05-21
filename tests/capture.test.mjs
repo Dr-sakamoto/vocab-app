@@ -33,12 +33,22 @@ test("version encounter rates are averaged by version", () => {
   });
 
   assert.deepEqual(encounters, [
-    { lineId: "a", weight: 20 },
-    { lineId: "b", weight: 15 },
-    { lineId: "c", weight: 30 },
-    { lineId: "d", weight: 20 },
-    { lineId: "e", weight: 15 },
+    { lineId: "a", weight: 20, minLevel: 1, maxLevel: 1 },
+    { lineId: "b", weight: 15, minLevel: 1, maxLevel: 1 },
+    { lineId: "c", weight: 30, minLevel: 1, maxLevel: 1 },
+    { lineId: "d", weight: 20, minLevel: 1, maxLevel: 1 },
+    { lineId: "e", weight: 15, minLevel: 1, maxLevel: 1 },
   ]);
+});
+
+test("encounter levels follow original FRLG ranges for later pools", () => {
+  const powerPlant = HABITATS.find(habitat => habitat.id === "power-plant");
+  const encounters = normalizeVersionedEncounters(powerPlant.versionEncounters, powerPlant.id);
+
+  assert.deepEqual(
+    encounters.find(encounter => encounter.lineId === "magnemite"),
+    { lineId: "magnemite", weight: 40, minLevel: 22, maxLevel: 34 },
+  );
 });
 
 test("S rank always reaches the route 1 encounter table when only route 1 is unlocked", () => {
