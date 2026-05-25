@@ -15,13 +15,16 @@ import { evaluatePlay } from "@/lib/playEvaluation";
 import {
   clampMonsterXP,
   DEFAULT_MONSTER_COLLECTION,
+  BOX_LIMIT,
   getActiveMonster,
+  getBoxCount,
   getPoolTier,
   getSpecies,
   levelFromTotalXP,
   normalizeMonsterCollection,
   normalizeMonsterLineId,
   sendPartySlotToBox,
+  sendMonstersToProfessor,
   setActiveMonster,
   swapMonsterLocations,
   updatePartyXP,
@@ -146,6 +149,8 @@ export default function Page() {
   const activeMonster = getActiveMonster(monsterCollection);
   const answeredCount   = checked ? total : total - 1;
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
+  const boxCount = getBoxCount(monsterCollection);
+  const isBoxOverLimit = boxCount > BOX_LIMIT;
 
   const normalizedAnswers = useMemo(
     () => (q?.answers ?? []).map(normalizeAnswer),
@@ -559,6 +564,7 @@ const handleMerged = useCallback(
     if (currentHabitatRef.current) return;
     selectNextHabitat();
   }, [selectNextHabitat]);
+  const shouldShowPokemonBox = isPokemonBoxOpen || isBoxOverLimit;
 
   // ─────────────────────────────────────────────────────────────────────────
   // ビュー分岐
@@ -668,15 +674,20 @@ const handleMerged = useCallback(
           </div>
 
           {/* モンスター */}
-          {isPokemonBoxOpen && (
+          {shouldShowPokemonBox && (
             <PokemonBox
               collection={monsterCollection}
+              limit={BOX_LIMIT}
+              forceManage={isBoxOverLimit}
               onClose={() => setIsPokemonBoxOpen(false)}
               onSwap={(first, second) =>
                 setMonsterCollection(prev => swapMonsterLocations(prev, first, second))
               }
               onRemove={partyIndex =>
                 setMonsterCollection(prev => sendPartySlotToBox(prev, partyIndex))
+              }
+              onSendToProfessor={monsterIds =>
+                setMonsterCollection(prev => sendMonstersToProfessor(prev, monsterIds))
               }
             />
           )}
