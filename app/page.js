@@ -17,6 +17,7 @@ import {
   DEFAULT_MONSTER_COLLECTION,
   getActiveMonster,
   getPoolTier,
+  getSpecies,
   levelFromTotalXP,
   normalizeMonsterCollection,
   normalizeMonsterLineId,
@@ -44,6 +45,8 @@ const INITIAL_POOL_SIZE  = 60;
 const UNLOCK_ACCURACY    = 0.8;
 const UNLOCK_STEP        = 30;
 const PERFECT_UNLOCK_STEP = 50;
+const PRIMARY_BUTTON_CLASS = "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40";
+const SECONDARY_BUTTON_CLASS = "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-40";
 
 function getPartOfSpeech(q) { return q?.partOfSpeech ?? "word"; }
 
@@ -106,8 +109,10 @@ export default function Page() {
   const [resultEvaluation, setResultEvaluation] = useState(null);
   const [captureResult, setCaptureResult] = useState(null);
   const [currentHabitat, setCurrentHabitat] = useState(null);
+  const [flowPlayCount, setFlowPlayCount] = useState(1);
 
   const [index, setIndex]             = useState(0);
+  const inputRef = useRef(null);
   const seenInPlayRef = useRef(null);
   if (seenInPlayRef.current === null) seenInPlayRef.current = new Set([index]);
 
@@ -135,6 +140,7 @@ export default function Page() {
   const q = VOCAB_ITEMS[index];
   const correctSoundRef = useRef(null);
   const levelUpSoundRef = useRef(null);
+  const evolutionSoundRef = useRef(null);
   const monsterCollectionRef = useRef(monsterCollection);
   const currentHabitatRef = useRef(null);
   const activeMonster = getActiveMonster(monsterCollection);
@@ -147,8 +153,8 @@ export default function Page() {
   );
 
   const playEvaluation = useMemo(
-    () => evaluatePlay({ answers: sessionAnswers, score, playLimit: PLAY_LIMIT, bestStreak, unlockedPoolSize }),
-    [bestStreak, score, sessionAnswers, unlockedPoolSize],
+    () => evaluatePlay({ answers: sessionAnswers, score, playLimit: PLAY_LIMIT, bestStreak, unlockedPoolSize, playCount: flowPlayCount }),
+    [bestStreak, flowPlayCount, score, sessionAnswers, unlockedPoolSize],
   );
 
   const selectNextHabitat = useCallback((poolSize = unlockedPoolSize, collection = monsterCollectionRef.current) => {
@@ -172,6 +178,10 @@ export default function Page() {
     levelUpSoundRef.current = new Audio("/levelup.mp3");
     levelUpSoundRef.current.volume = 0.85;
     levelUpSoundRef.current.preload = "auto";
+
+    evolutionSoundRef.current = new Audio("/pokemon-evolve.mp3");
+    evolutionSoundRef.current.volume = 0.85;
+    evolutionSoundRef.current.preload = "auto";
   }, []);
 
   useEffect(() => {
@@ -183,6 +193,11 @@ export default function Page() {
   useEffect(() => {
     monsterCollectionRef.current = monsterCollection;
   }, [monsterCollection]);
+
+  useEffect(() => {
+    if (activeView !== "study" || isCheckingAnswer) return;
+    inputRef.current?.focus();
+  }, [activeView, checked, index, isCheckingAnswer]);
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -364,7 +379,7 @@ export default function Page() {
   };
 
   // ── プレイ終了処理（プール解放 + XP 付与）────────────────────────────────
-  const applyEndOfPlay = useCallback((finalScore, finalBestStreak, currentPoolSize, finalAnswers, finalHabitat) => {
+  const applyEndOfPlay = useCallback((finalScore, finalBestStreak, currentPoolSize, finalAnswers, finalHabitat, playCount) => {
     if (resultUnlockAppliedRef.current) return;
     resultUnlockAppliedRef.current = true;
 
@@ -374,6 +389,7 @@ export default function Page() {
       playLimit: PLAY_LIMIT,
       bestStreak: finalBestStreak,
       unlockedPoolSize: currentPoolSize,
+      playCount,
     });
     setResultEvaluation(finalEvaluation);
 
@@ -395,7 +411,12 @@ export default function Page() {
     const currentMonster = getActiveMonster(currentCollection);
     const previousXP = currentMonster.totalXP;
     const nextXP = clampMonsterXP(previousXP + gained);
-    const didLevelUp = levelFromTotalXP(nextXP) > levelFromTotalXP(previousXP);
+    const previousLevel = levelFromTotalXP(previousXP);
+    const nextLevel = levelFromTotalXP(nextXP);
+    const didLevelUp = nextLevel > previousLevel;
+    const didEvolve =
+      getSpecies(previousLevel, currentMonster.lineId).id !==
+      getSpecies(nextLevel, currentMonster.lineId).id;
 
     const leveledCollection = updatePartyXP(currentCollection, gained);
 
@@ -410,7 +431,10 @@ export default function Page() {
     setCaptureResult(capture);
     monsterCollectionRef.current = nextCollection;
     setMonsterCollection(nextCollection);
-    if (didLevelUp && levelUpSoundRef.current) {
+    if (didEvolve && evolutionSoundRef.current) {
+      evolutionSoundRef.current.currentTime = 0;
+      evolutionSoundRef.current.play().catch(() => {});
+    } else if (didLevelUp && levelUpSoundRef.current) {
       levelUpSoundRef.current.currentTime = 0;
       levelUpSoundRef.current.play().catch(() => {});
     }
@@ -421,7 +445,7 @@ export default function Page() {
     if (!checked || activeView === "result") return;
 
     if (total >= PLAY_LIMIT) {
-      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers, currentHabitatRef.current);
+      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers, currentHabitatRef.current, flowPlayCount);
       setActiveView("result");
       return;
     }
@@ -429,7 +453,7 @@ export default function Page() {
     setTotal(t => t + 1);
     const nextIndex = pickNextQuestionIndex(index, seenInPlayRef.current);
     if (nextIndex === null) {
-      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers, currentHabitatRef.current);
+      applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers, currentHabitatRef.current, flowPlayCount);
       setActiveView("result");
       return;
     }
@@ -446,11 +470,11 @@ export default function Page() {
     setActiveView("dashboard");
   }, []);
 
-  const resetPlayState = useCallback(() => {
+  const resetPlayState = useCallback(({ keepHabitat = true } = {}) => {
     setScore(0); setTotal(1); setStreak(0); setBestStreak(0); setSessionAnswers([]);
     setResultEvaluation(null);
     setCaptureResult(null);
-    selectNextHabitat();
+    if (!keepHabitat || !currentHabitatRef.current) selectNextHabitat();
     const newIndex = pickNextQuestionIndex(null, new Set()) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
@@ -458,9 +482,21 @@ export default function Page() {
     resultUnlockAppliedRef.current = false;
   }, [pickNextQuestionIndex, selectNextHabitat]);
 
-  const startGame  = useCallback(() => { resetPlayState(); setActiveView("study"); }, [resetPlayState]);
-  const restart    = useCallback(() => { resetPlayState(); setActiveView("study"); }, [resetPlayState]);
-  const backToStart = useCallback(() => { resetPlayState(); setActiveView("start"); }, [resetPlayState]);
+  const startGame  = useCallback(() => {
+    setFlowPlayCount(1);
+    resetPlayState({ keepHabitat: true });
+    setActiveView("study");
+  }, [resetPlayState]);
+  const restart    = useCallback(() => {
+    setFlowPlayCount(count => count + 1);
+    resetPlayState({ keepHabitat: true });
+    setActiveView("study");
+  }, [resetPlayState]);
+  const backToStart = useCallback(() => {
+    setFlowPlayCount(1);
+    resetPlayState({ keepHabitat: false });
+    setActiveView("start");
+  }, [resetPlayState]);
 
 
 const handleMerged = useCallback(
@@ -603,14 +639,14 @@ const handleMerged = useCallback(
               <button
                 type="button"
                 onClick={startGame}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-zinc-900 px-6 text-white hover:bg-zinc-800"
+                className={PRIMARY_BUTTON_CLASS}
               >
                 1プレイ開始
               </button>
               <button
                 type="button"
                 onClick={() => openDashboard("start")}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-zinc-200 bg-white px-6 text-zinc-900 hover:bg-zinc-50"
+                className={SECONDARY_BUTTON_CLASS}
               >
                 進捗を見る
               </button>
@@ -618,7 +654,7 @@ const handleMerged = useCallback(
                 type="button"
                 onClick={() => setIsPokemonBoxOpen(true)}
                 aria-expanded={isPokemonBoxOpen}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-zinc-200 bg-white px-6 text-zinc-900 hover:bg-zinc-50"
+                className={SECONDARY_BUTTON_CLASS}
               >
                 ポケモン
               </button>
@@ -707,6 +743,7 @@ const handleMerged = useCallback(
         <div className="mt-5">
           <label className="block text-sm font-medium text-zinc-700">英単語の日本語訳</label>
           <input
+            ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             className="mt-2 w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 focus:ring-zinc-900/10"
@@ -737,13 +774,13 @@ const handleMerged = useCallback(
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button
             type="button" onClick={checkAnswer} disabled={checked || isCheckingAnswer}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-5 font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
+            className={PRIMARY_BUTTON_CLASS}
           >
             {isCheckingAnswer ? "判定中..." : "答え合わせ"}
           </button>
           <button
             type="button" onClick={next} disabled={!checked}
-            className="inline-flex h-11 items-center justify-center rounded-xl border px-5 font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-40"
+            className={SECONDARY_BUTTON_CLASS}
           >
             次へ
           </button>

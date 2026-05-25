@@ -122,7 +122,7 @@ export default function ProgressDashboard({ stats, totalWords, onBack }) {
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex h-10 items-center justify-center rounded-xl border bg-white px-4 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+            className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
           >
             戻る
           </button>

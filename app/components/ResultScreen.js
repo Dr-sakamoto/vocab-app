@@ -3,6 +3,9 @@
 import { getMonsterLine } from "@/lib/monster";
 import MonsterCompanion from "./MonsterCompanion";
 
+const PRIMARY_BUTTON_CLASS = "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40";
+const SECONDARY_BUTTON_CLASS = "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-40";
+
 export default function ResultScreen({
   unlockedThisRun,
   evaluation,
@@ -24,7 +27,7 @@ export default function ResultScreen({
         <button
           type="button"
           onClick={onRestart}
-          className="w-full inline-flex h-12 items-center justify-center rounded-xl bg-zinc-900 px-5 font-medium text-white hover:bg-zinc-800 text-base"
+          className={`${PRIMARY_BUTTON_CLASS} w-full text-base`}
         >
           もう一度（10問）
         </button>
@@ -132,14 +135,14 @@ export default function ResultScreen({
           <button
             type="button"
             onClick={onOpenDashboard}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+            className={SECONDARY_BUTTON_CLASS}
           >
             進捗ダッシュボード
           </button>
           <button
             type="button"
             onClick={onBackToStart}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+            className={SECONDARY_BUTTON_CLASS}
           >
             スタートに戻る
           </button>

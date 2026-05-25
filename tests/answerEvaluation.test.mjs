@@ -35,6 +35,15 @@ test("accepts hiragana and kanji reading differences as alternatives", async () 
   assert.equal(result.status, "alternative");
 });
 
+test("rejects kanji homophones with different meanings", async () => {
+  const result = await evaluateAnswer({
+    input: "昇華する",
+    answers: ["消化する"],
+  });
+
+  assert.equal(result.status, "wrong");
+});
+
 test("accepts dictionary-based synonyms as alternatives", async () => {
   const result = await evaluateAnswer({
     input: "目立たせる",

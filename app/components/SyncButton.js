@@ -121,7 +121,7 @@ export default function SyncButton({
           type="button"
           onClick={handleGoogleSignIn}
           disabled={status === "syncing"}
-          className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
+          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
         >
           Googleで同期
         </button>
@@ -145,7 +145,7 @@ export default function SyncButton({
           type="button"
           onClick={syncProgress}
           disabled={status === "syncing"}
-          className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
+          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
         >
           {label}
         </button>
@@ -153,7 +153,7 @@ export default function SyncButton({
           type="button"
           onClick={handleSignOut}
           disabled={status === "syncing"}
-          className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
         >
           ログアウト
         </button>
