@@ -25,6 +25,7 @@ import {
   swapMonsterLocations,
   updatePartyXP,
 } from "@/lib/monster";
+import { normalizeAnswer } from "@/lib/answerNormalization";
 import { QUESTIONS } from "@/lib/vocab";
 import SyncButton from "./components/SyncButton";
 
@@ -45,15 +46,6 @@ const UNLOCK_STEP        = 30;
 const PERFECT_UNLOCK_STEP = 50;
 
 function getPartOfSpeech(q) { return q?.partOfSpeech ?? "word"; }
-
-function normalizeAnswer(value) {
-  return String(value ?? "")
-    .normalize("NFKC")
-    .replace(/[\u007E\uFF5E\u301C\u223C]/g, "〜")
-    .trim()
-    .replace(/\s+/g, "")
-    .toLowerCase();
-}
 
 function getPraiseMessage(streak) {
   if (streak >= 8)  return { label: "MARVELOUS!!!", color: "text-red-600" };
@@ -122,6 +114,8 @@ export default function Page() {
   const [input, setInput]             = useState("");
   const [checked, setChecked]         = useState(false);
   const [isCorrect, setIsCorrect]     = useState(false);
+  const [answerStatus, setAnswerStatus] = useState(null);
+  const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
   const [dashboardReturnView, setDashboardReturnView] = useState("study");
 
   const [unlockedPoolSize, setUnlockedPoolSize] = useState(() =>
@@ -313,13 +307,35 @@ export default function Page() {
   );
 
   // ── 答え合わせ ─────────────────────────────────────────────────────────────
-  const checkAnswer = () => {
-    if (checked || activeView === "result") return;
+  const checkAnswer = async () => {
+    if (checked || isCheckingAnswer || activeView === "result") return;
+    setIsCheckingAnswer(true);
+
     const user = normalizeAnswer(input);
-    const ok   = normalizedAnswers.includes(user);
+    let result = {
+      status: normalizedAnswers.includes(user) ? "exact" : "wrong",
+      normalizedAnswers,
+    };
+
+    try {
+      const response = await fetch("/api/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input, answers: q?.answers ?? [] }),
+      });
+
+      if (response.ok) result = await response.json();
+    } catch {
+      // Keep exact-match grading available if the local API cannot answer.
+    } finally {
+      setIsCheckingAnswer(false);
+    }
+
+    const ok = result.status === "exact" || result.status === "alternative";
     const prev = stats[index] ?? { correct: 0, wrong: 0 };
 
     setIsCorrect(ok);
+    setAnswerStatus(result.status);
     setChecked(true);
     setSessionAnswers(a => [...a, {
       id: q.id, correct: ok,
@@ -422,6 +438,7 @@ export default function Page() {
     setInput("");
     setChecked(false);
     setIsCorrect(false);
+    setAnswerStatus(null);
   };
 
   const openDashboard = useCallback((returnView = "study") => {
@@ -437,7 +454,7 @@ export default function Page() {
     const newIndex = pickNextQuestionIndex(null, new Set()) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
-    setInput(""); setChecked(false); setIsCorrect(false); setLastUnlockCount(0);
+    setInput(""); setChecked(false); setIsCorrect(false); setAnswerStatus(null); setLastUnlockCount(0);
     resultUnlockAppliedRef.current = false;
   }, [pickNextQuestionIndex, selectNextHabitat]);
 
@@ -697,13 +714,16 @@ const handleMerged = useCallback(
               if (e.key !== "Enter") return;
               if (checked) next(); else checkAnswer();
             }}
+            disabled={isCheckingAnswer}
           />
 
           {checked && (
             <div className="mt-3">
               {isCorrect ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
-                  <div className="text-base font-semibold">正解！</div>
+                  <div className="text-base font-semibold">
+                    {answerStatus === "alternative" ? "〇（別解）" : "〇"}
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900">
@@ -716,10 +736,10 @@ const handleMerged = useCallback(
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button
-            type="button" onClick={checkAnswer} disabled={checked}
+            type="button" onClick={checkAnswer} disabled={checked || isCheckingAnswer}
             className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-5 font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
           >
-            答え合わせ
+            {isCheckingAnswer ? "判定中..." : "答え合わせ"}
           </button>
           <button
             type="button" onClick={next} disabled={!checked}
