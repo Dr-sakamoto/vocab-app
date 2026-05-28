@@ -125,12 +125,11 @@ function BoxDropTarget({ selected, disabled, onPick }) {
   );
 }
 
-function PieMenu({ open, transferMode, onToggle, onSearch, onDexSort, onLevelSort, onTransferMode }) {
+function PieMenu({ open, transferMode, onToggle, onDexSort, onLevelSort, onTransferMode }) {
   const items = [
-    { label: "名前検索", icon: "⌕", className: "-left-14 top-8", onClick: onSearch },
-    { label: "図鑑No整列", icon: "#", className: "left-8 -top-14", onClick: onDexSort },
-    { label: "レベル整列", icon: "Lv", className: "left-8 top-8", onClick: onLevelSort },
-    { label: "博士に送る", icon: "↗", className: "-left-14 -top-14", onClick: onTransferMode },
+    { label: "図鑑No順整列", icon: "No", className: "-left-16 top-0", onClick: onDexSort },
+    { label: "レベル順整列", icon: "Lv", className: "top-16 left-0", onClick: onLevelSort },
+    { label: "博士に送る", icon: "🧪", className: "-left-16 -top-16", onClick: onTransferMode },
   ];
 
   return (
@@ -194,7 +193,6 @@ export default function PokemonBox({
   const partyCount = getPartyCount(normalized);
   const [selected, setSelected] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [sortMode, setSortMode] = useState("manual");
   const [requestedTransferMode, setRequestedTransferMode] = useState(false);
@@ -305,30 +303,7 @@ export default function PokemonBox({
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-2">
-            <PieMenu
-              open={menuOpen}
-              transferMode={transferMode}
-              onToggle={() => setMenuOpen(open => !open)}
-              onSearch={() => {
-                setSearchOpen(open => !open);
-                setMenuOpen(false);
-              }}
-              onDexSort={() => {
-                setSortMode(mode => mode === "dex" ? "manual" : "dex");
-                setMenuOpen(false);
-              }}
-              onLevelSort={() => {
-                setSortMode(mode => mode === "level" ? "manual" : "level");
-                setMenuOpen(false);
-              }}
-              onTransferMode={() => {
-                if (forceManage || overLimit) return;
-                setRequestedTransferMode(mode => !mode);
-                setSelected(null);
-                setMenuOpen(false);
-              }}
-            />
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={requestClose}
@@ -337,6 +312,50 @@ export default function PokemonBox({
               aria-label="close"
             >
               ×
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              value={searchText}
+              onChange={event => setSearchText(event.target.value)}
+              placeholder="名前・図鑑Noで検索"
+              className="h-10 min-w-[200px] rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-sky-300"
+            />
+            <button
+              type="button"
+              onClick={() => setSortMode("dex")}
+              className={[
+                "h-10 rounded-xl border px-3 text-sm font-semibold",
+                sortMode === "dex"
+                  ? "border-sky-500 bg-sky-50 text-sky-700"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
+              ].join(" ")}
+            >
+              No順
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode("level")}
+              className={[
+                "h-10 rounded-xl border px-3 text-sm font-semibold",
+                sortMode === "level"
+                  ? "border-sky-500 bg-sky-50 text-sky-700"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
+              ].join(" ")}
+            >
+              Lv順
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode("manual")}
+              className={[
+                "h-10 rounded-xl border px-3 text-sm font-semibold",
+                sortMode === "manual"
+                  ? "border-sky-500 bg-sky-50 text-sky-700"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
+              ].join(" ")}
+            >
+              リセット
             </button>
           </div>
         </div>
@@ -385,14 +404,6 @@ export default function PokemonBox({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {searchOpen && (
-                <input
-                  value={searchText}
-                  onChange={event => setSearchText(event.target.value)}
-                  placeholder="名前・Noで検索"
-                  className="h-10 w-44 rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10"
-                />
-              )}
               {transferMode && (
                 <button
                   type="button"
@@ -427,6 +438,27 @@ export default function PokemonBox({
             )}
           </div>
         </section>
+      </div>
+      <div className="fixed bottom-6 right-6 z-50">
+        <PieMenu
+          open={menuOpen}
+          transferMode={transferMode}
+          onToggle={() => setMenuOpen(open => !open)}
+          onDexSort={() => {
+            setSortMode("dex");
+            setMenuOpen(false);
+          }}
+          onLevelSort={() => {
+            setSortMode("level");
+            setMenuOpen(false);
+          }}
+          onTransferMode={() => {
+            if (forceManage || overLimit) return;
+            setRequestedTransferMode(mode => !mode);
+            setSelected(null);
+            setMenuOpen(false);
+          }}
+        />
       </div>
 
       {confirmOpen && (

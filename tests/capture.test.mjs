@@ -8,7 +8,7 @@ import {
   normalizeVersionedEncounters,
   rollCaptureEncounter,
 } from "../lib/capture.js";
-import { DEFAULT_MONSTER_COLLECTION, getMonsterLine } from "../lib/monster.js";
+import { DEFAULT_MONSTER_COLLECTION, getMonsterLine, getMonsterState } from "../lib/monster.js";
 
 test("Route 1 is unlocked at the initial pool size", () => {
   assert.deepEqual(
@@ -47,8 +47,24 @@ test("encounter levels follow original FRLG ranges for later pools", () => {
 
   assert.deepEqual(
     encounters.find(encounter => encounter.lineId === "magnemite"),
-    { lineId: "magnemite", weight: 40, minLevel: 22, maxLevel: 34 },
+    { lineId: "magnemite", weight: 30, minLevel: 22, maxLevel: 25 },
   );
+});
+
+test("rollCaptureEncounter generates a level within the encounter range", () => {
+  const route1 = HABITATS.find(habitat => habitat.id === "route-1");
+  const result = rollCaptureEncounter({
+    grade: "S",
+    unlockedPoolSize: 60,
+    habitat: route1,
+    seed: "route-1-level-range",
+  });
+
+  assert.equal(result.caught, true);
+  const encounter = normalizeVersionedEncounters(route1.versionEncounters)
+    .find(encounter => encounter.lineId === result.lineId);
+  assert.ok(encounter, "expected route 1 encounter to exist");
+  assert.ok(result.level >= encounter.minLevel && result.level <= encounter.maxLevel);
 });
 
 test("S rank always reaches the route 1 encounter table when only route 1 is unlocked", () => {
@@ -92,10 +108,9 @@ test("capture can use a habitat chosen before the play starts", () => {
 
 test("all habitat encounter lines are defined monster lines", () => {
   for (const habitat of HABITATS) {
-    for (const encounters of Object.values(habitat.versionEncounters)) {
-      for (const encounter of encounters) {
-        assert.equal(getMonsterLine(encounter.lineId).id, encounter.lineId);
-      }
+    const encounters = normalizeVersionedEncounters(habitat.versionEncounters);
+    for (const encounter of encounters) {
+      assert.equal(getMonsterLine(encounter.lineId).id, encounter.lineId);
     }
   }
 });
@@ -113,4 +128,20 @@ test("applying a caught result adds a boxed pokemon and increments habitat visit
   assert.equal(next.monsters.some(monster => monster.id === "caught-pidgey-test"), true);
   assert.equal(next.habitatVisits["route-1"], 1);
   assert.equal(next.partyIds.includes("caught-pidgey-test"), false);
+});
+
+test("applying a caught result preserves the intended level", () => {
+  const result = {
+    caught: true,
+    habitat: { id: "route-1", name: "Route 1" },
+    lineId: "pidgey",
+    monsterId: "caught-pidgey-level-test",
+    level: 5,
+  };
+
+  const next = applyCaptureResultToCollection(DEFAULT_MONSTER_COLLECTION, result);
+  const monster = next.monsters.find(m => m.id === "caught-pidgey-level-test");
+
+  assert.ok(monster, "monster should be created");
+  assert.equal(getMonsterState(monster.totalXP, monster.lineId).level, 5);
 });
