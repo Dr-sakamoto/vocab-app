@@ -1,23 +1,16 @@
 "use client";
 
-import { getMonsterLine } from "@/lib/monster";
-import MonsterCompanion from "./MonsterCompanion";
-
 const PRIMARY_BUTTON_CLASS = "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40";
 const SECONDARY_BUTTON_CLASS = "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-40";
 
 export default function ResultScreen({
   unlockedThisRun,
   evaluation,
-  captureResult,
-  monster,
-  monsterTotalXP,
   onRestart,
   onOpenDashboard,
   onBackToStart,
 }) {
   const { grade, title, message, xp, tier, breakdown } = evaluation ?? {};
-  const capturedLine = captureResult?.caught ? getMonsterLine(captureResult.lineId) : null;
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
@@ -31,14 +24,6 @@ export default function ResultScreen({
         >
           もう一度（10問）
         </button>
-
-        {/* ── モンスター ── */}
-        <MonsterCompanion
-          monster={monster}
-          totalXP={monsterTotalXP}
-          gainedXP={xp ?? 0}
-          size="md"
-        />
 
         {/* ── グレード + XP ── */}
         {evaluation && (
@@ -112,22 +97,6 @@ export default function ResultScreen({
         {unlockedThisRun > 0 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
             🔓 新単語が {unlockedThisRun} 語 解放されました
-          </div>
-        )}
-
-        {/* ── サブアクション ── */}
-        {captureResult && (
-          <div
-            className={[
-              "rounded-lg border px-3 py-2 text-sm font-medium",
-              captureResult.caught
-                ? "border-sky-200 bg-sky-50 text-sky-950"
-                : "border-zinc-200 bg-zinc-50 text-zinc-600",
-            ].join(" ")}
-          >
-            {captureResult.caught
-              ? `${captureResult.habitat.name}で ${capturedLine?.name ?? captureResult.lineId} をゲット！`
-              : "今回はポケモンをゲットできませんでした"}
           </div>
         )}
 

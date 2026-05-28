@@ -5,6 +5,7 @@ import PokemonBox from "./components/PokemonBox";
 import PokemonParty from "./components/PokemonParty";
 import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
+import ToastQueue from "./components/ToastQueue";
 
 import {
   applyCaptureResultToCollection,
@@ -18,7 +19,10 @@ import {
   BOX_LIMIT,
   getActiveMonster,
   getBoxCount,
+  getPartySlots,
   getPoolTier,
+  getMonsterLine,
+  getMonsterState,
   getSpecies,
   levelFromTotalXP,
   normalizeMonsterCollection,
@@ -113,6 +117,8 @@ export default function Page() {
   const [captureResult, setCaptureResult] = useState(null);
   const [currentHabitat, setCurrentHabitat] = useState(null);
   const [flowPlayCount, setFlowPlayCount] = useState(1);
+  const [toastQueue, setToastQueue] = useState([]);
+  const [activeToast, setActiveToast] = useState(null);
 
   const [index, setIndex]             = useState(0);
   const inputRef = useRef(null);
@@ -151,6 +157,64 @@ export default function Page() {
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
   const boxCount = getBoxCount(monsterCollection);
   const isBoxOverLimit = boxCount > BOX_LIMIT;
+
+  const enqueueToast = useCallback((toast) => {
+    setToastQueue((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        duration: 1500,
+        ...toast,
+      },
+    ]);
+  }, []);
+
+  useEffect(() => {
+    if (activeToast || toastQueue.length === 0) return;
+    setActiveToast(toastQueue[0]);
+    setToastQueue((prev) => prev.slice(1));
+  }, [activeToast, toastQueue]);
+
+  const dismissActiveToast = useCallback(() => setActiveToast(null), []);
+
+  function buildPartyChangeToasts(previousCollection, nextCollection) {
+    const prev = normalizeMonsterCollection(previousCollection);
+    const next = normalizeMonsterCollection(nextCollection);
+    const activeId = next.activeId;
+    const partyIds = next.partyIds.filter(Boolean);
+    const orderedIds = [...new Set([activeId, ...partyIds])].filter(Boolean);
+
+    const events = [];
+    for (const monsterId of orderedIds) {
+      const prevMonster = prev.monsters.find((mon) => mon.id === monsterId);
+      const nextMonster = next.monsters.find((mon) => mon.id === monsterId);
+      if (!prevMonster || !nextMonster) continue;
+
+      const prevState = getMonsterState(prevMonster.totalXP, prevMonster.lineId);
+      const nextState = getMonsterState(nextMonster.totalXP, nextMonster.lineId);
+      const isActive = monsterId === activeId;
+
+      if (nextState.level > prevState.level) {
+        events.push({
+          title: "レベルアップ",
+          message: `${nextState.species.name}のレベルがあがった！`,
+          image: nextState.species.sprite,
+          detail: `Lv.${prevState.level} → Lv.${nextState.level}`,
+          isActive,
+        });
+      }
+      if (nextState.species.id !== prevState.species.id) {
+        events.push({
+          title: "進化！",
+          message: `${nextState.species.name}に進化した！`,
+          image: nextState.species.sprite,
+          detail: `${prevState.species.name} → ${nextState.species.name}`,
+          isActive,
+        });
+      }
+    }
+    return events;
+  }
 
   const normalizedAnswers = useMemo(
     () => (q?.answers ?? []).map(normalizeAnswer),
@@ -436,6 +500,21 @@ export default function Page() {
     setCaptureResult(capture);
     monsterCollectionRef.current = nextCollection;
     setMonsterCollection(nextCollection);
+
+    if (capture?.caught) {
+      const capturedLine = getMonsterLine(capture.lineId);
+      if (capturedLine) {
+        enqueueToast({
+          title: "ポケモン捕獲！",
+          message: `${capturedLine.name}を捕まえた！`,
+          image: capturedLine.sprite,
+        });
+      }
+    }
+
+    const partyToasts = buildPartyChangeToasts(currentCollection, nextCollection);
+    partyToasts.forEach((toast) => enqueueToast(toast));
+
     if (didEvolve && evolutionSoundRef.current) {
       evolutionSoundRef.current.currentTime = 0;
       evolutionSoundRef.current.play().catch(() => {});
@@ -572,48 +651,57 @@ const handleMerged = useCallback(
 
   if (!q) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-xl rounded-2xl border bg-white p-6">
-          <h1 className="text-xl font-semibold">英単語クイズ</h1>
-          <p className="mt-3 text-zinc-700">問題データがありません。</p>
+      <>
+        <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
+          <div className="w-full max-w-xl rounded-2xl border bg-white p-6">
+            <h1 className="text-xl font-semibold">英単語クイズ</h1>
+            <p className="mt-3 text-zinc-700">問題データがありません。</p>
+          </div>
         </div>
-      </div>
+        <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+      </>
     );
   }
 
   if (activeView === "dashboard") {
     return (
-      <ProgressDashboard
-        stats={stats}
-        totalWords={VOCAB_ITEMS.length}
-        onBack={() => setActiveView(dashboardReturnView)}
-      />
+      <>
+        <ProgressDashboard
+          stats={stats}
+          totalWords={VOCAB_ITEMS.length}
+          onBack={() => setActiveView(dashboardReturnView)}
+        />
+        <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+      </>
     );
   }
 
   if (activeView === "result") {
     return (
-      <ResultScreen
-        score={score}
-        bestStreak={bestStreak}
-        playLimit={PLAY_LIMIT}
-        unlockedPoolSize={unlockedPoolSize}
-        totalWords={VOCAB_ITEMS.length}
-        unlockedThisRun={lastUnlockCount}
-        evaluation={resultEvaluation ?? playEvaluation}
-        captureResult={captureResult}
-        monster={activeMonster}
-        onRestart={restart}
-        onOpenDashboard={() => openDashboard("result")}
-        onBackToStart={backToStart}
-      />
+      <>
+        <ResultScreen
+          score={score}
+          bestStreak={bestStreak}
+          playLimit={PLAY_LIMIT}
+          unlockedPoolSize={unlockedPoolSize}
+          totalWords={VOCAB_ITEMS.length}
+          unlockedThisRun={lastUnlockCount}
+          evaluation={resultEvaluation ?? playEvaluation}
+          monster={activeMonster}
+          onRestart={restart}
+          onOpenDashboard={() => openDashboard("result")}
+          onBackToStart={backToStart}
+        />
+        <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+      </>
     );
   }
 
   if (activeView === "start") {
     return (
-      <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
-        <div className="w-full max-w-2xl space-y-4">
+      <>
+        <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
+          <div className="w-full max-w-2xl space-y-4">
 
           {/* タイトル */}
           <div className="rounded-2xl border bg-white p-6 shadow-sm text-center">
@@ -698,13 +786,16 @@ const handleMerged = useCallback(
           />
         </div>
       </div>
+      <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+      </>
     );
   }
 
   // ── クイズ画面 ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
+    <>
+      <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
+        <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="text-xl font-semibold">英単語クイズ</h1>
           <div className="flex flex-wrap items-center justify-end gap-3">
@@ -798,5 +889,7 @@ const handleMerged = useCallback(
         </div>
       </div>
     </div>
+      <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+    </>
   );
 }
