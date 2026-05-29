@@ -19,10 +19,9 @@ import {
   BOX_LIMIT,
   getActiveMonster,
   getBoxCount,
-  getPartySlots,
   getPoolTier,
+  getMonsterDisplayState,
   getMonsterLine,
-  getMonsterState,
   getSpecies,
   levelFromTotalXP,
   normalizeMonsterCollection,
@@ -190,10 +189,18 @@ export default function Page() {
       const nextMonster = next.monsters.find((mon) => mon.id === monsterId);
       if (!prevMonster || !nextMonster) continue;
 
-      const prevState = getMonsterState(prevMonster.totalXP, prevMonster.lineId);
-      const nextState = getMonsterState(nextMonster.totalXP, nextMonster.lineId);
+      const prevState = getMonsterDisplayState(prevMonster);
+      const nextState = getMonsterDisplayState(nextMonster);
       const isActive = monsterId === activeId;
 
+      if (!prevMonster.heldItemType && nextMonster.heldItemType) {
+        events.push({
+          title: "アイテムをひろった！",
+          message: `${nextState.species.name}が${nextMonster.heldItemName}をひろった！`,
+          image: nextState.species.sprite,
+          isActive,
+        });
+      }
       if (nextState.level > prevState.level) {
         events.push({
           title: "レベルアップ",
@@ -495,6 +502,7 @@ export default function Page() {
       habitatVisits: leveledCollection.habitatVisits,
       seed: `${Date.now()}-${Math.random()}`,
       habitat: finalHabitat,
+      monsterCollection: leveledCollection,
     });
     const nextCollection = applyCaptureResultToCollection(leveledCollection, capture);
     setCaptureResult(capture);

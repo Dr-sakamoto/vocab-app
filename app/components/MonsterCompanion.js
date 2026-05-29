@@ -1,6 +1,6 @@
 "use client";
 
-import { getMonsterState } from "@/lib/monster";
+import { getMonsterDisplayState } from "@/lib/monster";
 
 /**
  * モンスターの現在状態を表示するコンポーネント
@@ -12,8 +12,18 @@ import { getMonsterState } from "@/lib/monster";
 export default function MonsterCompanion({ monster = null, totalXP = 0, gainedXP = 0, size = "md", lineId }) {
   const monsterXP = monster?.totalXP ?? totalXP;
   const monsterLineId = monster?.lineId ?? lineId;
-  const current = getMonsterState(monsterXP, monsterLineId);
-  const prev    = gainedXP > 0 ? getMonsterState(Math.max(0, monsterXP - gainedXP), monsterLineId) : null;
+  const current = getMonsterDisplayState({
+    ...monster,
+    totalXP: monsterXP,
+    lineId: monsterLineId,
+  });
+  const prev = gainedXP > 0
+    ? getMonsterDisplayState({
+        ...monster,
+        totalXP: Math.max(0, monsterXP - gainedXP),
+        lineId: monsterLineId,
+      })
+    : null;
   const evolved = prev !== null && prev.species.id !== current.species.id;
 
   const spriteSize = size === "sm" ? 56 : size === "lg" ? 112 : 80;
@@ -54,7 +64,7 @@ export default function MonsterCompanion({ monster = null, totalXP = 0, gainedXP
         <div className="flex-1 min-w-0">
           {/* 名前 + レベル */}
           <div className="flex items-baseline justify-between gap-2">
-            <span className="font-semibold text-zinc-900">{current.species.name}</span>
+            <span className={['font-semibold', monster?.heldItemType ? 'text-sky-600' : 'text-zinc-900'].join(' ')}>{current.species.name}</span>
             <span className="text-xs tabular-nums text-zinc-500">Lv. {current.level}</span>
           </div>
 

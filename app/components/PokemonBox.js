@@ -3,8 +3,8 @@
 import { useState } from "react";
 import {
   getBoxMonsters,
+  getMonsterDisplayState,
   getMonsterLine,
-  getMonsterState,
   getPartyCount,
   getPartySlots,
   normalizeMonsterCollection,
@@ -22,7 +22,8 @@ function MonsterTile({
   onPick,
   onToggleTransfer,
 }) {
-  const current = monster ? getMonsterState(monster.totalXP, monster.lineId) : null;
+  const current = monster ? getMonsterDisplayState(monster) : null;
+  const isHoldingItem = monster?.heldItemType;
   const isSelected =
     selected &&
     selected.area === location.area &&
@@ -97,7 +98,7 @@ function MonsterTile({
         className="h-14 w-14 object-contain sm:h-16 sm:w-16"
         style={{ imageRendering: "pixelated" }}
       />
-      <span className="mt-1 max-w-full truncate text-[11px] font-medium text-zinc-700">
+      <span className={['mt-1 max-w-full truncate text-[11px] font-medium', isHoldingItem ? 'text-sky-600' : 'text-zinc-700'].join(' ')}>
         {current.species.name}
       </span>
       <span className="text-[10px] tabular-nums text-zinc-400">Lv. {current.level}</span>
@@ -205,7 +206,7 @@ export default function PokemonBox({
     const query = searchText.trim().toLocaleLowerCase("ja");
     const filtered = query
       ? boxMonsters.filter(monster => {
-          const state = getMonsterState(monster.totalXP, monster.lineId);
+          const state = getMonsterDisplayState(monster);
           const line = getMonsterLine(monster.lineId);
           return [
             state.species.name,
@@ -219,14 +220,14 @@ export default function PokemonBox({
 
     if (sortMode === "dex") {
       return [...filtered].sort((a, b) =>
-        getMonsterState(a.totalXP, a.lineId).species.id -
-        getMonsterState(b.totalXP, b.lineId).species.id,
+        getMonsterDisplayState(a).species.id -
+        getMonsterDisplayState(b).species.id,
       );
     }
     if (sortMode === "level") {
       return [...filtered].sort((a, b) => {
-        const aState = getMonsterState(a.totalXP, a.lineId);
-        const bState = getMonsterState(b.totalXP, b.lineId);
+        const aState = getMonsterDisplayState(a);
+        const bState = getMonsterDisplayState(b);
         return bState.level - aState.level || b.totalXP - a.totalXP;
       });
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { getPartyCount, getMonsterState, getPartySlots, normalizeMonsterCollection } from "@/lib/monster";
+import { getPartyCount, getMonsterDisplayState, getPartySlots, normalizeMonsterCollection } from "@/lib/monster";
 
 export default function PokemonParty({ collection, onSelect }) {
   const normalized = normalizeMonsterCollection(collection);
@@ -30,7 +30,8 @@ export default function PokemonParty({ collection, onSelect }) {
             );
           }
 
-          const current = getMonsterState(monster.totalXP, monster.lineId);
+          const current = getMonsterDisplayState(monster);
+          const isHoldingItem = Boolean(monster.heldItemType);
           const isActive = monster.id === normalized.activeId;
 
           return (
@@ -58,7 +59,7 @@ export default function PokemonParty({ collection, onSelect }) {
                 className="h-12 w-12 object-contain sm:h-14 sm:w-14"
                 style={{ imageRendering: "pixelated" }}
               />
-              <span className="mt-1 max-w-full truncate text-[11px] font-medium text-zinc-700">
+              <span className={['mt-1 max-w-full truncate text-[11px] font-medium', isHoldingItem ? 'text-sky-600' : 'text-zinc-700'].join(' ')}>
                 {current.species.name}
               </span>
               <span className="text-[10px] tabular-nums text-zinc-400">

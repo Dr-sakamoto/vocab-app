@@ -8,7 +8,16 @@ import {
   normalizeVersionedEncounters,
   rollCaptureEncounter,
 } from "../lib/capture.js";
-import { DEFAULT_MONSTER_COLLECTION, getMonsterLine, getMonsterState } from "../lib/monster.js";
+import {
+  DEFAULT_MONSTER_COLLECTION,
+  getMonsterLine,
+  getMonsterState,
+  getItemEvolutionPickup,
+  getItemEvolutionName,
+  getXpForLevel,
+  updatePartyXP,
+  getMonsterDisplayState,
+} from "../lib/monster.js";
 
 test("Route 1 is unlocked at the initial pool size", () => {
   assert.deepEqual(
@@ -144,4 +153,106 @@ test("applying a caught result preserves the intended level", () => {
 
   assert.ok(monster, "monster should be created");
   assert.equal(getMonsterState(monster.totalXP, monster.lineId).level, 5);
+});
+
+test("item evolution candidates can pick up an item and assign it to a party Pokemon", () => {
+  const gravelerXPTarget = getXpForLevel(25);
+  const collection = {
+    ...DEFAULT_MONSTER_COLLECTION,
+    partyIds: ["graveler-1", null, null, null, null, null],
+    monsters: [
+      { id: "graveler-1", lineId: "geodude", totalXP: gravelerXPTarget },
+    ],
+  };
+
+  const itemPickup = getItemEvolutionPickup(collection, () => 0.01);
+  assert.ok(itemPickup, "expected item pickup candidate");
+  assert.equal(itemPickup.monsterId, "graveler-1");
+  assert.equal(itemPickup.itemName, getItemEvolutionName(itemPickup.itemType));
+});
+
+test("item evolution pickup respects absolute item rarity for a single candidate", () => {
+  const gravelerXPTarget = getXpForLevel(25);
+  const collection = {
+    ...DEFAULT_MONSTER_COLLECTION,
+    partyIds: ["graveler-1", null, null, null, null, null],
+    monsters: [
+      { id: "graveler-1", lineId: "geodude", totalXP: gravelerXPTarget },
+    ],
+  };
+
+  const itemPickup = getItemEvolutionPickup(collection, () => 0.1);
+  assert.equal(itemPickup, null, "expected no item pickup when a rarer absolute item type is selected");
+});
+
+test("item evolution pickup chooses across eligible item types by absolute rarity", () => {
+  const fireTarget = getXpForLevel(1);
+  const cableTarget = getXpForLevel(25);
+  const collection = {
+    ...DEFAULT_MONSTER_COLLECTION,
+    partyIds: ["vulpix-1", "graveler-1", null, null, null, null],
+    monsters: [
+      { id: "vulpix-1", lineId: "vulpix", totalXP: fireTarget },
+      { id: "graveler-1", lineId: "geodude", totalXP: cableTarget },
+    ],
+  };
+
+  const itemPickup = getItemEvolutionPickup(collection, () => 0.1);
+  assert.ok(itemPickup, "expected an item pickup candidate");
+  assert.equal(itemPickup.itemName, getItemEvolutionName("fire"));
+  assert.equal(itemPickup.itemType, "fire");
+  assert.equal(itemPickup.monsterId, "vulpix-1");
+});
+
+test("applying an item pickup result assigns a held item to the selected monster", () => {
+  const gravelerXPTarget = getXpForLevel(25);
+  const collection = {
+    ...DEFAULT_MONSTER_COLLECTION,
+    partyIds: ["graveler-1", null, null, null, null, null],
+    monsters: [
+      { id: "graveler-1", lineId: "geodude", totalXP: gravelerXPTarget },
+    ],
+  };
+  const result = {
+    caught: false,
+    reason: "item-drop",
+    itemPickup: {
+      monsterId: "graveler-1",
+      itemType: "cable",
+      itemName: "つうしんケーブル",
+    },
+  };
+
+  const next = applyCaptureResultToCollection(collection, result);
+  const monster = next.monsters.find(m => m.id === "graveler-1");
+
+  assert.ok(monster, "monster should still exist");
+  assert.equal(monster.heldItemType, "cable");
+  assert.equal(monster.heldItemName, "つうしんケーブル");
+});
+
+test("held item pokemon evolves when it levels up after picking up an item", () => {
+  const initialXP = getXpForLevel(25);
+  const collection = {
+    ...DEFAULT_MONSTER_COLLECTION,
+    activeId: "graveler-1",
+    partyIds: ["graveler-1", null, null, null, null, null],
+    monsters: [
+      {
+        id: "graveler-1",
+        lineId: "geodude",
+        totalXP: initialXP,
+        heldItemType: "cable",
+        heldItemName: "つうしんケーブル",
+      },
+    ],
+  };
+
+  const updated = updatePartyXP(collection, 12500);
+  const monster = updated.monsters.find(m => m.id === "graveler-1");
+  const state = getMonsterDisplayState(monster);
+
+  assert.equal(monster.heldItemType, null);
+  assert.equal(monster.heldItemName, null);
+  assert.equal(state.species.name, "ゴローニャ");
 });
