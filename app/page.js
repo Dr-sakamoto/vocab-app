@@ -700,7 +700,7 @@ const handleMerged = useCallback(
           onOpenDashboard={() => openDashboard("result")}
           onBackToStart={backToStart}
         />
-        <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+        <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} position="mobile-bottom" />
       </>
     );
   }

@@ -2,7 +2,12 @@
 
 import { useEffect } from "react";
 
-export default function ToastQueue({ toast, onDismiss }) {
+const POSITION_CLASS = {
+  top: "top-6",
+  "mobile-bottom": "bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:bottom-auto sm:top-6",
+};
+
+export default function ToastQueue({ toast, onDismiss, position = "top" }) {
   useEffect(() => {
     if (!toast) return undefined;
     const timer = window.setTimeout(() => onDismiss?.(), toast.duration ?? 4800);
@@ -12,7 +17,7 @@ export default function ToastQueue({ toast, onDismiss }) {
   if (!toast) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-6 z-30 flex justify-center px-4">
+    <div className={`pointer-events-none fixed inset-x-0 z-30 flex justify-center px-4 ${POSITION_CLASS[position] ?? POSITION_CLASS.top}`}>
       <div
         className="pointer-events-auto max-w-xl rounded-3xl border border-zinc-200 bg-white/95 p-4 shadow-2xl backdrop-blur-sm transition duration-300 ease-out transform motion-reduce:transition-none"
         style={{ animation: "toast-slide-in 220ms ease-out" }}

@@ -6,6 +6,7 @@ import {
   applyCaptureResultToCollection,
   getUnlockedHabitats,
   normalizeVersionedEncounters,
+  pickHabitat,
   rollCaptureEncounter,
 } from "../lib/capture.js";
 import {
@@ -87,6 +88,27 @@ test("S rank always reaches the route 1 encounter table when only route 1 is unl
   assert.equal(result.caught, true);
   assert.equal(result.habitat.id, "route-1");
   assert.ok(["pidgey", "rattata"].includes(result.lineId));
+});
+
+test("habitat selection reserves 40 percent for the latest unlocked habitat", () => {
+  const habitat = pickHabitat({
+    unlockedPoolSize: 180,
+    habitatVisits: {},
+    rng: () => 0.39,
+  });
+
+  assert.equal(habitat.id, "route-3");
+});
+
+test("habitat selection weights non-latest habitats by fewer visits", () => {
+  const rolls = [0.4, 0.95];
+  const habitat = pickHabitat({
+    unlockedPoolSize: 120,
+    habitatVisits: { "route-1": 9, "route-22": 0 },
+    rng: () => rolls.shift(),
+  });
+
+  assert.equal(habitat.id, "route-22");
 });
 
 test("capture results are reproducible with the same seed", () => {
