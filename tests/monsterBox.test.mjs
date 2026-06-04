@@ -7,8 +7,10 @@ import {
   createMonsterInstance,
   getBoxCount,
   getBoxMonsters,
+  getXpForLevel,
   normalizeMonsterCollection,
   sendMonstersToProfessor,
+  sortBoxMonsters,
 } from "../lib/monster.js";
 
 test("box limit is 500", () => {
@@ -62,4 +64,36 @@ test("box count excludes party members", () => {
   });
 
   assert.equal(getBoxCount(collection), 1);
+});
+
+test("sorting the box by dex number permanently reorders only boxed monsters", () => {
+  const collection = normalizeMonsterCollection({
+    ...DEFAULT_MONSTER_COLLECTION,
+    monsters: [
+      ...DEFAULT_MONSTER_COLLECTION.monsters,
+      createMonsterInstance({ id: "box-rattata", lineId: "rattata" }),
+      createMonsterInstance({ id: "box-pidgey", lineId: "pidgey" }),
+    ],
+  });
+
+  const next = sortBoxMonsters(collection, "dex");
+
+  assert.deepEqual(getBoxMonsters(next).map(monster => monster.id), ["box-pidgey", "box-rattata"]);
+  assert.deepEqual(next.partyIds, collection.partyIds);
+});
+
+test("sorting the box by level permanently uses highest level first", () => {
+  const collection = normalizeMonsterCollection({
+    ...DEFAULT_MONSTER_COLLECTION,
+    monsters: [
+      ...DEFAULT_MONSTER_COLLECTION.monsters,
+      createMonsterInstance({ id: "box-pidgey", lineId: "pidgey", totalXP: getXpForLevel(2) }),
+      createMonsterInstance({ id: "box-rattata", lineId: "rattata", totalXP: getXpForLevel(10) }),
+    ],
+  });
+
+  const next = sortBoxMonsters(collection, "level");
+
+  assert.deepEqual(getBoxMonsters(next).map(monster => monster.id), ["box-rattata", "box-pidgey"]);
+  assert.deepEqual(next.partyIds, collection.partyIds);
 });

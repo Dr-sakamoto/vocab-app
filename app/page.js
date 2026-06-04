@@ -29,6 +29,7 @@ import {
   sendPartySlotToBox,
   sendMonstersToProfessor,
   setActiveMonster,
+  sortBoxMonsters,
   swapMonsterLocations,
   updatePartyXP,
 } from "@/lib/monster";
@@ -784,6 +785,9 @@ const handleMerged = useCallback(
               }
               onSendToProfessor={monsterIds =>
                 setMonsterCollection(prev => sendMonstersToProfessor(prev, monsterIds))
+              }
+              onSortBox={mode =>
+                setMonsterCollection(prev => sortBoxMonsters(prev, mode))
               }
             />
           )}

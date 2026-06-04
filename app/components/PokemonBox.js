@@ -187,6 +187,7 @@ export default function PokemonBox({
   onSwap,
   onRemove,
   onSendToProfessor,
+  onSortBox,
 }) {
   const normalized = normalizeMonsterCollection(collection);
   const partySlots = getPartySlots(normalized);
@@ -195,7 +196,6 @@ export default function PokemonBox({
   const [selected, setSelected] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [sortMode, setSortMode] = useState("manual");
   const [requestedTransferMode, setRequestedTransferMode] = useState(false);
   const [transferIds, setTransferIds] = useState(() => new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -218,19 +218,6 @@ export default function PokemonBox({
         })
       : boxMonsters;
 
-    if (sortMode === "dex") {
-      return [...filtered].sort((a, b) =>
-        getMonsterDisplayState(a).species.id -
-        getMonsterDisplayState(b).species.id,
-      );
-    }
-    if (sortMode === "level") {
-      return [...filtered].sort((a, b) => {
-        const aState = getMonsterDisplayState(a);
-        const bState = getMonsterDisplayState(b);
-        return bState.level - aState.level || b.totalXP - a.totalXP;
-      });
-    }
     return filtered;
   };
   const visibleBoxMonsters = getVisibleBoxMonsters();
@@ -322,42 +309,6 @@ export default function PokemonBox({
               placeholder="名前・図鑑Noで検索"
               className="h-10 min-w-[200px] rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-sky-300"
             />
-            <button
-              type="button"
-              onClick={() => setSortMode("dex")}
-              className={[
-                "h-10 rounded-xl border px-3 text-sm font-semibold",
-                sortMode === "dex"
-                  ? "border-sky-500 bg-sky-50 text-sky-700"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
-              ].join(" ")}
-            >
-              No順
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode("level")}
-              className={[
-                "h-10 rounded-xl border px-3 text-sm font-semibold",
-                sortMode === "level"
-                  ? "border-sky-500 bg-sky-50 text-sky-700"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
-              ].join(" ")}
-            >
-              Lv順
-            </button>
-            <button
-              type="button"
-              onClick={() => setSortMode("manual")}
-              className={[
-                "h-10 rounded-xl border px-3 text-sm font-semibold",
-                sortMode === "manual"
-                  ? "border-sky-500 bg-sky-50 text-sky-700"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
-              ].join(" ")}
-            >
-              リセット
-            </button>
           </div>
         </div>
 
@@ -400,7 +351,7 @@ export default function PokemonBox({
             <div>
               <div className="text-sm font-semibold text-zinc-700">ボックス</div>
               <div className="text-xs text-zinc-500">
-                {sortMode === "manual" ? "通常表示" : sortMode === "dex" ? "図鑑No順" : "レベル順"}
+                通常表示
                 {transferMode && ` ・博士に送る ${transferIds.size}匹選択中`}
               </div>
             </div>
@@ -446,11 +397,11 @@ export default function PokemonBox({
           transferMode={transferMode}
           onToggle={() => setMenuOpen(open => !open)}
           onDexSort={() => {
-            setSortMode("dex");
+            onSortBox?.("dex");
             setMenuOpen(false);
           }}
           onLevelSort={() => {
-            setSortMode("level");
+            onSortBox?.("level");
             setMenuOpen(false);
           }}
           onTransferMode={() => {
