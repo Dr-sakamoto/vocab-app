@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import FossilChoiceModal from "./components/FossilChoiceModal";
 import PokemonBox from "./components/PokemonBox";
 import PokemonParty from "./components/PokemonParty";
 import ProgressDashboard from "./components/ProgressDashboard";
@@ -9,6 +10,7 @@ import ToastQueue from "./components/ToastQueue";
 
 import {
   applyCaptureResultToCollection,
+  getHabitatMinPoolMap,
   pickHabitat,
   rollCaptureEncounter,
 } from "@/lib/capture";
@@ -18,7 +20,11 @@ import {
   DEFAULT_MONSTER_COLLECTION,
   BOX_LIMIT,
   getActiveMonster,
+  awardEligibleGiftMonsters,
+  claimFossilGift,
   getBoxCount,
+  getGiftToastTitle,
+  getPendingFossilGift,
   getPoolTier,
   getMonsterDisplayState,
   getMonsterLine,
@@ -119,6 +125,7 @@ export default function Page() {
   const [flowPlayCount, setFlowPlayCount] = useState(1);
   const [toastQueue, setToastQueue] = useState([]);
   const [activeToast, setActiveToast] = useState(null);
+  const [fossilChoice, setFossilChoice] = useState(null);
 
   const [index, setIndex]             = useState(0);
   const inputRef = useRef(null);
@@ -157,6 +164,7 @@ export default function Page() {
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
   const boxCount = getBoxCount(monsterCollection);
   const isBoxOverLimit = boxCount > BOX_LIMIT;
+  const habitatMinPools = useMemo(() => getHabitatMinPoolMap(), []);
 
   const enqueueToast = useCallback((toast) => {
     setToastQueue((prev) => [
@@ -223,6 +231,54 @@ export default function Page() {
     }
     return events;
   }
+
+  const enqueueGiftToasts = useCallback((awarded = []) => {
+    awarded.forEach((gift) => {
+      enqueueToast({
+        title: getGiftToastTitle(gift),
+        message: gift.message,
+        image: gift.sprite,
+        duration: 1600,
+      });
+    });
+  }, [enqueueToast]);
+
+  const syncGiftProgress = useCallback((collection, poolSize, { showToasts = false } = {}) => {
+    const poolResult = awardEligibleGiftMonsters(collection, {
+      unlockedPoolSize: poolSize,
+      trigger: "pool",
+      habitatMinPools,
+    });
+    const professorResult = awardEligibleGiftMonsters(poolResult.collection, {
+      unlockedPoolSize: poolSize,
+      trigger: "professor-transfer",
+      habitatMinPools,
+    });
+    const nextCollection = professorResult.collection;
+    const awarded = [...poolResult.awarded, ...professorResult.awarded];
+    const pendingFossil = getPendingFossilGift(nextCollection, {
+      unlockedPoolSize: poolSize,
+      habitatMinPools,
+    });
+
+    if (showToasts) enqueueGiftToasts(awarded);
+    if (pendingFossil) setFossilChoice(pendingFossil);
+
+    return { collection: nextCollection, awarded, pendingFossil };
+  }, [enqueueGiftToasts, habitatMinPools]);
+
+  const handleFossilChoice = useCallback((lineId) => {
+    const { collection: nextCollection, awarded } = claimFossilGift(
+      monsterCollectionRef.current,
+      lineId,
+      { habitatMinPools },
+    );
+    if (!awarded) return;
+    monsterCollectionRef.current = nextCollection;
+    setMonsterCollection(nextCollection);
+    setFossilChoice(null);
+    enqueueGiftToasts([awarded]);
+  }, [enqueueGiftToasts, habitatMinPools]);
 
   const normalizedAnswers = useMemo(
     () => (q?.answers ?? []).map(normalizeAnswer),
@@ -303,11 +359,12 @@ export default function Page() {
         lineId: normalizeMonsterLineId(savedMonsterLineId),
         totalXP: savedXP,
       });
-      monsterCollectionRef.current = normalizedCollection;
-      setMonsterCollection(normalizedCollection);
+      const syncedGifts = syncGiftProgress(normalizedCollection, loadedPoolSize);
+      monsterCollectionRef.current = syncedGifts.collection;
+      setMonsterCollection(syncedGifts.collection);
       const loadedHabitat = pickHabitat({
         unlockedPoolSize: loadedPoolSize,
-        habitatVisits: normalizedCollection.habitatVisits,
+        habitatVisits: syncedGifts.collection.habitatVisits,
         rng: Math.random,
       });
       currentHabitatRef.current = loadedHabitat;
@@ -470,8 +527,10 @@ export default function Page() {
     });
     setResultEvaluation(finalEvaluation);
 
-    // プール解放
     const step = getUnlockStep(finalScore, PLAY_LIMIT);
+    const nextPoolSize = step > 0
+      ? Math.min(currentPoolSize + step, VOCAB_ITEMS.length)
+      : currentPoolSize;
     if (step > 0) {
       setUnlockedPoolSize(prev => {
         const next = Math.min(prev + step, VOCAB_ITEMS.length);
@@ -505,7 +564,9 @@ export default function Page() {
       habitat: finalHabitat,
       monsterCollection: leveledCollection,
     });
-    const nextCollection = applyCaptureResultToCollection(leveledCollection, capture);
+    const capturedCollection = applyCaptureResultToCollection(leveledCollection, capture);
+    const giftSync = syncGiftProgress(capturedCollection, nextPoolSize, { showToasts: false });
+    const nextCollection = giftSync.collection;
     setCaptureResult(capture);
     monsterCollectionRef.current = nextCollection;
     setMonsterCollection(nextCollection);
@@ -523,6 +584,7 @@ export default function Page() {
 
     const partyToasts = buildPartyChangeToasts(currentCollection, nextCollection);
     partyToasts.forEach((toast) => enqueueToast(toast));
+    enqueueGiftToasts(giftSync.awarded);
 
     if (didEvolve && evolutionSoundRef.current) {
       evolutionSoundRef.current.currentTime = 0;
@@ -531,7 +593,7 @@ export default function Page() {
       levelUpSoundRef.current.currentTime = 0;
       levelUpSoundRef.current.play().catch(() => {});
     }
-  }, []); // すべての入力をパラメータで受け取るので deps 不要
+  }, [enqueueGiftToasts, syncGiftProgress]); // すべての入力をパラメータで受け取るので deps は最小限
 
   // ── 次へ ───────────────────────────────────────────────────────────────────
   const next = () => {
@@ -595,17 +657,18 @@ export default function Page() {
 const handleMerged = useCallback(
   ({ stats: mergedStats, unlockedPoolSize: mergedPool, monsterCollection: mergedCollection }) => {
     const normalizedCollection = normalizeMonsterCollection(mergedCollection);
-    const active = getActiveMonster(normalizedCollection);
+    const syncedGifts = syncGiftProgress(normalizedCollection, mergedPool);
+    const active = getActiveMonster(syncedGifts.collection);
     setStats(mergedStats);
     setUnlockedPoolSize(mergedPool);
-    monsterCollectionRef.current = normalizedCollection;
-    setMonsterCollection(normalizedCollection);
-    selectNextHabitat(mergedPool, normalizedCollection);
+    monsterCollectionRef.current = syncedGifts.collection;
+    setMonsterCollection(syncedGifts.collection);
+    selectNextHabitat(mergedPool, syncedGifts.collection);
 
     // localStorage も即時更新
     try {
       window.localStorage.setItem(POOL_STORAGE_KEY, String(mergedPool));
-      window.localStorage.setItem(MONSTER_COLLECTION_STORAGE_KEY, JSON.stringify(normalizedCollection));
+      window.localStorage.setItem(MONSTER_COLLECTION_STORAGE_KEY, JSON.stringify(syncedGifts.collection));
       window.localStorage.setItem(MONSTER_STORAGE_KEY, String(active.totalXP));
       window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, active.lineId);
       window.localStorage.setItem(
@@ -621,8 +684,28 @@ const handleMerged = useCallback(
       );
     } catch { /* ignore */ }
   },
-  [selectNextHabitat]
+  [selectNextHabitat, syncGiftProgress]
 );
+
+  const handleSendToProfessor = useCallback((monsterIds) => {
+    const transferredCollection = sendMonstersToProfessor(monsterCollectionRef.current, monsterIds);
+    const {
+      collection: nextCollection,
+      awarded,
+    } = awardEligibleGiftMonsters(transferredCollection, {
+      unlockedPoolSize,
+      trigger: "professor-transfer",
+      habitatMinPools,
+    });
+    monsterCollectionRef.current = nextCollection;
+    setMonsterCollection(nextCollection);
+    enqueueGiftToasts(awarded);
+    const pendingFossil = getPendingFossilGift(nextCollection, {
+      unlockedPoolSize,
+      habitatMinPools,
+    });
+    if (pendingFossil) setFossilChoice(pendingFossil);
+  }, [enqueueGiftToasts, habitatMinPools, unlockedPoolSize]);
 
 
   // ── キーボードショートカット ───────────────────────────────────────────────
@@ -653,6 +736,9 @@ const handleMerged = useCallback(
     selectNextHabitat();
   }, [selectNextHabitat]);
   const shouldShowPokemonBox = isPokemonBoxOpen || isBoxOverLimit;
+  const fossilChoiceModal = (
+    <FossilChoiceModal group={fossilChoice} onSelect={handleFossilChoice} />
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // ビュー分岐
@@ -668,6 +754,7 @@ const handleMerged = useCallback(
           </div>
         </div>
         <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+        {fossilChoiceModal}
       </>
     );
   }
@@ -681,6 +768,7 @@ const handleMerged = useCallback(
           onBack={() => setActiveView(dashboardReturnView)}
         />
         <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+        {fossilChoiceModal}
       </>
     );
   }
@@ -702,6 +790,7 @@ const handleMerged = useCallback(
           onBackToStart={backToStart}
         />
         <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} position="mobile-bottom" />
+        {fossilChoiceModal}
       </>
     );
   }
@@ -783,9 +872,7 @@ const handleMerged = useCallback(
               onRemove={partyIndex =>
                 setMonsterCollection(prev => sendPartySlotToBox(prev, partyIndex))
               }
-              onSendToProfessor={monsterIds =>
-                setMonsterCollection(prev => sendMonstersToProfessor(prev, monsterIds))
-              }
+              onSendToProfessor={handleSendToProfessor}
               onSortBox={mode =>
                 setMonsterCollection(prev => sortBoxMonsters(prev, mode))
               }
@@ -799,6 +886,7 @@ const handleMerged = useCallback(
         </div>
       </div>
       <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+      {fossilChoiceModal}
       </>
     );
   }
@@ -902,6 +990,7 @@ const handleMerged = useCallback(
       </div>
     </div>
       <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+      {fossilChoiceModal}
     </>
   );
 }
