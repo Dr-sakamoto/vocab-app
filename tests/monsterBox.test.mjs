@@ -40,14 +40,12 @@ test("normalizes professor transfer counts", () => {
 test("sending boxed monsters to professor removes only boxed selections and records counts", () => {
   const boxedPidgey = createMonsterInstance({ id: "box-pidgey", lineId: "pidgey" });
   const boxedRattata = createMonsterInstance({ id: "box-rattata", lineId: "rattata" });
-  const partyBulbasaur = DEFAULT_MONSTER_COLLECTION.monsters.find(monster => monster.id === "starter-bulbasaur");
+  const partyBulbasaur = createMonsterInstance({ id: "starter-bulbasaur", lineId: "bulbasaur" });
   const collection = normalizeMonsterCollection({
     ...DEFAULT_MONSTER_COLLECTION,
-    monsters: [
-      ...DEFAULT_MONSTER_COLLECTION.monsters,
-      boxedPidgey,
-      boxedRattata,
-    ],
+    activeId: partyBulbasaur.id,
+    partyIds: [partyBulbasaur.id, null, null, null, null, null],
+    monsters: [partyBulbasaur, boxedPidgey, boxedRattata],
   });
 
   const next = sendMonstersToProfessor(collection, [
@@ -178,10 +176,13 @@ test("fossil gift waits for player choice and awards only one fossil", () => {
 });
 
 test("box count excludes party members", () => {
+  const partyMember = createMonsterInstance({ id: "starter-bulbasaur", lineId: "bulbasaur" });
   const collection = normalizeMonsterCollection({
     ...DEFAULT_MONSTER_COLLECTION,
+    activeId: partyMember.id,
+    partyIds: [partyMember.id, null, null, null, null, null],
     monsters: [
-      ...DEFAULT_MONSTER_COLLECTION.monsters,
+      partyMember,
       createMonsterInstance({ id: "box-pidgey", lineId: "pidgey" }),
     ],
   });
@@ -190,10 +191,13 @@ test("box count excludes party members", () => {
 });
 
 test("sorting the box by dex number permanently reorders only boxed monsters", () => {
+  const partyMember = createMonsterInstance({ id: "starter-bulbasaur", lineId: "bulbasaur" });
   const collection = normalizeMonsterCollection({
     ...DEFAULT_MONSTER_COLLECTION,
+    activeId: partyMember.id,
+    partyIds: [partyMember.id, null, null, null, null, null],
     monsters: [
-      ...DEFAULT_MONSTER_COLLECTION.monsters,
+      partyMember,
       createMonsterInstance({ id: "box-rattata", lineId: "rattata" }),
       createMonsterInstance({ id: "box-pidgey", lineId: "pidgey" }),
     ],
@@ -206,10 +210,13 @@ test("sorting the box by dex number permanently reorders only boxed monsters", (
 });
 
 test("sorting the box by level permanently uses highest level first", () => {
+  const partyMember = createMonsterInstance({ id: "starter-bulbasaur", lineId: "bulbasaur" });
   const collection = normalizeMonsterCollection({
     ...DEFAULT_MONSTER_COLLECTION,
+    activeId: partyMember.id,
+    partyIds: [partyMember.id, null, null, null, null, null],
     monsters: [
-      ...DEFAULT_MONSTER_COLLECTION.monsters,
+      partyMember,
       createMonsterInstance({ id: "box-pidgey", lineId: "pidgey", totalXP: getXpForLevel(2) }),
       createMonsterInstance({ id: "box-rattata", lineId: "rattata", totalXP: getXpForLevel(10) }),
     ],

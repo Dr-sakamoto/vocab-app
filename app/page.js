@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BattleBanner from "./components/BattleBanner";
+import CompactBattleBar from "./components/CompactBattleBar";
 import FossilChoiceModal from "./components/FossilChoiceModal";
+import StarterChoiceModal from "./components/StarterChoiceModal";
 import PokemonBox from "./components/PokemonBox";
 import PokemonParty from "./components/PokemonParty";
 import ProgressDashboard from "./components/ProgressDashboard";
@@ -27,7 +29,7 @@ import { evaluatePlay } from "@/lib/playEvaluation";
 import {
   canUseMasterBall,
   DEFAULT_STORY_PROGRESS,
-  getBattleById,
+  getBattleForProgress,
   getBattleResultMessage,
   getOpponentPokemon,
   getResumeBattle,
@@ -40,6 +42,12 @@ import {
   STORY_PROGRESS_STORAGE_KEY,
   syncRetroactiveBattles,
 } from "@/lib/storyBattles";
+import {
+  applyStarterChoice,
+  awardMissingProfessorStarters,
+  migrateStarterState,
+  needsStarterChoice,
+} from "@/lib/starters";
 import {
   clampMonsterXP,
   DEFAULT_MONSTER_COLLECTION,
@@ -154,6 +162,7 @@ export default function Page() {
   const [storyProgress, setStoryProgress] = useState(() => normalizeStoryProgress(DEFAULT_STORY_PROGRESS));
   const [activeBattle, setActiveBattle] = useState(null);
   const [trainerChallenge, setTrainerChallenge] = useState(null);
+  const [pendingStarterBattleId, setPendingStarterBattleId] = useState(null);
   const [battleOutcome, setBattleOutcome] = useState(null);
   const [completedBattleResult, setCompletedBattleResult] = useState(null);
   const [useMasterBallThisBattle, setUseMasterBallThisBattle] = useState(false);
@@ -440,12 +449,15 @@ export default function Page() {
         rawStory ? JSON.parse(rawStory) : normalizedCollection.storyProgress ?? DEFAULT_STORY_PROGRESS,
       );
       const syncedGifts = syncGiftProgress(normalizedCollection, loadedPoolSize);
-      const retroStory = syncRetroactiveBattles(loadedStory, { unlockedPoolSize: loadedPoolSize });
-      monsterCollectionRef.current = syncedGifts.collection;
-      setMonsterCollection(syncedGifts.collection);
+      const migratedStarters = migrateStarterState(syncedGifts.collection, loadedStory);
+      const retroStory = syncRetroactiveBattles(migratedStarters.progress, {
+        unlockedPoolSize: loadedPoolSize,
+      });
+      monsterCollectionRef.current = migratedStarters.collection;
+      setMonsterCollection(migratedStarters.collection);
       storyProgressRef.current = retroStory;
       setStoryProgress(retroStory);
-      const resumeBattle = getResumeBattle(loadedStory);
+      const resumeBattle = getResumeBattle(retroStory);
       if (resumeBattle) {
         setActiveBattle(resumeBattle);
         activeBattleRef.current = resumeBattle;
@@ -746,15 +758,19 @@ export default function Page() {
 
     const gained = finalEvaluation.xp ?? 0;
     const currentMonster = getActiveMonster(currentCollection);
-    const previousXP = currentMonster.totalXP;
-    const previousLevel = levelFromTotalXP(previousXP);
-    const nextLevel = levelFromTotalXP(clampMonsterXP(previousXP + gained));
-    const didLevelUp = nextLevel > previousLevel;
-    const didEvolve =
-      getSpecies(previousLevel, currentMonster.lineId).id !==
-      getSpecies(nextLevel, currentMonster.lineId).id;
-
-    const leveledCollection = updatePartyXP(currentCollection, gained);
+    let didLevelUp = false;
+    let didEvolve = false;
+    let leveledCollection = currentCollection;
+    if (currentMonster) {
+      const previousXP = currentMonster.totalXP;
+      const previousLevel = levelFromTotalXP(previousXP);
+      const nextLevel = levelFromTotalXP(clampMonsterXP(previousXP + gained));
+      didLevelUp = nextLevel > previousLevel;
+      didEvolve =
+        getSpecies(previousLevel, currentMonster.lineId).id !==
+        getSpecies(nextLevel, currentMonster.lineId).id;
+      leveledCollection = updatePartyXP(currentCollection, gained);
+    }
 
     capture = rollCaptureEncounter({
       grade: finalEvaluation.grade,
@@ -855,10 +871,10 @@ export default function Page() {
     resultUnlockAppliedRef.current = false;
   }, [pickNextQuestionIndex, selectNextHabitat]);
 
-  const startBattle = useCallback((battleId) => {
-    const battle = getBattleById(battleId);
+  const beginBattleSession = useCallback((battleId, progress, collection) => {
+    const battle = getBattleForProgress(battleId, progress);
     if (!battle) return;
-    const nextStory = startBattleSession(storyProgressRef.current, battleId);
+    const nextStory = startBattleSession(progress, battleId);
     setStoryProgress(nextStory);
     storyProgressRef.current = nextStory;
     setActiveBattle(battle);
@@ -867,9 +883,32 @@ export default function Page() {
     setUseMasterBallThisBattle(false);
     setFlowPlayCount(1);
     resetPlayState({ keepHabitat: true, battle });
-    persistProgress({ nextStory });
+    persistProgress({ nextStory, nextCollection: collection });
     setActiveView("study");
   }, [persistProgress, resetPlayState]);
+
+  const startBattle = useCallback((battleId) => {
+    if (needsStarterChoice(storyProgressRef.current, battleId)) {
+      setPendingStarterBattleId(battleId);
+      return;
+    }
+    beginBattleSession(battleId, storyProgressRef.current, monsterCollectionRef.current);
+  }, [beginBattleSession]);
+
+  const handleStarterSelect = useCallback((lineId) => {
+    const { collection, progress } = applyStarterChoice(
+      monsterCollectionRef.current,
+      storyProgressRef.current,
+      lineId,
+    );
+    monsterCollectionRef.current = collection;
+    setMonsterCollection(collection);
+    storyProgressRef.current = progress;
+    setStoryProgress(progress);
+    const battleId = pendingStarterBattleId ?? "rival-1";
+    setPendingStarterBattleId(null);
+    beginBattleSession(battleId, progress, collection);
+  }, [beginBattleSession, pendingStarterBattleId]);
 
   const handleUseMasterBall = useCallback(() => {
     const preview =
@@ -946,22 +985,24 @@ const handleMerged = useCallback(
       { unlockedPoolSize: mergedPool },
     );
     const syncedGifts = syncGiftProgress(normalizedCollection, mergedPool);
-    const active = getActiveMonster(syncedGifts.collection);
+    const migratedStarters = migrateStarterState(syncedGifts.collection, mergedStory);
+    const active = getActiveMonster(migratedStarters.collection);
     setStats(mergedStats);
     setUnlockedPoolSize(mergedPool);
-    monsterCollectionRef.current = syncedGifts.collection;
-    setMonsterCollection(syncedGifts.collection);
-    setStoryProgress(mergedStory);
-    storyProgressRef.current = mergedStory;
-    const resumeBattle = getResumeBattle(mergedStory);
+    monsterCollectionRef.current = migratedStarters.collection;
+    setMonsterCollection(migratedStarters.collection);
+    const finalStory = syncRetroactiveBattles(migratedStarters.progress, { unlockedPoolSize: mergedPool });
+    setStoryProgress(finalStory);
+    storyProgressRef.current = finalStory;
+    const resumeBattle = getResumeBattle(finalStory);
     setActiveBattle(resumeBattle);
     activeBattleRef.current = resumeBattle;
     selectNextHabitat(mergedPool, syncedGifts.collection);
     persistProgress({
       nextStats: mergedStats,
       nextPoolSize: mergedPool,
-      nextCollection: syncedGifts.collection,
-      nextStory: mergedStory,
+      nextCollection: migratedStarters.collection,
+      nextStory: finalStory,
     });
   },
   [persistProgress, selectNextHabitat, syncGiftProgress]
@@ -970,22 +1011,41 @@ const handleMerged = useCallback(
   const handleSendToProfessor = useCallback((monsterIds) => {
     const transferredCollection = sendMonstersToProfessor(monsterCollectionRef.current, monsterIds);
     const {
-      collection: nextCollection,
+      collection: giftCollection,
       awarded,
     } = awardEligibleGiftMonsters(transferredCollection, {
       unlockedPoolSize,
       trigger: "professor-transfer",
       habitatMinPools,
     });
+    const professorStarters = awardMissingProfessorStarters(
+      giftCollection,
+      storyProgressRef.current,
+    );
+    const nextCollection = professorStarters.collection;
+    const nextStory = professorStarters.progress;
     monsterCollectionRef.current = nextCollection;
     setMonsterCollection(nextCollection);
+    if (nextStory !== storyProgressRef.current) {
+      storyProgressRef.current = nextStory;
+      setStoryProgress(nextStory);
+      persistProgress({ nextCollection, nextStory });
+    }
     enqueueGiftToasts(awarded);
+    for (const gift of professorStarters.awarded) {
+      enqueueToast({
+        title: "博士からの贈り物！",
+        message: gift.message,
+        image: gift.sprite,
+        duration: 2200,
+      });
+    }
     const pendingFossil = getPendingFossilGift(nextCollection, {
       unlockedPoolSize,
       habitatMinPools,
     });
     if (pendingFossil) setFossilChoice(pendingFossil);
-  }, [enqueueGiftToasts, habitatMinPools, unlockedPoolSize]);
+  }, [enqueueGiftToasts, enqueueToast, habitatMinPools, persistProgress, unlockedPoolSize]);
 
 
   // ── キーボードショートカット ───────────────────────────────────────────────
@@ -1019,6 +1079,9 @@ const handleMerged = useCallback(
   const fossilChoiceModal = (
     <FossilChoiceModal group={fossilChoice} onSelect={handleFossilChoice} />
   );
+  const starterChoiceModal = pendingStarterBattleId ? (
+    <StarterChoiceModal onSelect={handleStarterSelect} />
+  ) : null;
 
   // ─────────────────────────────────────────────────────────────────────────
   // ビュー分岐
@@ -1036,6 +1099,7 @@ const handleMerged = useCallback(
         <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
         <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
         {fossilChoiceModal}
+        {starterChoiceModal}
       </>
     );
   }
@@ -1051,6 +1115,7 @@ const handleMerged = useCallback(
         <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
         <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
         {fossilChoiceModal}
+        {starterChoiceModal}
       </>
     );
   }
@@ -1076,6 +1141,7 @@ const handleMerged = useCallback(
         <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} position="mobile-bottom" />
         <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
         {fossilChoiceModal}
+        {starterChoiceModal}
       </>
     );
   }
@@ -1202,6 +1268,7 @@ const handleMerged = useCallback(
       <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
       <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
       {fossilChoiceModal}
+      {starterChoiceModal}
       </>
     );
   }
@@ -1209,116 +1276,171 @@ const handleMerged = useCallback(
   // ── クイズ画面 ──────────────────────────────────────────────────────────
   return (
     <>
-      <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
-        <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
+      <div
+        className={
+          activeBattle
+            ? "fixed inset-0 flex flex-col overflow-hidden bg-zinc-50 text-zinc-900 sm:static sm:min-h-screen sm:overflow-visible"
+            : "min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6"
+        }
+      >
         {activeBattle && (
-          <BattleBanner
-            battle={activeBattle}
-            questionNumber={total}
-            playLimit={sessionPlayLimit}
-            won={battleOutcome === "won"}
-            lost={battleOutcome === "lost"}
-            masterBallAvailable={canUseMasterBall(storyProgress)}
-            useMasterBall={useMasterBallThisBattle}
-            onToggleMasterBall={() => setUseMasterBallThisBattle(prev => !prev)}
-          />
+          <div className="shrink-0 sm:hidden">
+            <CompactBattleBar
+              battle={activeBattle}
+              questionNumber={total}
+              playLimit={sessionPlayLimit}
+              masterBallAvailable={canUseMasterBall(storyProgress)}
+              useMasterBall={useMasterBallThisBattle}
+              onToggleMasterBall={() => setUseMasterBallThisBattle(prev => !prev)}
+            />
+          </div>
         )}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="text-xl font-semibold">英単語クイズ</h1>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <div
-              className="h-2 w-32 overflow-hidden rounded-full bg-zinc-200"
-              role="progressbar"
-              aria-valuenow={total} aria-valuemin={1} aria-valuemax={sessionPlayLimit}
-            >
-              <div
-                className="h-full rounded-full bg-zinc-900 transition-[width]"
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-            <div className="text-xs tabular-nums text-zinc-500">{progress}</div>
-          </div>
-        </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-zinc-600">
-          <div>Score: {score} / {sessionPlayLimit}</div>
-          <div className="inline-flex items-center gap-1.5">
-            <span
-              className="rounded-full px-2 py-0.5 text-xs font-bold text-white"
-              style={{ backgroundColor: currentTier.color }}
-            >
-              {currentTier.label} ×{currentTier.multiplier}
-            </span>
-          </div>
-          <div className="inline-flex items-center gap-2">
-            <span>最高ストリーク: {bestStreak}</span>
-            {checked && isCorrect && getPraiseMessage(streak) && (
-              <span className={`text-sm font-medium ${getPraiseMessage(streak).color}`}>
-                {getPraiseMessage(streak).label}
-              </span>
+        <div
+          className={
+            activeBattle
+              ? "flex min-h-0 flex-1 flex-col sm:block sm:p-6 sm:flex sm:items-center sm:justify-center"
+              : "w-full"
+          }
+        >
+          <div
+            className={
+              activeBattle
+                ? "flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:max-w-2xl sm:flex-none sm:overflow-visible sm:rounded-2xl sm:border sm:bg-white sm:p-6 sm:shadow-sm"
+                : "w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm"
+            }
+          >
+            {activeBattle && (
+              <div className="hidden sm:block">
+                <BattleBanner
+                  battle={activeBattle}
+                  questionNumber={total}
+                  playLimit={sessionPlayLimit}
+                  won={battleOutcome === "won"}
+                  lost={battleOutcome === "lost"}
+                  masterBallAvailable={canUseMasterBall(storyProgress)}
+                  useMasterBall={useMasterBallThisBattle}
+                  onToggleMasterBall={() => setUseMasterBallThisBattle(prev => !prev)}
+                />
+              </div>
             )}
-          </div>
-        </div>
 
-        <div className="mt-5 rounded-xl bg-zinc-50 px-4 py-6 text-center">
-          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            {getPartOfSpeech(q)}
-          </div>
-          <div className="mt-2 break-words text-4xl font-semibold text-zinc-950 sm:text-5xl">
-            {q.target}
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <label className="block text-sm font-medium text-zinc-700">英単語の日本語訳</label>
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            className="mt-2 w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 focus:ring-zinc-900/10"
-            onKeyDown={e => {
-              if (e.key !== "Enter") return;
-              if (checked) next(); else checkAnswer();
-            }}
-            disabled={isCheckingAnswer}
-          />
-
-          {checked && (
-            <div className="mt-3">
-              {isCorrect ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
-                  <div className="text-base font-semibold">
-                    {answerStatus === "alternative" ? "〇（別解）" : "〇"}
-                  </div>
+            <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-4">
+              <h1 className={`font-semibold ${activeBattle ? "text-base sm:text-xl" : "text-xl"}`}>
+                英単語クイズ
+              </h1>
+              <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+                <div
+                  className="h-2 w-24 overflow-hidden rounded-full bg-zinc-200 sm:w-32"
+                  role="progressbar"
+                  aria-valuenow={total} aria-valuemin={1} aria-valuemax={sessionPlayLimit}
+                >
+                  <div
+                    className="h-full rounded-full bg-zinc-900 transition-[width]"
+                    style={{ width: `${progressPct}%` }}
+                  />
                 </div>
-              ) : (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900">
-                  不正解。正解例: {normalizedAnswers.join(" / ")}
+                <div className="text-xs tabular-nums text-zinc-500">{progress}</div>
+              </div>
+            </div>
+
+            <div
+              className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-600 ${
+                activeBattle ? "mt-1 sm:mt-2" : "mt-2"
+              }`}
+            >
+              <div>Score: {score} / {sessionPlayLimit}</div>
+              {!activeBattle && (
+                <div className="inline-flex items-center gap-1.5">
+                  <span
+                    className="rounded-full px-2 py-0.5 text-xs font-bold text-white"
+                    style={{ backgroundColor: currentTier.color }}
+                  >
+                    {currentTier.label} ×{currentTier.multiplier}
+                  </span>
+                </div>
+              )}
+              <div className="inline-flex items-center gap-2">
+                <span className={activeBattle ? "text-xs sm:text-sm" : ""}>最高: {bestStreak}</span>
+                {checked && isCorrect && getPraiseMessage(streak) && (
+                  <span className={`text-xs font-medium sm:text-sm ${getPraiseMessage(streak).color}`}>
+                    {getPraiseMessage(streak).label}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div
+              className={`rounded-xl bg-zinc-50 text-center ${
+                activeBattle ? "mt-3 px-3 py-4 sm:mt-5 sm:px-4 sm:py-6" : "mt-5 px-4 py-6"
+              }`}
+            >
+              <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                {getPartOfSpeech(q)}
+              </div>
+              <div
+                className={`mt-1 break-words font-semibold text-zinc-950 sm:mt-2 ${
+                  activeBattle ? "text-2xl sm:text-5xl" : "text-4xl sm:text-5xl"
+                }`}
+              >
+                {q.target}
+              </div>
+            </div>
+
+            <div className={activeBattle ? "mt-3 sm:mt-5" : "mt-5"}>
+              <label className="block text-sm font-medium text-zinc-700">英単語の日本語訳</label>
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                className={`mt-2 w-full rounded-xl border px-4 outline-none focus:ring-2 focus:ring-zinc-900/10 ${
+                  activeBattle ? "py-2.5 sm:py-3" : "py-3"
+                }`}
+                onKeyDown={e => {
+                  if (e.key !== "Enter") return;
+                  if (checked) next(); else checkAnswer();
+                }}
+                disabled={isCheckingAnswer}
+              />
+
+              {checked && (
+                <div className="mt-2 sm:mt-3">
+                  {isCorrect ? (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900 sm:px-4 sm:py-3">
+                      <div className="text-sm font-semibold sm:text-base">
+                        {answerStatus === "alternative" ? "〇（別解）" : "〇"}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900 sm:px-4 sm:py-3">
+                      不正解。正解例: {normalizedAnswers.join(" / ")}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button" onClick={checkAnswer} disabled={checked || isCheckingAnswer}
-            className={PRIMARY_BUTTON_CLASS}
-          >
-            {isCheckingAnswer ? "判定中..." : "答え合わせ"}
-          </button>
-          <button
-            type="button" onClick={next} disabled={!checked}
-            className={SECONDARY_BUTTON_CLASS}
-          >
-            次へ
-          </button>
+            <div className={`flex shrink-0 flex-col gap-2 sm:flex-row sm:gap-3 ${activeBattle ? "mt-4 sm:mt-6" : "mt-6"}`}>
+              <button
+                type="button" onClick={checkAnswer} disabled={checked || isCheckingAnswer}
+                className={PRIMARY_BUTTON_CLASS}
+              >
+                {isCheckingAnswer ? "判定中..." : "答え合わせ"}
+              </button>
+              <button
+                type="button" onClick={next} disabled={!checked}
+                className={SECONDARY_BUTTON_CLASS}
+              >
+                次へ
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
       <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
       <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
       {fossilChoiceModal}
+      {starterChoiceModal}
     </>
   );
 }
