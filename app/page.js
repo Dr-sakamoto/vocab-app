@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import BattleBanner from "./components/BattleBanner";
 import FossilChoiceModal from "./components/FossilChoiceModal";
 import PokemonBox from "./components/PokemonBox";
 import PokemonParty from "./components/PokemonParty";
 import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
 import ToastQueue from "./components/ToastQueue";
+import TrainerChallengeAlert from "./components/TrainerChallengeAlert";
 
 import {
   applyCaptureResultToCollection,
@@ -14,7 +16,30 @@ import {
   pickHabitat,
   rollCaptureEncounter,
 } from "@/lib/capture";
+import {
+  applyMasterBallCapture,
+  getPoolUnlockStepWithBossGate,
+  getSessionPlayLimit,
+  processBattleEnd,
+  processNormalPlayBattleTriggers,
+} from "@/lib/battleSession";
 import { evaluatePlay } from "@/lib/playEvaluation";
+import {
+  canUseMasterBall,
+  DEFAULT_STORY_PROGRESS,
+  getBattleById,
+  getBattleResultMessage,
+  getOpponentPokemon,
+  getResumeBattle,
+  getStartScreenBattle,
+  getTrainerSprite,
+  markMewWordSeen,
+  normalizeStoryProgress,
+  pickBattleQuestionIndex,
+  startBattleSession,
+  STORY_PROGRESS_STORAGE_KEY,
+  syncRetroactiveBattles,
+} from "@/lib/storyBattles";
 import {
   clampMonsterXP,
   DEFAULT_MONSTER_COLLECTION,
@@ -126,6 +151,12 @@ export default function Page() {
   const [toastQueue, setToastQueue] = useState([]);
   const [activeToast, setActiveToast] = useState(null);
   const [fossilChoice, setFossilChoice] = useState(null);
+  const [storyProgress, setStoryProgress] = useState(() => normalizeStoryProgress(DEFAULT_STORY_PROGRESS));
+  const [activeBattle, setActiveBattle] = useState(null);
+  const [trainerChallenge, setTrainerChallenge] = useState(null);
+  const [battleOutcome, setBattleOutcome] = useState(null);
+  const [completedBattleResult, setCompletedBattleResult] = useState(null);
+  const [useMasterBallThisBattle, setUseMasterBallThisBattle] = useState(false);
 
   const [index, setIndex]             = useState(0);
   const inputRef = useRef(null);
@@ -158,7 +189,10 @@ export default function Page() {
   const levelUpSoundRef = useRef(null);
   const evolutionSoundRef = useRef(null);
   const monsterCollectionRef = useRef(monsterCollection);
+  const storyProgressRef = useRef(storyProgress);
+  const activeBattleRef = useRef(activeBattle);
   const currentHabitatRef = useRef(null);
+  const sessionPlayLimit = getSessionPlayLimit(activeBattle, PLAY_LIMIT);
   const activeMonster = getActiveMonster(monsterCollection);
   const answeredCount   = checked ? total : total - 1;
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
@@ -328,6 +362,48 @@ export default function Page() {
   }, [monsterCollection]);
 
   useEffect(() => {
+    storyProgressRef.current = storyProgress;
+  }, [storyProgress]);
+
+  useEffect(() => {
+    activeBattleRef.current = activeBattle;
+  }, [activeBattle]);
+
+  const persistProgress = useCallback(({
+    nextStats = stats,
+    nextPoolSize = unlockedPoolSize,
+    nextCollection = monsterCollectionRef.current,
+    nextStory = storyProgressRef.current,
+  } = {}) => {
+    if (typeof window === "undefined" || !window.localStorage || !didLoadFromStorageRef.current) return;
+    try {
+      const active = getActiveMonster(nextCollection);
+      const collectionPayload = {
+        ...normalizeMonsterCollection(nextCollection),
+        storyProgress: normalizeStoryProgress(nextStory),
+      };
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(
+        VOCAB_ITEMS.map((v, i) => ({
+          id: v.id,
+          target: v.target,
+          correct: nextStats[i]?.correct ?? 0,
+          wrong: nextStats[i]?.wrong ?? 0,
+        })),
+      ));
+      window.localStorage.setItem(POOL_STORAGE_KEY, String(nextPoolSize));
+      window.localStorage.setItem(MONSTER_COLLECTION_STORAGE_KEY, JSON.stringify(collectionPayload));
+      window.localStorage.setItem(STORY_PROGRESS_STORAGE_KEY, JSON.stringify(normalizeStoryProgress(nextStory)));
+      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(active.totalXP));
+      window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, active.lineId);
+    } catch { /* ignore */ }
+  }, [stats, unlockedPoolSize]);
+
+  const startScreenBattle = useMemo(
+    () => getStartScreenBattle(storyProgress),
+    [storyProgress],
+  );
+
+  useEffect(() => {
     if (activeView !== "study" || isCheckingAnswer) return;
     inputRef.current?.focus();
   }, [activeView, checked, index, isCheckingAnswer]);
@@ -359,9 +435,21 @@ export default function Page() {
         lineId: normalizeMonsterLineId(savedMonsterLineId),
         totalXP: savedXP,
       });
+      const rawStory = window.localStorage.getItem(STORY_PROGRESS_STORAGE_KEY);
+      const loadedStory = normalizeStoryProgress(
+        rawStory ? JSON.parse(rawStory) : normalizedCollection.storyProgress ?? DEFAULT_STORY_PROGRESS,
+      );
       const syncedGifts = syncGiftProgress(normalizedCollection, loadedPoolSize);
+      const retroStory = syncRetroactiveBattles(loadedStory, { unlockedPoolSize: loadedPoolSize });
       monsterCollectionRef.current = syncedGifts.collection;
       setMonsterCollection(syncedGifts.collection);
+      storyProgressRef.current = retroStory;
+      setStoryProgress(retroStory);
+      const resumeBattle = getResumeBattle(loadedStory);
+      if (resumeBattle) {
+        setActiveBattle(resumeBattle);
+        activeBattleRef.current = resumeBattle;
+      }
       const loadedHabitat = pickHabitat({
         unlockedPoolSize: loadedPoolSize,
         habitatVisits: syncedGifts.collection.habitatVisits,
@@ -423,20 +511,28 @@ export default function Page() {
 
   useEffect(() => {
     if (!didLoadFromStorageRef.current) return;
-    try {
-      const active = getActiveMonster(monsterCollection);
-      window.localStorage.setItem(MONSTER_COLLECTION_STORAGE_KEY, JSON.stringify(monsterCollection));
-      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(active.totalXP));
-      window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, active.lineId);
-    } catch { /* 無視 */ }
-  }, [monsterCollection]);
+    persistProgress({
+      nextCollection: monsterCollection,
+      nextStory: storyProgress,
+    });
+  }, [monsterCollection, persistProgress, storyProgress]);
 
   // ── 出題 ──────────────────────────────────────────────────────────────────
-  const progress    = `${total} / ${PLAY_LIMIT}`;
-  const progressPct = Math.max(0, Math.min(100, (total / PLAY_LIMIT) * 100));
+  const progress    = `${total} / ${sessionPlayLimit}`;
+  const progressPct = Math.max(0, Math.min(100, (total / sessionPlayLimit) * 100));
 
   const pickNextQuestionIndex = useCallback(
-    (avoidIndex, seenSet) => {
+    (avoidIndex, seenSet, battle = activeBattleRef.current) => {
+      if (battle) {
+        return pickBattleQuestionIndex({
+          stats,
+          unlockedPoolSize,
+          seenSet,
+          avoidIndex,
+          battle,
+        });
+      }
+
       const poolLimit  = Math.max(1, Math.min(unlockedPoolSize, VOCAB_ITEMS.length));
       let candidates   = Array.from({ length: poolLimit }, (_, i) => i).filter(i => !seenSet?.has(i));
       if (typeof avoidIndex === "number" && candidates.length > 1)
@@ -454,6 +550,15 @@ export default function Page() {
     },
     [currentSessionAccuracy, stats, unlockedPoolSize],
   );
+
+  useEffect(() => {
+    if (activeView !== "study" || !q) return;
+    setStoryProgress(prev => {
+      const next = markMewWordSeen(prev, index, VOCAB_ITEMS.length);
+      storyProgressRef.current = next;
+      return next;
+    });
+  }, [activeView, index, q]);
 
   // ── 答え合わせ ─────────────────────────────────────────────────────────────
   const checkAnswer = async () => {
@@ -517,17 +622,115 @@ export default function Page() {
     if (resultUnlockAppliedRef.current) return;
     resultUnlockAppliedRef.current = true;
 
-    const finalEvaluation = evaluatePlay({
+    const battle = activeBattleRef.current;
+    const playLimit = getSessionPlayLimit(battle, PLAY_LIMIT);
+    const currentCollection = monsterCollectionRef.current;
+    let nextStory = storyProgressRef.current;
+    let nextCollection = currentCollection;
+    let capture = null;
+    let finalEvaluation;
+
+    if (battle) {
+      const battleResult = processBattleEnd({
+        progress: nextStory,
+        collection: currentCollection,
+        battle,
+        score: finalScore,
+        playLimit,
+        answers: finalAnswers,
+        unlockedPoolSize: currentPoolSize,
+        playCount,
+        habitat: finalHabitat,
+        habitatMinPools,
+        useMasterBall: useMasterBallThisBattle,
+      });
+      finalEvaluation = battleResult.evaluation;
+      nextStory = battleResult.progress;
+      nextCollection = battleResult.collection;
+      capture = battleResult.capture;
+      setBattleOutcome(battleResult.won ? "won" : "lost");
+      setCompletedBattleResult({
+        battle,
+        won: battleResult.won,
+        lost: battleResult.lost,
+        capture: battleResult.capture,
+        trainerSprite: getTrainerSprite(battle),
+        opponentSprite: getOpponentPokemon(battle, playLimit, playLimit).sprite,
+        resultMessage: getBattleResultMessage(battle, battleResult.won, battleResult.capture),
+      });
+      setUseMasterBallThisBattle(false);
+      setActiveBattle(null);
+      activeBattleRef.current = null;
+
+      battleResult.toasts.forEach((toast) => enqueueToast(toast));
+      if (battleResult.alerts[0]) setTrainerChallenge(battleResult.alerts[0]);
+
+      if (battleResult.relocatedHabitatId) {
+        const relocated = { id: battleResult.relocatedHabitatId, name: battleResult.relocatedHabitatId };
+        currentHabitatRef.current = relocated;
+        setCurrentHabitat(relocated);
+      }
+
+      setResultEvaluation(finalEvaluation);
+      setLastUnlockCount(0);
+      setCaptureResult(capture);
+
+      const gained = finalEvaluation.xp ?? 0;
+      const leveledCollection = updatePartyXP(nextCollection, gained);
+      nextCollection = leveledCollection;
+      monsterCollectionRef.current = nextCollection;
+      setMonsterCollection(nextCollection);
+      setStoryProgress(nextStory);
+      storyProgressRef.current = nextStory;
+
+      const partyToasts = buildPartyChangeToasts(currentCollection, nextCollection);
+      partyToasts.forEach((toast) => enqueueToast(toast));
+
+      if (capture?.caught) {
+        const capturedLine = getMonsterLine(capture.lineId);
+        if (capturedLine) {
+          enqueueToast({
+            title: "ポケモン捕獲！",
+            message: `${capturedLine.name}を捕まえた！`,
+            image: capturedLine.sprite,
+          });
+        }
+      }
+
+      persistProgress({
+        nextCollection,
+        nextStory,
+        nextPoolSize: currentPoolSize,
+      });
+      return;
+    }
+
+    finalEvaluation = evaluatePlay({
       answers: finalAnswers,
       score: finalScore,
-      playLimit: PLAY_LIMIT,
+      playLimit,
       bestStreak: finalBestStreak,
       unlockedPoolSize: currentPoolSize,
       playCount,
     });
+    if (capture?.lineId && !capture.caught) {
+      finalEvaluation = {
+        ...finalEvaluation,
+        captureFailed: true,
+        capturePreview: capture,
+      };
+    }
     setResultEvaluation(finalEvaluation);
+    setBattleOutcome(null);
+    setCompletedBattleResult(null);
 
-    const step = getUnlockStep(finalScore, PLAY_LIMIT);
+    const step = getPoolUnlockStepWithBossGate(
+      finalScore,
+      playLimit,
+      nextStory,
+      currentPoolSize,
+      { perfectStep: PERFECT_UNLOCK_STEP, unlockStep: UNLOCK_STEP, unlockAccuracy: UNLOCK_ACCURACY },
+    );
     const nextPoolSize = step > 0
       ? Math.min(currentPoolSize + step, VOCAB_ITEMS.length)
       : currentPoolSize;
@@ -541,14 +744,11 @@ export default function Page() {
       setLastUnlockCount(0);
     }
 
-    // モンスター XP 付与（結果画面に表示する XP と同じ値を使う）
     const gained = finalEvaluation.xp ?? 0;
-    const currentCollection = monsterCollectionRef.current;
     const currentMonster = getActiveMonster(currentCollection);
     const previousXP = currentMonster.totalXP;
-    const nextXP = clampMonsterXP(previousXP + gained);
     const previousLevel = levelFromTotalXP(previousXP);
-    const nextLevel = levelFromTotalXP(nextXP);
+    const nextLevel = levelFromTotalXP(clampMonsterXP(previousXP + gained));
     const didLevelUp = nextLevel > previousLevel;
     const didEvolve =
       getSpecies(previousLevel, currentMonster.lineId).id !==
@@ -556,7 +756,7 @@ export default function Page() {
 
     const leveledCollection = updatePartyXP(currentCollection, gained);
 
-    const capture = rollCaptureEncounter({
+    capture = rollCaptureEncounter({
       grade: finalEvaluation.grade,
       unlockedPoolSize: currentPoolSize,
       habitatVisits: leveledCollection.habitatVisits,
@@ -564,12 +764,21 @@ export default function Page() {
       habitat: finalHabitat,
       monsterCollection: leveledCollection,
     });
-    const capturedCollection = applyCaptureResultToCollection(leveledCollection, capture);
-    const giftSync = syncGiftProgress(capturedCollection, nextPoolSize, { showToasts: false });
-    const nextCollection = giftSync.collection;
+    nextCollection = applyCaptureResultToCollection(leveledCollection, capture);
+    const giftSync = syncGiftProgress(nextCollection, nextPoolSize, { showToasts: false });
+    nextCollection = giftSync.collection;
     setCaptureResult(capture);
     monsterCollectionRef.current = nextCollection;
     setMonsterCollection(nextCollection);
+
+    const trigger = processNormalPlayBattleTriggers(nextStory, {
+      unlockedPoolSize: nextPoolSize,
+      habitatId: finalHabitat?.id ?? null,
+    });
+    nextStory = trigger.progress;
+    setStoryProgress(nextStory);
+    storyProgressRef.current = nextStory;
+    if (trigger.alert) setTrainerChallenge(trigger.alert);
 
     if (capture?.caught) {
       const capturedLine = getMonsterLine(capture.lineId);
@@ -593,13 +802,19 @@ export default function Page() {
       levelUpSoundRef.current.currentTime = 0;
       levelUpSoundRef.current.play().catch(() => {});
     }
-  }, [enqueueGiftToasts, syncGiftProgress]); // すべての入力をパラメータで受け取るので deps は最小限
+
+    persistProgress({
+      nextCollection,
+      nextStory,
+      nextPoolSize,
+    });
+  }, [enqueueGiftToasts, habitatMinPools, persistProgress, syncGiftProgress, useMasterBallThisBattle]);
 
   // ── 次へ ───────────────────────────────────────────────────────────────────
   const next = () => {
     if (!checked || activeView === "result") return;
 
-    if (total >= PLAY_LIMIT) {
+    if (total >= sessionPlayLimit) {
       applyEndOfPlay(score, bestStreak, unlockedPoolSize, sessionAnswers, currentHabitatRef.current, flowPlayCount);
       setActiveView("result");
       return;
@@ -625,28 +840,97 @@ export default function Page() {
     setActiveView("dashboard");
   }, []);
 
-  const resetPlayState = useCallback(({ keepHabitat = true } = {}) => {
+  const resetPlayState = useCallback(({ keepHabitat = true, battle = null } = {}) => {
     setScore(0); setTotal(1); setStreak(0); setBestStreak(0); setSessionAnswers([]);
     setResultEvaluation(null);
     setCaptureResult(null);
+    setBattleOutcome(null);
+    setCompletedBattleResult(null);
+    setUseMasterBallThisBattle(false);
     if (!keepHabitat || !currentHabitatRef.current) selectNextHabitat();
-    const newIndex = pickNextQuestionIndex(null, new Set()) ?? 0;
+    const newIndex = pickNextQuestionIndex(null, new Set(), battle) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
     setInput(""); setChecked(false); setIsCorrect(false); setAnswerStatus(null); setLastUnlockCount(0);
     resultUnlockAppliedRef.current = false;
   }, [pickNextQuestionIndex, selectNextHabitat]);
 
-  const startGame  = useCallback(() => {
+  const startBattle = useCallback((battleId) => {
+    const battle = getBattleById(battleId);
+    if (!battle) return;
+    const nextStory = startBattleSession(storyProgressRef.current, battleId);
+    setStoryProgress(nextStory);
+    storyProgressRef.current = nextStory;
+    setActiveBattle(battle);
+    activeBattleRef.current = battle;
+    setCompletedBattleResult(null);
+    setUseMasterBallThisBattle(false);
     setFlowPlayCount(1);
-    resetPlayState({ keepHabitat: true });
+    resetPlayState({ keepHabitat: true, battle });
+    persistProgress({ nextStory });
+    setActiveView("study");
+  }, [persistProgress, resetPlayState]);
+
+  const handleUseMasterBall = useCallback(() => {
+    const preview =
+      completedBattleResult?.capture ??
+      resultEvaluation?.capturePreview ??
+      captureResult;
+    if (!preview?.lineId || !canUseMasterBall(storyProgressRef.current)) return;
+
+    const applied = applyMasterBallCapture(
+      storyProgressRef.current,
+      monsterCollectionRef.current,
+      preview,
+    );
+    if (!applied.capture) return;
+
+    const nextCollection = applied.collection;
+    const nextStory = applied.progress;
+    monsterCollectionRef.current = nextCollection;
+    setMonsterCollection(nextCollection);
+    setStoryProgress(nextStory);
+    storyProgressRef.current = nextStory;
+    setCaptureResult(applied.capture);
+
+    if (completedBattleResult) {
+      setCompletedBattleResult({
+        ...completedBattleResult,
+        capture: applied.capture,
+        resultMessage: getBattleResultMessage(
+          completedBattleResult.battle,
+          true,
+          applied.capture,
+        ),
+      });
+    }
+
+    const capturedLine = getMonsterLine(applied.capture.lineId);
+    enqueueToast({
+      title: "マスターボール！",
+      message: `${capturedLine?.name ?? "ポケモン"}を捕まえた！`,
+      image: capturedLine?.sprite,
+      duration: 2000,
+    });
+    persistProgress({ nextCollection, nextStory });
+  }, [captureResult, completedBattleResult, enqueueToast, persistProgress, resultEvaluation]);
+
+  const startGame  = useCallback(() => {
+    setActiveBattle(null);
+    activeBattleRef.current = null;
+    setFlowPlayCount(1);
+    resetPlayState({ keepHabitat: true, battle: null });
     setActiveView("study");
   }, [resetPlayState]);
-  const restart    = useCallback(() => {
+  const restart = useCallback(() => {
+    if (completedBattleResult?.battle && completedBattleResult.lost) {
+      startBattle(completedBattleResult.battle.id);
+      return;
+    }
     setFlowPlayCount(count => count + 1);
-    resetPlayState({ keepHabitat: true });
+    resetPlayState({ keepHabitat: true, battle: null });
     setActiveView("study");
-  }, [resetPlayState]);
+  }, [completedBattleResult, resetPlayState, startBattle]);
   const backToStart = useCallback(() => {
     setFlowPlayCount(1);
     resetPlayState({ keepHabitat: false });
@@ -657,34 +941,30 @@ export default function Page() {
 const handleMerged = useCallback(
   ({ stats: mergedStats, unlockedPoolSize: mergedPool, monsterCollection: mergedCollection }) => {
     const normalizedCollection = normalizeMonsterCollection(mergedCollection);
+    const mergedStory = syncRetroactiveBattles(
+      normalizeStoryProgress(normalizedCollection.storyProgress ?? storyProgressRef.current),
+      { unlockedPoolSize: mergedPool },
+    );
     const syncedGifts = syncGiftProgress(normalizedCollection, mergedPool);
     const active = getActiveMonster(syncedGifts.collection);
     setStats(mergedStats);
     setUnlockedPoolSize(mergedPool);
     monsterCollectionRef.current = syncedGifts.collection;
     setMonsterCollection(syncedGifts.collection);
+    setStoryProgress(mergedStory);
+    storyProgressRef.current = mergedStory;
+    const resumeBattle = getResumeBattle(mergedStory);
+    setActiveBattle(resumeBattle);
+    activeBattleRef.current = resumeBattle;
     selectNextHabitat(mergedPool, syncedGifts.collection);
-
-    // localStorage も即時更新
-    try {
-      window.localStorage.setItem(POOL_STORAGE_KEY, String(mergedPool));
-      window.localStorage.setItem(MONSTER_COLLECTION_STORAGE_KEY, JSON.stringify(syncedGifts.collection));
-      window.localStorage.setItem(MONSTER_STORAGE_KEY, String(active.totalXP));
-      window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, active.lineId);
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(
-          VOCAB_ITEMS.map((v, i) => ({
-            id: v.id,
-            target: v.target,
-            correct: mergedStats[i]?.correct ?? 0,
-            wrong: mergedStats[i]?.wrong ?? 0,
-          }))
-        )
-      );
-    } catch { /* ignore */ }
+    persistProgress({
+      nextStats: mergedStats,
+      nextPoolSize: mergedPool,
+      nextCollection: syncedGifts.collection,
+      nextStory: mergedStory,
+    });
   },
-  [selectNextHabitat, syncGiftProgress]
+  [persistProgress, selectNextHabitat, syncGiftProgress]
 );
 
   const handleSendToProfessor = useCallback((monsterIds) => {
@@ -754,6 +1034,7 @@ const handleMerged = useCallback(
           </div>
         </div>
         <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+        <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
         {fossilChoiceModal}
       </>
     );
@@ -768,6 +1049,7 @@ const handleMerged = useCallback(
           onBack={() => setActiveView(dashboardReturnView)}
         />
         <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+        <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
         {fossilChoiceModal}
       </>
     );
@@ -779,17 +1061,20 @@ const handleMerged = useCallback(
         <ResultScreen
           score={score}
           bestStreak={bestStreak}
-          playLimit={PLAY_LIMIT}
+          playLimit={completedBattleResult ? getSessionPlayLimit(completedBattleResult.battle, PLAY_LIMIT) : sessionPlayLimit}
           unlockedPoolSize={unlockedPoolSize}
           totalWords={VOCAB_ITEMS.length}
           unlockedThisRun={lastUnlockCount}
           evaluation={resultEvaluation ?? playEvaluation}
-          monster={activeMonster}
+          battleResult={completedBattleResult}
+          masterBallAvailable={canUseMasterBall(storyProgress)}
+          onUseMasterBall={handleUseMasterBall}
           onRestart={restart}
           onOpenDashboard={() => openDashboard("result")}
           onBackToStart={backToStart}
         />
         <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} position="mobile-bottom" />
+        <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
         {fossilChoiceModal}
       </>
     );
@@ -827,7 +1112,36 @@ const handleMerged = useCallback(
               </span>
             </div>
 
+            {canUseMasterBall(storyProgress) && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-800">
+                <span>◎</span>
+                マスターボールを所持中
+              </div>
+            )}
+
+            {storyProgress.badges.length > 0 && (
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                {storyProgress.badges.map((badge) => (
+                  <span
+                    key={badge}
+                    className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800"
+                  >
+                    {badge}バッジ
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              {startScreenBattle && (
+                <button
+                  type="button"
+                  onClick={() => startBattle(startScreenBattle.id)}
+                  className="inline-flex h-12 min-w-40 items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 text-sm font-bold text-white shadow-lg shadow-rose-300 hover:from-rose-500 hover:to-red-500"
+                >
+                  {startScreenBattle.name}とたたかう！
+                </button>
+              )}
               <button
                 type="button"
                 onClick={startGame}
@@ -886,6 +1200,7 @@ const handleMerged = useCallback(
         </div>
       </div>
       <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+      <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
       {fossilChoiceModal}
       </>
     );
@@ -896,13 +1211,25 @@ const handleMerged = useCallback(
     <>
       <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
+        {activeBattle && (
+          <BattleBanner
+            battle={activeBattle}
+            questionNumber={total}
+            playLimit={sessionPlayLimit}
+            won={battleOutcome === "won"}
+            lost={battleOutcome === "lost"}
+            masterBallAvailable={canUseMasterBall(storyProgress)}
+            useMasterBall={useMasterBallThisBattle}
+            onToggleMasterBall={() => setUseMasterBallThisBattle(prev => !prev)}
+          />
+        )}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="text-xl font-semibold">英単語クイズ</h1>
           <div className="flex flex-wrap items-center justify-end gap-3">
             <div
               className="h-2 w-32 overflow-hidden rounded-full bg-zinc-200"
               role="progressbar"
-              aria-valuenow={total} aria-valuemin={1} aria-valuemax={PLAY_LIMIT}
+              aria-valuenow={total} aria-valuemin={1} aria-valuemax={sessionPlayLimit}
             >
               <div
                 className="h-full rounded-full bg-zinc-900 transition-[width]"
@@ -914,7 +1241,7 @@ const handleMerged = useCallback(
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-zinc-600">
-          <div>Score: {score} / {PLAY_LIMIT}</div>
+          <div>Score: {score} / {sessionPlayLimit}</div>
           <div className="inline-flex items-center gap-1.5">
             <span
               className="rounded-full px-2 py-0.5 text-xs font-bold text-white"
@@ -990,6 +1317,7 @@ const handleMerged = useCallback(
       </div>
     </div>
       <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+      <TrainerChallengeAlert alert={trainerChallenge} onDismiss={() => setTrainerChallenge(null)} />
       {fossilChoiceModal}
     </>
   );
