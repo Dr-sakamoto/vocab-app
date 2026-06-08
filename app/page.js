@@ -548,10 +548,12 @@ export default function Page() {
   useEffect(() => {
     if (!didLoadFromStorageRef.current) return;
     if (pendingStarterBattleId || activeBattle) return;
-    if (needsStarterChoice(storyProgress)) {
+    // Only prompt starter choice for truly new players (no monsters in collection)
+    const normalized = normalizeMonsterCollection(monsterCollection);
+    if (normalized.monsters.length === 0 && needsStarterChoice(storyProgress)) {
       setPendingStarterBattleId("rival-1");
     }
-  }, [storyProgress, activeBattle, pendingStarterBattleId]);
+  }, [storyProgress, activeBattle, pendingStarterBattleId, monsterCollection]);
 
   // ── 出題 ──────────────────────────────────────────────────────────────────
   const progress    = `${total} / ${sessionPlayLimit}`;
