@@ -1366,7 +1366,7 @@ export default function Page() {
                 </div>
               )}
               <div className="inline-flex items-center gap-2">
-                <span className={activeBattle ? "text-xs sm:text-sm" : ""}>最高: {bestStreak}</span>
+                <span className={activeBattle ? "text-xs sm:text-sm" : ""}>連続正解: {bestStreak}</span>
                 {checked && isCorrect && getPraiseMessage(streak) && (
                   <span className={`text-xs font-medium sm:text-sm ${getPraiseMessage(streak).color}`}>
                     {getPraiseMessage(streak).label}
