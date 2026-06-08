@@ -1,11 +1,12 @@
 "use client";
 
-import { getOpponentPokemon, getTrainerSprite, isCapturableBattle } from "@/lib/storyBattles";
+import { getOpponentPokemon, getOpponentPokemonStatus, getTrainerSprite, isCapturableBattle } from "@/lib/storyBattles";
 
 export default function BattleBanner({
   battle,
   questionNumber,
   playLimit,
+  currentAccuracy = 0,
   won,
   lost,
   masterBallAvailable = false,
@@ -14,7 +15,8 @@ export default function BattleBanner({
 }) {
   if (!battle) return null;
 
-  const opponent = getOpponentPokemon(battle, questionNumber, playLimit);
+  const opponent = getOpponentPokemon(battle, questionNumber, playLimit, currentAccuracy);
+  const pokemonStatus = getOpponentPokemonStatus(battle, questionNumber, playLimit, currentAccuracy);
   const trainerSprite = getTrainerSprite(battle);
   const capturable = isCapturableBattle(battle);
   const tierLabel = battle.tier === "gym"
@@ -35,7 +37,7 @@ export default function BattleBanner({
     <div className="mb-4 overflow-hidden rounded-2xl border-2 border-rose-500 bg-gradient-to-r from-rose-50 via-white to-rose-50 shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b border-rose-200 bg-rose-500 px-4 py-2 text-white">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-rose-100">{tierLabel}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-100">{tierLabel}</p>
           <p className="truncate text-sm font-semibold">
             {battle.name}
             <span className="font-normal text-rose-100"> ＠{battle.location}</span>
@@ -82,7 +84,24 @@ export default function BattleBanner({
             <p className="mt-1 text-sm text-zinc-600">
               手持ち {opponent.index + 1} / {opponent.total}
             </p>
-            <p className="mt-1 text-xs text-rose-700">
+            
+            {/* ポケモンのステータス表示 */}
+            <div className="mt-2 flex flex-wrap gap-1">
+              {pokemonStatus.map((status) => (
+                <div
+                  key={status.index}
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    status.isDefeated
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-zinc-200 text-zinc-600"
+                  }`}
+                >
+                  {status.isDefeated ? "✓" : "○"} {status.name}
+                </div>
+              ))}
+            </div>
+            
+            <p className="mt-2 text-xs text-rose-700">
               正解を重ねて相手のポケモンを倒そう！
             </p>
           </div>

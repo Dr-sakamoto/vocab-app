@@ -6,6 +6,11 @@ import { Toaster } from "react-hot-toast";
 export const metadata: Metadata = {
   title: "ポケモン英単語クイズ",
   description: "英単語を記述式で答えるポケモンのクイズゲーム",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+  },
 };
 
 export default function RootLayout({
@@ -15,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-dvh flex flex-col safe-area">{children}</body>
     </html>
   );
 }

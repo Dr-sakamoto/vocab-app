@@ -32,6 +32,7 @@ import {
   getBattleForProgress,
   getBattleResultMessage,
   getOpponentPokemon,
+  getOpponentPokemonStatus,
   getResumeBattle,
   getStartScreenBattle,
   getTrainerSprite,
@@ -174,6 +175,7 @@ export default function Page() {
   if (seenInPlayRef.current === null) seenInPlayRef.current = new Set([index]);
 
   const [input, setInput]             = useState("");
+  const [isComposing, setIsComposing] = useState(false);
   const [checked, setChecked]         = useState(false);
   const [isCorrect, setIsCorrect]     = useState(false);
   const [answerStatus, setAnswerStatus] = useState(null);
@@ -1304,16 +1306,17 @@ const handleMerged = useCallback(
       <div
         className={
           activeBattle
-            ? "fixed inset-0 flex flex-col overflow-hidden bg-zinc-50 text-zinc-900 sm:static sm:min-h-screen sm:overflow-visible"
+            ? "flex flex-col min-h-dvh bg-zinc-50 text-zinc-900 sm:block sm:min-h-screen sm:p-6 sm:flex sm:items-center sm:justify-center"
             : "min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6"
         }
       >
         {activeBattle && (
-          <div className="shrink-0 sm:hidden">
+          <div className="sticky top-0 z-40 shrink-0 sm:hidden">
             <CompactBattleBar
               battle={activeBattle}
               questionNumber={total}
               playLimit={sessionPlayLimit}
+              currentAccuracy={currentSessionAccuracy}
               masterBallAvailable={canUseMasterBall(storyProgress)}
               useMasterBall={useMasterBallThisBattle}
               onToggleMasterBall={() => setUseMasterBallThisBattle(prev => !prev)}
@@ -1324,23 +1327,24 @@ const handleMerged = useCallback(
         <div
           className={
             activeBattle
-              ? "flex min-h-0 flex-1 flex-col sm:block sm:p-6 sm:flex sm:items-center sm:justify-center"
+              ? "flex flex-1 flex-col sm:block sm:max-w-2xl"
               : "w-full"
           }
         >
           <div
             className={
               activeBattle
-                ? "flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:max-w-2xl sm:flex-none sm:overflow-visible sm:rounded-2xl sm:border sm:bg-white sm:p-6 sm:shadow-sm"
+                ? "flex flex-1 flex-col overflow-y-auto px-3 py-4 sm:max-w-2xl sm:rounded-2xl sm:border sm:bg-white sm:p-6 sm:shadow-sm sm:overflow-visible"
                 : "w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm"
             }
           >
             {activeBattle && (
-              <div className="hidden sm:block">
+              <div className="hidden sm:block mb-4">
                 <BattleBanner
                   battle={activeBattle}
                   questionNumber={total}
                   playLimit={sessionPlayLimit}
+                  currentAccuracy={currentSessionAccuracy}
                   won={battleOutcome === "won"}
                   lost={battleOutcome === "lost"}
                   masterBallAvailable={canUseMasterBall(storyProgress)}
@@ -1418,10 +1422,13 @@ const handleMerged = useCallback(
                 ref={inputRef}
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                className={`mt-2 w-full rounded-xl border px-4 outline-none focus:ring-2 focus:ring-zinc-900/10 ${
-                  activeBattle ? "py-2.5 sm:py-3" : "py-3"
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={() => setIsComposing(false)}
+                className={`mt-2 w-full rounded-xl border px-4 outline-none focus:ring-2 focus:ring-zinc-900/10 text-base ${
+                  activeBattle ? "py-3 sm:py-3" : "py-3"
                 }`}
                 onKeyDown={e => {
+                  if (isComposing) return;
                   if (e.key !== "Enter") return;
                   if (checked) next(); else checkAnswer();
                 }}
@@ -1445,16 +1452,16 @@ const handleMerged = useCallback(
               )}
             </div>
 
-            <div className={`flex shrink-0 flex-col gap-2 sm:flex-row sm:gap-3 ${activeBattle ? "mt-4 sm:mt-6" : "mt-6"}`}>
+            <div className={`flex shrink-0 flex-col gap-3 sm:flex-row sm:gap-3 ${activeBattle ? "mt-4 sm:mt-6" : "mt-6"}`}>
               <button
                 type="button" onClick={checkAnswer} disabled={checked || isCheckingAnswer}
-                className={PRIMARY_BUTTON_CLASS}
+                className={`${PRIMARY_BUTTON_CLASS} flex-1 sm:flex-none h-14 sm:h-12 text-base sm:text-sm`}
               >
                 {isCheckingAnswer ? "判定中..." : "答え合わせ"}
               </button>
               <button
                 type="button" onClick={next} disabled={!checked}
-                className={SECONDARY_BUTTON_CLASS}
+                className={`${SECONDARY_BUTTON_CLASS} flex-1 sm:flex-none h-14 sm:h-12 text-base sm:text-sm`}
               >
                 次へ
               </button>
