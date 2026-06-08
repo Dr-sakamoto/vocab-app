@@ -30,6 +30,7 @@ import {
   canUseMasterBall,
   DEFAULT_STORY_PROGRESS,
   getBattleForProgress,
+  getBattleProgressAccuracy,
   getBattleResultMessage,
   getOpponentPokemon,
   getOpponentPokemonStatus,
@@ -208,6 +209,7 @@ export default function Page() {
   const activeMonster = getActiveMonster(monsterCollection);
   const answeredCount   = checked ? total : total - 1;
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
+  const currentBattleAccuracy = getBattleProgressAccuracy(score, sessionPlayLimit);
   const boxCount = getBoxCount(monsterCollection);
   const isBoxOverLimit = boxCount > BOX_LIMIT;
   const habitatMinPools = useMemo(() => getHabitatMinPoolMap(), []);
@@ -1290,7 +1292,7 @@ export default function Page() {
               battle={activeBattle}
               questionNumber={total}
               playLimit={sessionPlayLimit}
-              currentAccuracy={currentSessionAccuracy}
+              currentAccuracy={currentBattleAccuracy}
               masterBallAvailable={canUseMasterBall(storyProgress)}
               useMasterBall={useMasterBallThisBattle}
               onToggleMasterBall={() => setUseMasterBallThisBattle(prev => !prev)}
@@ -1318,7 +1320,7 @@ export default function Page() {
                   battle={activeBattle}
                   questionNumber={total}
                   playLimit={sessionPlayLimit}
-                  currentAccuracy={currentSessionAccuracy}
+                  currentAccuracy={currentBattleAccuracy}
                   won={battleOutcome === "won"}
                   lost={battleOutcome === "lost"}
                   masterBallAvailable={canUseMasterBall(storyProgress)}

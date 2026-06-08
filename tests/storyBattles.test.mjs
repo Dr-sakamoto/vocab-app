@@ -6,6 +6,8 @@ import {
   canUseMasterBall,
   DEFAULT_STORY_PROGRESS,
   getBattlePlayLimit,
+  getBattleProgressAccuracy,
+  getOpponentPokemonIndex,
   getPoolUnlockBlocker,
   getStartScreenBattle,
   getTrainerSprite,
@@ -18,6 +20,24 @@ import {
   startBattleSession,
   syncRetroactiveBattles,
 } from "../lib/storyBattles.js";
+
+function makeBattle(party, tier = "normal") {
+  return {
+    id: "test-battle",
+    name: "テスト",
+    location: "テスト場所",
+    tier,
+    minPool: 0,
+    party,
+  };
+}
+
+test("battle progress accuracy is based on play limit", () => {
+  assert.equal(getBattleProgressAccuracy(0, 10), 0);
+  assert.equal(getBattleProgressAccuracy(3, 10), 0.3);
+  assert.equal(getBattleProgressAccuracy(4, 10), 0.4);
+  assert.equal(getBattleProgressAccuracy(5, 0), 0);
+});
 
 test("rival battle triggers at route-1 pool milestone", () => {
   const battle = pickNextBattleTrigger(DEFAULT_STORY_PROGRESS, {
