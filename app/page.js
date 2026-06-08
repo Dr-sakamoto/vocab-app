@@ -71,6 +71,7 @@ import {
   sortBoxMonsters,
   swapMonsterLocations,
   updatePartyXP,
+  getLevelUpGrowth,
 } from "@/lib/monster";
 import { normalizeAnswer } from "@/lib/answerNormalization";
 import { QUESTIONS } from "@/lib/vocab";
@@ -254,11 +255,16 @@ export default function Page() {
         });
       }
       if (nextState.level > prevState.level) {
+        const growths = getLevelUpGrowth(prevState.level, nextState.level);
+        const growthSummary = growths
+          .filter(g => g.bonus > 0)
+          .map(g => `${g.statName}+${g.bonus}`)
+          .join(" ");
         events.push({
           title: "レベルアップ",
           message: `${nextState.species.name}のレベルがあがった！`,
           image: nextState.species.sprite,
-          detail: `Lv.${prevState.level} → Lv.${nextState.level}`,
+          detail: `Lv.${prevState.level} → Lv.${nextState.level}  ${growthSummary}`,
           isActive,
         });
       }
@@ -347,23 +353,32 @@ export default function Page() {
   // ── 音声 ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
+    
+    // iOS での BGM 共存のため、音量を控えめに設定
     correctSoundRef.current = new Audio("/success.mp3");
-    correctSoundRef.current.volume = 0.75;
+    correctSoundRef.current.volume = 0.4;
     correctSoundRef.current.preload = "auto";
 
     levelUpSoundRef.current = new Audio("/levelup.mp3");
-    levelUpSoundRef.current.volume = 0.85;
+    levelUpSoundRef.current.volume = 0.5;
     levelUpSoundRef.current.preload = "auto";
 
     evolutionSoundRef.current = new Audio("/pokemon-evolve.mp3");
-    evolutionSoundRef.current.volume = 0.85;
+    evolutionSoundRef.current.volume = 0.5;
     evolutionSoundRef.current.preload = "auto";
   }, []);
 
   useEffect(() => {
     if (!checked || !isCorrect || !correctSoundRef.current) return;
     correctSoundRef.current.currentTime = 0;
-    correctSoundRef.current.play().catch(() => {});
+    // iOS での BGM 共存: ユーザーの入力後に再生
+    const playPromise = correctSoundRef.current.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((error) => {
+        // iOS では autoplay が制限されることがあるため、エラーを無視
+        console.debug("Sound play error (ignoring):", error);
+      });
+    }
   }, [checked, isCorrect]);
 
   useEffect(() => {
@@ -813,10 +828,20 @@ export default function Page() {
 
     if (didEvolve && evolutionSoundRef.current) {
       evolutionSoundRef.current.currentTime = 0;
-      evolutionSoundRef.current.play().catch(() => {});
+      const playPromise = evolutionSoundRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.debug("Evolution sound play error (ignoring):", error);
+        });
+      }
     } else if (didLevelUp && levelUpSoundRef.current) {
       levelUpSoundRef.current.currentTime = 0;
-      levelUpSoundRef.current.play().catch(() => {});
+      const playPromise = levelUpSoundRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.debug("Level up sound play error (ignoring):", error);
+        });
+      }
     }
 
     persistProgress({

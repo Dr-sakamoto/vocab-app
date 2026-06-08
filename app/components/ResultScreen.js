@@ -42,8 +42,8 @@ export default function ResultScreen({
   const handlePrimary = isBattle && won ? onBackToStart : onRestart;
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm space-y-5">
+    <div className="bg-zinc-50 text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6">
+      <div className="w-full max-w-2xl rounded-2xl border bg-white p-4 sm:p-6 shadow-sm space-y-5 my-auto">
 
         {isBattle && (
           <div className={`overflow-hidden rounded-2xl border-2 ${won ? "border-rose-500" : "border-zinc-400"}`}>
