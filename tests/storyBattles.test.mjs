@@ -78,7 +78,7 @@ test("battle victory awards badges and clears pending challenge", () => {
   );
   const result = resolveBattleVictory(active, "brock", { monsters: [] }, { poolSize: 150 });
   assert.equal(result.progress.defeated.brock, true);
-  assert.equal(result.progress.badges.includes("boulder"), true);
+  assert.equal(result.progress.badges.includes("グレー"), true);
   assert.equal(result.progress.pendingChallengeId, null);
 });
 
