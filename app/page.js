@@ -191,6 +191,7 @@ export default function Page() {
     normalizeMonsterCollection(DEFAULT_MONSTER_COLLECTION),
   );
   const [isPokemonBoxOpen, setIsPokemonBoxOpen] = useState(false);
+  const savedCollectionExistsRef = useRef(false);
 
   const resultReadyRef          = useRef(false);
   const resultUnlockAppliedRef  = useRef(false);
@@ -455,6 +456,7 @@ export default function Page() {
       const savedXP = clampMonsterXP(rawXP);
       const savedMonsterLineId = window.localStorage.getItem(MONSTER_LINE_STORAGE_KEY);
       const rawCollection = window.localStorage.getItem(MONSTER_COLLECTION_STORAGE_KEY);
+      savedCollectionExistsRef.current = rawCollection !== null;
       const savedCollection = rawCollection ? JSON.parse(rawCollection) : null;
       const normalizedCollection = normalizeMonsterCollection(savedCollection, {
         lineId: normalizeMonsterLineId(savedMonsterLineId),
@@ -548,7 +550,8 @@ export default function Page() {
   useEffect(() => {
     if (!didLoadFromStorageRef.current) return;
     if (pendingStarterBattleId || activeBattle) return;
-    // Only prompt starter choice for truly new players (no monsters in collection)
+    // Only prompt starter choice for truly new players (no saved collection and no monsters)
+    if (savedCollectionExistsRef.current) return;
     const normalized = normalizeMonsterCollection(monsterCollection);
     if (normalized.monsters.length === 0 && needsStarterChoice(storyProgress)) {
       setPendingStarterBattleId("rival-1");
@@ -924,7 +927,7 @@ export default function Page() {
   }, [persistProgress, resetPlayState]);
 
   const startBattle = useCallback((battleId) => {
-    if (needsStarterChoice(storyProgressRef.current, battleId)) {
+    if (needsStarterChoice(storyProgressRef.current, battleId) && !savedCollectionExistsRef.current) {
       setPendingStarterBattleId(battleId);
       return;
     }
