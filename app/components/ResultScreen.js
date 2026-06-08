@@ -202,13 +202,15 @@ export default function ResultScreen({
                 すぐに再挑戦
               </button>
             )}
-            <button
-              type="button"
-              onClick={onBackToStart}
-              className={SECONDARY_BUTTON_CLASS}
-            >
-              スタートに戻る
-            </button>
+            {!won && (
+              <button
+                type="button"
+                onClick={onBackToStart}
+                className={SECONDARY_BUTTON_CLASS}
+              >
+                スタートに戻る
+              </button>
+            )}
           </div>
         )}
       </div>
