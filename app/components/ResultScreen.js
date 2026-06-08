@@ -49,11 +49,11 @@ export default function ResultScreen({
           <div className={`overflow-hidden rounded-2xl border-2 ${won ? "border-rose-500" : "border-zinc-400"}`}>
             <div className={`flex items-stretch ${won ? "bg-rose-500" : "bg-zinc-600"} text-white`}>
               {battleResult.trainerSprite ? (
-                <div className="flex w-32 shrink-0 items-end justify-center bg-black/10 px-2 pb-2 pt-3">
+                <div className="flex w-32 shrink-0 items-center justify-center bg-black/10 p-3">
                   <img
                     src={battleResult.trainerSprite}
                     alt=""
-                    className="max-h-32 w-full object-contain object-bottom"
+                    className="h-24 w-auto object-contain"
                     style={{ imageRendering: "pixelated" }}
                   />
                 </div>
@@ -77,7 +77,7 @@ export default function ResultScreen({
                   <img
                     src={battleResult.opponentSprite}
                     alt=""
-                    className="h-20 w-20 object-contain"
+                    className="h-20 w-auto object-contain"
                     style={{ imageRendering: "pixelated" }}
                   />
                 </div>

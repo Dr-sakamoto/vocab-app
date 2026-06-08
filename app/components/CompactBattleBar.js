@@ -34,15 +34,20 @@ export default function CompactBattleBar({
           <p className="truncate text-xs text-rose-100">{battle.location}</p>
           
           {/* ポケモンステータスをコンパクト表示 */}
-          <div className="mt-1 flex gap-1.5">
+          <div className="mt-1 flex flex-wrap gap-2">
             {pokemonStatus.map((status) => (
               <span
                 key={status.index}
-                className={`inline-block text-[11px] font-bold px-1.5 py-0.5 rounded ${
-                  status.isDefeated ? "bg-emerald-500 text-white" : "bg-white/20 text-white"
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-semibold ${
+                  status.isActive
+                    ? "bg-white text-rose-700"
+                    : status.isDefeated
+                      ? "bg-emerald-500 text-white"
+                      : "bg-white/20 text-white"
                 }`}
               >
-                {status.isDefeated ? "✓" : "○"} {status.name}
+                {status.isActive ? "▶" : status.isDefeated ? "✓" : "○"}
+                <span className="truncate max-w-[4rem]">{status.name}</span>
               </span>
             ))}
           </div>
@@ -65,7 +70,7 @@ export default function CompactBattleBar({
         <button
           type="button"
           onClick={onToggleMasterBall}
-          className={`w-full border-t border-white/20 px-3 py-1.5 text-center text-[11px] font-semibold ${
+          className={`w-full border-t border-white/20 px-4 py-3 text-center text-sm font-semibold ${
             useMasterBall ? "bg-violet-700 text-white" : "bg-black/10 text-rose-50"
           }`}
         >

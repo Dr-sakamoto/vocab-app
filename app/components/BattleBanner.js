@@ -86,23 +86,25 @@ export default function BattleBanner({
             </p>
             
             {/* ポケモンのステータス表示 */}
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-2">
               {pokemonStatus.map((status) => (
                 <div
                   key={status.index}
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                    status.isDefeated
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-zinc-200 text-zinc-600"
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    status.isActive
+                      ? "bg-rose-600 text-white shadow"
+                      : status.isDefeated
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-zinc-200 text-zinc-600"
                   }`}
                 >
-                  {status.isDefeated ? "✓" : "○"} {status.name}
+                  {status.isActive ? "▶" : status.isDefeated ? "✓" : "○"} {status.name}
                 </div>
               ))}
             </div>
             
             <p className="mt-2 text-xs text-rose-700">
-              正解を重ねて相手のポケモンを倒そう！
+              今戦っているポケモンを先頭に表示しています。
             </p>
           </div>
         </div>

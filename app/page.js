@@ -76,7 +76,6 @@ import {
 } from "@/lib/monster";
 import { normalizeAnswer } from "@/lib/answerNormalization";
 import { QUESTIONS } from "@/lib/vocab";
-import SyncButton from "./components/SyncButton";
 
 
 
@@ -93,8 +92,8 @@ const INITIAL_POOL_SIZE  = 60;
 const UNLOCK_ACCURACY    = 0.8;
 const UNLOCK_STEP        = 30;
 const PERFECT_UNLOCK_STEP = 50;
-const PRIMARY_BUTTON_CLASS = "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40";
-const SECONDARY_BUTTON_CLASS = "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-40";
+const PRIMARY_BUTTON_CLASS = "inline-flex w-full justify-center rounded-xl bg-zinc-900 px-5 py-3 text-base font-medium text-white hover:bg-zinc-800 disabled:opacity-40 transition sm:w-auto sm:text-sm";
+const SECONDARY_BUTTON_CLASS = "inline-flex w-full justify-center rounded-xl border border-zinc-200 bg-white px-5 py-3 text-base font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-40 transition sm:w-auto sm:text-sm";
 
 function getPartOfSpeech(q) { return q?.partOfSpeech ?? "word"; }
 
@@ -545,6 +544,14 @@ export default function Page() {
       nextStory: storyProgress,
     });
   }, [monsterCollection, persistProgress, storyProgress]);
+
+  useEffect(() => {
+    if (!didLoadFromStorageRef.current) return;
+    if (pendingStarterBattleId || activeBattle) return;
+    if (needsStarterChoice(storyProgress)) {
+      setPendingStarterBattleId("rival-1");
+    }
+  }, [storyProgress, activeBattle, pendingStarterBattleId]);
 
   // ── 出題 ──────────────────────────────────────────────────────────────────
   const progress    = `${total} / ${sessionPlayLimit}`;
@@ -1003,38 +1010,6 @@ export default function Page() {
     setActiveView("start");
   }, [resetPlayState]);
 
-
-const handleMerged = useCallback(
-  ({ stats: mergedStats, unlockedPoolSize: mergedPool, monsterCollection: mergedCollection }) => {
-    const normalizedCollection = normalizeMonsterCollection(mergedCollection);
-    const mergedStory = syncRetroactiveBattles(
-      normalizeStoryProgress(normalizedCollection.storyProgress ?? storyProgressRef.current),
-      { unlockedPoolSize: mergedPool },
-    );
-    const syncedGifts = syncGiftProgress(normalizedCollection, mergedPool);
-    const migratedStarters = migrateStarterState(syncedGifts.collection, mergedStory);
-    const active = getActiveMonster(migratedStarters.collection);
-    setStats(mergedStats);
-    setUnlockedPoolSize(mergedPool);
-    monsterCollectionRef.current = migratedStarters.collection;
-    setMonsterCollection(migratedStarters.collection);
-    const finalStory = syncRetroactiveBattles(migratedStarters.progress, { unlockedPoolSize: mergedPool });
-    setStoryProgress(finalStory);
-    storyProgressRef.current = finalStory;
-    const resumeBattle = getResumeBattle(finalStory);
-    setActiveBattle(resumeBattle);
-    activeBattleRef.current = resumeBattle;
-    selectNextHabitat(mergedPool, syncedGifts.collection);
-    persistProgress({
-      nextStats: mergedStats,
-      nextPoolSize: mergedPool,
-      nextCollection: migratedStarters.collection,
-      nextStory: finalStory,
-    });
-  },
-  [persistProgress, selectNextHabitat, syncGiftProgress]
-);
-
   const handleSendToProfessor = useCallback((monsterIds) => {
     const transferredCollection = sendMonstersToProfessor(monsterCollectionRef.current, monsterIds);
     const {
@@ -1257,12 +1232,6 @@ const handleMerged = useCallback(
               >
                 ポケモン
               </button>
-                <SyncButton
-    stats={stats}
-    unlockedPoolSize={unlockedPoolSize}
-    monsterCollection={monsterCollection}
-    onMerged={handleMerged}
-  />
             </div>
           </div>
 
