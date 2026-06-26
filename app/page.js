@@ -180,6 +180,9 @@ export default function Page() {
   const [isCorrect, setIsCorrect]     = useState(false);
   const [answerStatus, setAnswerStatus] = useState(null);
   const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
+  const [posViolation, setPosViolation] = useState(null);
+  const [isRequestingReview, setIsRequestingReview] = useState(false);
+  const [reviewResult, setReviewResult] = useState(null);
   const [dashboardReturnView, setDashboardReturnView] = useState("study");
 
   const [unlockedPoolSize, setUnlockedPoolSize] = useState(() =>
@@ -607,6 +610,8 @@ export default function Page() {
   const checkAnswer = async () => {
     if (checked || isCheckingAnswer || activeView === "result") return;
     setIsCheckingAnswer(true);
+    setPosViolation(null);
+    setReviewResult(null);
 
     const user = normalizeAnswer(input);
     let result = {
@@ -618,7 +623,7 @@ export default function Page() {
       const response = await fetch("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input, answers: q?.answers ?? [] }),
+        body: JSON.stringify({ input, answers: q?.answers ?? [], partOfSpeech: q?.partOfSpeech }),
       });
 
       if (response.ok) result = await response.json();
@@ -627,6 +632,8 @@ export default function Page() {
     } finally {
       setIsCheckingAnswer(false);
     }
+
+    if (result.posViolation) setPosViolation(result.posViolation);
 
     const ok = result.status === "exact" || result.status === "alternative";
     const prev = stats[index] ?? { correct: 0, wrong: 0 };
@@ -658,6 +665,50 @@ export default function Page() {
     } else {
       setStreak(0);
     }
+  };
+
+  // ── AI 審議 ──────────────────────────────────────────────────────────────
+  const requestAiReview = async () => {
+    if (isRequestingReview || !q) return;
+    setIsRequestingReview(true);
+    try {
+      const response = await fetch("/api/ai-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input, target: q.target }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setReviewResult(result);
+        if (result.approved) handleAiApproval();
+      } else {
+        setReviewResult({ approved: false, score: 0, feedback: "審議に失敗しました" });
+      }
+    } catch {
+      setReviewResult({ approved: false, score: 0, feedback: "通信エラー" });
+    } finally {
+      setIsRequestingReview(false);
+    }
+  };
+
+  const handleAiApproval = () => {
+    setIsCorrect(true);
+    setAnswerStatus("ai_approved");
+    setScore(s => s + 1);
+    setStreak(st => {
+      const ns = st + 1;
+      setBestStreak(b => Math.max(b, ns));
+      return ns;
+    });
+    setSessionAnswers(a =>
+      a.map(ans => ans.id === q.id ? { ...ans, correct: true } : ans),
+    );
+    setStats(prev => {
+      const next = [...prev];
+      const cur = next[index] ?? { correct: 0, wrong: 0 };
+      next[index] = { correct: cur.correct + 1, wrong: Math.max(0, cur.wrong - 1) };
+      return next;
+    });
   };
 
   // ── プレイ終了処理（プール解放 + XP 付与）────────────────────────────────
@@ -890,6 +941,8 @@ export default function Page() {
     setChecked(false);
     setIsCorrect(false);
     setAnswerStatus(null);
+    setPosViolation(null);
+    setReviewResult(null);
   };
 
   const openDashboard = useCallback((returnView = "study") => {
@@ -1412,16 +1465,36 @@ export default function Page() {
               />
 
               {checked && (
-                <div className="mt-2 sm:mt-3">
+                <div className="mt-2 sm:mt-3 flex flex-col gap-2">
                   {isCorrect ? (
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900 sm:px-4 sm:py-3">
                       <div className="text-sm font-semibold sm:text-base">
-                        {answerStatus === "alternative" ? "〇（別解）" : "〇"}
+                        {answerStatus === "ai_approved" ? "〇（AI承認）" : answerStatus === "alternative" ? "〇（別解）" : "〇"}
                       </div>
                     </div>
                   ) : (
                     <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900 sm:px-4 sm:py-3">
-                      不正解。正解例: {normalizedAnswers.join(" / ")}
+                      <div>不正解。正解例: {normalizedAnswers.join(" / ")}</div>
+                      {posViolation && (
+                        <div className="mt-1 text-xs text-rose-700 opacity-80">{posViolation}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {!isCorrect && !reviewResult && (
+                    <button
+                      type="button"
+                      onClick={requestAiReview}
+                      disabled={isRequestingReview}
+                      className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition text-left"
+                    >
+                      {isRequestingReview ? "AIが審議中..." : "AIに審議してもらう"}
+                    </button>
+                  )}
+
+                  {reviewResult && !reviewResult.approved && (
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                      AI審議: 不承認（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
                     </div>
                   )}
                 </div>

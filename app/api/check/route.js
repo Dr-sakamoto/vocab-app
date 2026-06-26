@@ -4,8 +4,8 @@ export const runtime = "nodejs";
 
 export async function POST(req) {
   try {
-    const { input, answers } = await req.json();
-    const result = await evaluateAnswer({ input, answers });
+    const { input, answers, partOfSpeech } = await req.json();
+    const result = await evaluateAnswer({ input, answers, partOfSpeech });
     return Response.json(result);
   } catch (error) {
     console.error("answer check failed", error);
