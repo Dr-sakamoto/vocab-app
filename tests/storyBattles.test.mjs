@@ -59,6 +59,16 @@ test("boss battle blocks pool unlock until defeated", () => {
   assert.equal(step, 0);
 });
 
+test("boss gate does not block when player already past boss threshold", () => {
+  const progress = normalizeStoryProgress({
+    ...DEFAULT_STORY_PROGRESS,
+    defeated: { "rival-1": true },
+    pendingChallengeId: "brock",
+  });
+  const step = getPoolUnlockStepWithBossGate(8, 10, progress, 160);
+  assert.equal(step, 30);
+});
+
 test("trainer battle uses higher play limits for endurance fights", () => {
   const battle = pickNextBattleTrigger(
     normalizeStoryProgress({
