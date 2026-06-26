@@ -85,6 +85,7 @@ const VOCAB_ITEMS = QUESTIONS.map((q, i) => ({ ...q, id: `w${i}` }));
 
 const STORAGE_KEY        = "vocab-progress";
 const POOL_STORAGE_KEY   = "vocab-active-pool-size";
+const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
 const MONSTER_STORAGE_KEY = "monster-total-xp";
 const MONSTER_LINE_STORAGE_KEY = "monster-line-id";
 const MONSTER_COLLECTION_STORAGE_KEY = "monster-collection";
@@ -183,6 +184,9 @@ export default function Page() {
   const [posViolation, setPosViolation] = useState(null);
   const [isRequestingReview, setIsRequestingReview] = useState(false);
   const [reviewResult, setReviewResult] = useState(null);
+  const [approvedAnswers, setApprovedAnswers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(APPROVED_ANSWERS_KEY) ?? "{}"); } catch { return {}; }
+  });
   const [dashboardReturnView, setDashboardReturnView] = useState("study");
 
   const [unlockedPoolSize, setUnlockedPoolSize] = useState(() =>
@@ -619,23 +623,29 @@ export default function Page() {
       normalizedAnswers,
     };
 
-    try {
-      const response = await fetch("/api/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input, answers: q?.answers ?? [], partOfSpeech: q?.partOfSpeech }),
-      });
-
-      if (response.ok) result = await response.json();
-    } catch {
-      // Keep exact-match grading available if the local API cannot answer.
-    } finally {
+    // ユーザーが過去にAI承認済みの回答かチェック（API呼び出し不要）
+    if (result.status === "wrong" && (approvedAnswers[q?.id] ?? []).includes(user)) {
+      result = { status: "ai_approved", normalizedAnswers };
       setIsCheckingAnswer(false);
+    } else {
+      try {
+        const response = await fetch("/api/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input, answers: q?.answers ?? [], partOfSpeech: q?.partOfSpeech }),
+        });
+
+        if (response.ok) result = await response.json();
+      } catch {
+        // Keep exact-match grading available if the local API cannot answer.
+      } finally {
+        setIsCheckingAnswer(false);
+      }
     }
 
     if (result.posViolation) setPosViolation(result.posViolation);
 
-    const ok = result.status === "exact" || result.status === "alternative";
+    const ok = result.status === "exact" || result.status === "alternative" || result.status === "ai_approved";
     const prev = stats[index] ?? { correct: 0, wrong: 0 };
 
     setIsCorrect(ok);
@@ -691,7 +701,18 @@ export default function Page() {
     }
   };
 
+  const addApprovedAnswer = useCallback((wordId, normalizedAnswer) => {
+    setApprovedAnswers(prev => {
+      const existing = prev[wordId] ?? [];
+      if (existing.includes(normalizedAnswer)) return prev;
+      const next = { ...prev, [wordId]: [...existing, normalizedAnswer] };
+      try { localStorage.setItem(APPROVED_ANSWERS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
   const handleAiApproval = () => {
+    addApprovedAnswer(q.id, normalizeAnswer(input));
     setIsCorrect(true);
     setAnswerStatus("ai_approved");
     setScore(s => s + 1);
