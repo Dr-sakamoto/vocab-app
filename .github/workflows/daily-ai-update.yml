@@ -1,0 +1,71 @@
+name: Daily AI Update
+
+on:
+  schedule:
+    # 毎朝 9:00 JST (= UTC 00:00)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  ai-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Claude Code autonomous update
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # PRを自動作成する
+          direct_prompt: |
+            あなたはこのvocab-app（ポケモン風単語学習アプリ）の自律改善エージェントです。
+
+            ## 今日のミッション
+            以下の4観点でアプリを分析し、改善を実装してください。
+
+            ### 1. UI/UX レビュー
+            - コンポーネント（app/components/）のユーザビリティを確認
+            - モバイル対応・アクセシビリティの問題を検出
+            - アニメーション・インタラクションの改善余地を探す
+
+            ### 2. ファイル構成レビュー
+            - lib/ と app/ の責務分離が適切か確認
+            - 重複コード・未使用ファイルを検出
+            - 命名規則の一貫性を確認
+
+            ### 3. セキュリティレビュー
+            - API エンドポイント（app/api/）の入力バリデーション確認
+            - Supabase クエリのインジェクションリスク確認
+            - クライアントに秘密情報が漏れていないか確認
+
+            ### 4. 収益可能性レビュー
+            - ユーザーのエンゲージメントを高める機能の余地
+            - プレミアム機能として切り出せる要素
+            - ユーザー継続率を上げるゲームループの改善
+
+            ## 実装ルール（必ず守ること）
+            - CLAUDE.md のコンセプトを最優先で尊重する
+            - 1日1PR、スコープを絞って小さく確実に実装する
+            - 破壊的変更は行わない（既存テストを壊さない）
+            - tests/ のテストがすべてパスすることを確認してから PR を作成する
+            - PR タイトルは「[AI Daily] YYYY-MM-DD: <改善内容>」形式にする
+            - PR本文に「分析サマリー」と「実装内容」と「テスト確認」を記載する
+
+            まず4観点で分析し、最もインパクトが高く安全な1件を選んで実装してください。
