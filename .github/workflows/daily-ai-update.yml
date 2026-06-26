@@ -29,11 +29,11 @@ jobs:
         run: npm ci
 
       - name: Run Claude Code autonomous update
+        id: claude
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # PRを自動作成する
           direct_prompt: |
             あなたはこのvocab-app（ポケモン風単語学習アプリ）の自律改善エージェントです。
 
@@ -69,3 +69,49 @@ jobs:
             - PR本文に「分析サマリー」と「実装内容」と「テスト確認」を記載する
 
             まず4観点で分析し、最もインパクトが高く安全な1件を選んで実装してください。
+
+      - name: Get created PR info
+        id: pr-info
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 直近のオープンPRを取得
+          PR_DATA=$(gh pr list --repo ${{ github.repository }} --state open --limit 1 --json number,title,url,body)
+          PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // "なし"')
+          PR_TITLE=$(echo "$PR_DATA" | jq -r '.[0].title // "PRは作成されませんでした"')
+          PR_URL=$(echo "$PR_DATA" | jq -r '.[0].url // ""')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+
+      - name: Send email notification
+        uses: dawidd6/action-send-mail@v3
+        if: always()
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_ADDRESS }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          to: r.naruo33@gmail.com
+          from: vocab-app AI <${{ secrets.GMAIL_ADDRESS }}>
+          subject: "🤖 [vocab-app] 今日のAI改善レポート"
+          html_body: |
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #e53e3e;">🎮 vocab-app 自律AIレポート</h2>
+              <p>今朝のAI改善セッションが完了しました。</p>
+
+              <div style="background: #f7fafc; border-left: 4px solid #4299e1; padding: 16px; margin: 16px 0;">
+                <strong>PR タイトル:</strong><br>
+                ${{ steps.pr-info.outputs.pr_title }}
+              </div>
+
+              ${{ steps.pr-info.outputs.pr_url != '' && format('<p><a href="{0}" style="display: inline-block; background: #48bb78; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">✅ PRを確認してマージする</a></p>', steps.pr-info.outputs.pr_url) || '<p style="color: #718096;">今日は改善対象が見つからなかったため、PRは作成されませんでした。</p>' }}
+
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+              <p style="color: #718096; font-size: 12px;">
+                このメールは vocab-app の GitHub Actions から自動送信されています。<br>
+                リポジトリ: github.com/Dr-sakamoto/vocab-app
+              </p>
+            </div>
