@@ -67,7 +67,9 @@
 
 ## コードへの反映（P2 / IP_REMEDIATION.md）
 
-- 御三家3系統は `lib/monster.js` の御三家ライン（現 `bulbasaur`/`charmander`/`squirtle`）に割当。
-  - 割当例: SPEC→`squirtle`相当、PORT→`charmander`相当、VOC→`bulbasaur`相当（最終確定はP2で）。
-- 反映するのは各 species の `name`/`nameEn` と系統、最終的に `sprite`。
-  **`id`/lineId は参照多数のため維持**する。
+- **反映済み（P2）**: `lib/monster.js` の御三家ラインに以下で確定割当。
+  - VOC → lineId `bulbasaur`（Voxel / Invokra / Vocarch）
+  - PORT → lineId `charmander`（Portling / Transpord / Portarch）
+  - SPEC → lineId `squirtle`（Speculet / Inspex / Spectarch）
+- 変更したのは各 species の `name`/`nameEn` と系統。
+  **`id`/lineId とスプライトは維持**（アートは P3 で差替するプレースホルダ）。
