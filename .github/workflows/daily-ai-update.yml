@@ -96,22 +96,42 @@ jobs:
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
           to: r.naruo33@gmail.com
           from: vocab-app AI <${{ secrets.GMAIL_ADDRESS }}>
-          subject: "🤖 [vocab-app] 今日のAI改善レポート"
+          subject: "🤖 [vocab-app] 今日のAI改善レポート（12:00に自動マージ）"
           html_body: |
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #e53e3e;">🎮 vocab-app 自律AIレポート</h2>
-              <p>今朝のAI改善セッションが完了しました。</p>
+              <h2 style="color: #805ad5;">🎮 vocab-app 自律AIレポート</h2>
+
+              <div style="background: #fff8e1; border-left: 4px solid #f6ad55; padding: 16px; margin: 16px 0; border-radius: 4px;">
+                ⏰ <strong>何もしなければ 12:00 に自動マージされます</strong><br>
+                <span style="color: #718096; font-size: 14px;">気に入らない場合は下の「却下する」を押してください</span>
+              </div>
 
               <div style="background: #f7fafc; border-left: 4px solid #4299e1; padding: 16px; margin: 16px 0;">
-                <strong>PR タイトル:</strong><br>
+                <strong>今日の改善:</strong><br>
                 ${{ steps.pr-info.outputs.pr_title }}
               </div>
 
-              ${{ steps.pr-info.outputs.pr_url != '' && format('<p><a href="{0}" style="display: inline-block; background: #48bb78; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">✅ PRを確認してマージする</a></p>', steps.pr-info.outputs.pr_url) || '<p style="color: #718096;">今日は改善対象が見つからなかったため、PRは作成されませんでした。</p>' }}
+              <table style="width: 100%; border-collapse: separate; border-spacing: 8px;">
+                <tr>
+                  <td>
+                    <a href="${{ steps.pr-info.outputs.pr_url }}"
+                       style="display: block; text-align: center; background: #48bb78; color: white; padding: 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">
+                      📋 内容を確認する
+                    </a>
+                  </td>
+                  <td>
+                    <a href="${{ steps.pr-info.outputs.pr_url }}"
+                       style="display: block; text-align: center; background: #fc8181; color: white; padding: 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">
+                      🚫 却下する
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="color: #718096; font-size: 13px; margin-top: 24px;">
+                ※「却下する」を押すと GitHub の PR ページが開きます。「Close pull request」を押すとマージされません。
+              </p>
 
               <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
-              <p style="color: #718096; font-size: 12px;">
-                このメールは vocab-app の GitHub Actions から自動送信されています。<br>
-                リポジトリ: github.com/Dr-sakamoto/vocab-app
-              </p>
+              <p style="color: #718096; font-size: 12px;">vocab-app 自律AIシステム</p>
             </div>
