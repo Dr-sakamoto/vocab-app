@@ -2,8 +2,8 @@ name: Daily AI Update
 
 on:
   schedule:
-    # 毎朝 9:00 JST (= UTC 00:00)
-    - cron: '0 0 * * *'
+    # 毎朝 5:00 JST (= UTC 20:00)
+    - cron: '0 20 * * *'
   workflow_dispatch: # 手動実行も可能
 
 jobs:
@@ -96,7 +96,7 @@ jobs:
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
           to: r.naruo33@gmail.com
           from: ${{ github.event.repository.name }} AI <${{ secrets.GMAIL_ADDRESS }}>
-          subject: "🤖 [${{ github.event.repository.name }}] 今日のAI改善レポート（12:00に自動マージ）"
+          subject: "🤖 [${{ github.event.repository.name }}] 今日のAI改善レポート（8:00に自動マージ）"
           html_body: |
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background: #805ad5; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
@@ -106,7 +106,7 @@ jobs:
 
               <div style="border: 1px solid #e2e8f0; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
                 <div style="background: #fff8e1; border-left: 4px solid #f6ad55; padding: 14px; margin-bottom: 16px; border-radius: 4px;">
-                  ⏰ <strong>何もしなければ 12:00 に自動マージされます</strong><br>
+                  ⏰ <strong>何もしなければ 8:00 に自動マージされます</strong><br>
                   <span style="color: #718096; font-size: 13px;">気に入らない場合は「却下する」を押してください</span>
                 </div>
 

@@ -2,8 +2,8 @@ name: Auto Merge AI PRs
 
 on:
   schedule:
-    # 毎朝 12:00 JST (= UTC 03:00) — AI更新から3時間後に自動マージ
-    - cron: '0 3 * * *'
+    # 毎朝 8:00 JST (= UTC 23:00) — AI更新から3時間後に自動マージ
+    - cron: '0 23 * * *'
   workflow_dispatch:
 
 jobs:
