@@ -35,30 +35,31 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           direct_prompt: |
-            あなたはこのvocab-app（ポケモン風単語学習アプリ）の自律改善エージェントです。
+            あなたはこのリポジトリ（${{ github.repository }}）の自律改善エージェントです。
+            プロジェクトのコンセプトや制約は CLAUDE.md に定義されています。必ず最初に読んでください。
 
             ## 今日のミッション
             以下の4観点でアプリを分析し、改善を実装してください。
 
             ### 1. UI/UX レビュー
-            - コンポーネント（app/components/）のユーザビリティを確認
+            - コンポーネントのユーザビリティを確認
             - モバイル対応・アクセシビリティの問題を検出
             - アニメーション・インタラクションの改善余地を探す
 
             ### 2. ファイル構成レビュー
-            - lib/ と app/ の責務分離が適切か確認
+            - ディレクトリ間の責務分離が適切か確認
             - 重複コード・未使用ファイルを検出
             - 命名規則の一貫性を確認
 
             ### 3. セキュリティレビュー
-            - API エンドポイント（app/api/）の入力バリデーション確認
-            - Supabase クエリのインジェクションリスク確認
+            - API エンドポイントの入力バリデーション確認
+            - 外部サービス連携のインジェクションリスク確認
             - クライアントに秘密情報が漏れていないか確認
 
             ### 4. 収益可能性レビュー
             - ユーザーのエンゲージメントを高める機能の余地
             - プレミアム機能として切り出せる要素
-            - ユーザー継続率を上げるゲームループの改善
+            - ユーザー継続率を上げるループの改善
 
             ## 実装ルール（必ず守ること）
             - CLAUDE.md のコンセプトを最優先で尊重する
@@ -76,8 +77,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 直近のオープンPRを取得
-          PR_DATA=$(gh pr list --repo ${{ github.repository }} --state open --limit 1 --json number,title,url,body)
+          PR_DATA=$(gh pr list --repo ${{ github.repository }} --state open --limit 1 --json number,title,url)
           PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // "なし"')
           PR_TITLE=$(echo "$PR_DATA" | jq -r '.[0].title // "PRは作成されませんでした"')
           PR_URL=$(echo "$PR_DATA" | jq -r '.[0].url // ""')
@@ -95,43 +95,46 @@ jobs:
           username: ${{ secrets.GMAIL_ADDRESS }}
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
           to: r.naruo33@gmail.com
-          from: vocab-app AI <${{ secrets.GMAIL_ADDRESS }}>
-          subject: "🤖 [vocab-app] 今日のAI改善レポート（12:00に自動マージ）"
+          from: ${{ github.event.repository.name }} AI <${{ secrets.GMAIL_ADDRESS }}>
+          subject: "🤖 [${{ github.event.repository.name }}] 今日のAI改善レポート（12:00に自動マージ）"
           html_body: |
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #805ad5;">🎮 vocab-app 自律AIレポート</h2>
-
-              <div style="background: #fff8e1; border-left: 4px solid #f6ad55; padding: 16px; margin: 16px 0; border-radius: 4px;">
-                ⏰ <strong>何もしなければ 12:00 に自動マージされます</strong><br>
-                <span style="color: #718096; font-size: 14px;">気に入らない場合は下の「却下する」を押してください</span>
+              <div style="background: #805ad5; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
+                <strong>🤖 ${{ github.event.repository.name }}</strong>
+                <span style="float: right; font-size: 13px; opacity: 0.8;">自律AIレポート</span>
               </div>
 
-              <div style="background: #f7fafc; border-left: 4px solid #4299e1; padding: 16px; margin: 16px 0;">
-                <strong>今日の改善:</strong><br>
-                ${{ steps.pr-info.outputs.pr_title }}
+              <div style="border: 1px solid #e2e8f0; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
+                <div style="background: #fff8e1; border-left: 4px solid #f6ad55; padding: 14px; margin-bottom: 16px; border-radius: 4px;">
+                  ⏰ <strong>何もしなければ 12:00 に自動マージされます</strong><br>
+                  <span style="color: #718096; font-size: 13px;">気に入らない場合は「却下する」を押してください</span>
+                </div>
+
+                <div style="background: #f7fafc; border-left: 4px solid #4299e1; padding: 14px; margin-bottom: 20px; border-radius: 4px;">
+                  <strong>今日の改善:</strong><br>
+                  ${{ steps.pr-info.outputs.pr_title }}
+                </div>
+
+                <table style="width: 100%; border-collapse: separate; border-spacing: 8px;">
+                  <tr>
+                    <td style="width: 50%;">
+                      <a href="${{ steps.pr-info.outputs.pr_url }}"
+                         style="display: block; text-align: center; background: #48bb78; color: white; padding: 14px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+                        📋 内容を確認する
+                      </a>
+                    </td>
+                    <td style="width: 50%;">
+                      <a href="${{ steps.pr-info.outputs.pr_url }}"
+                         style="display: block; text-align: center; background: #fc8181; color: white; padding: 14px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+                        🚫 却下する
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="color: #a0aec0; font-size: 12px; margin-top: 20px;">
+                  ※「却下する」→ GitHub PR ページで「Close pull request」を押すとマージされません。<br>
+                  リポジトリ: github.com/${{ github.repository }}
+                </p>
               </div>
-
-              <table style="width: 100%; border-collapse: separate; border-spacing: 8px;">
-                <tr>
-                  <td>
-                    <a href="${{ steps.pr-info.outputs.pr_url }}"
-                       style="display: block; text-align: center; background: #48bb78; color: white; padding: 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">
-                      📋 内容を確認する
-                    </a>
-                  </td>
-                  <td>
-                    <a href="${{ steps.pr-info.outputs.pr_url }}"
-                       style="display: block; text-align: center; background: #fc8181; color: white; padding: 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">
-                      🚫 却下する
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              <p style="color: #718096; font-size: 13px; margin-top: 24px;">
-                ※「却下する」を押すと GitHub の PR ページが開きます。「Close pull request」を押すとマージされません。
-              </p>
-
-              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
-              <p style="color: #718096; font-size: 12px;">vocab-app 自律AIシステム</p>
             </div>

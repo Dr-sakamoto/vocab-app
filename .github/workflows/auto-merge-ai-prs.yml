@@ -18,7 +18,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # [AI Daily] タイトルのオープンPRをすべてマージ
           gh pr list \
             --repo ${{ github.repository }} \
             --state open \
@@ -42,18 +41,25 @@ jobs:
           username: ${{ secrets.GMAIL_ADDRESS }}
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
           to: r.naruo33@gmail.com
-          from: vocab-app AI <${{ secrets.GMAIL_ADDRESS }}>
-          subject: "✅ [vocab-app] 今日のAI改善がマージされました"
+          from: ${{ github.event.repository.name }} AI <${{ secrets.GMAIL_ADDRESS }}>
+          subject: "✅ [${{ github.event.repository.name }}] 今日のAI改善がマージされました"
           html_body: |
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #48bb78;">✅ マージ完了</h2>
-              <p>今朝のAI改善が本番コードに反映されました。</p>
-              <p>
-                <a href="https://github.com/${{ github.repository }}/commits/main"
-                   style="display: inline-block; background: #4299e1; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none;">
-                  📝 変更履歴を確認する
-                </a>
-              </p>
-              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
-              <p style="color: #718096; font-size: 12px;">vocab-app 自律AIシステム</p>
+              <div style="background: #48bb78; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
+                <strong>✅ ${{ github.event.repository.name }}</strong>
+                <span style="float: right; font-size: 13px; opacity: 0.8;">マージ完了</span>
+              </div>
+
+              <div style="border: 1px solid #e2e8f0; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
+                <p>今朝のAI改善が本番コードに反映されました。</p>
+                <p>
+                  <a href="https://github.com/${{ github.repository }}/commits/main"
+                     style="display: inline-block; background: #4299e1; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none;">
+                    📝 変更履歴を確認する
+                  </a>
+                </p>
+                <p style="color: #a0aec0; font-size: 12px;">
+                  リポジトリ: github.com/${{ github.repository }}
+                </p>
+              </div>
             </div>
