@@ -1,8 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const runtime = "nodejs";
 
-const client = new Anthropic();
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function POST(req) {
   try {
@@ -12,19 +12,14 @@ export async function POST(req) {
       return Response.json({ approved: false, score: 0, feedback: "入力が不正です" }, { status: 400 });
     }
 
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 150,
-      messages: [
-        {
-          role: "user",
-          content: `英語「${target}」の日本語訳として「${input}」は適切ですか？
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const result = await model.generateContent(
+      `英語「${target}」の日本語訳として「${input}」は適切ですか？
 0〜100のスコアと短い理由をJSONで返してください。70点以上が合格です。
 {"score": 数値, "feedback": "理由（15字以内）"}
 JSONのみ返答してください。`,
-        },
-      ],
-    });
+    );
+    const message = { content: [{ text: result.response.text() }] };
 
     const text = message.content[0].text.trim();
     let parsed;
