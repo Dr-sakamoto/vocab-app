@@ -12,7 +12,7 @@ export async function POST(req) {
       return Response.json({ approved: false, score: 0, feedback: "入力が不正です" }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(
       `英語「${target}」の日本語訳として「${input}」は適切ですか？
 0〜100のスコアと短い理由をJSONで返してください。70点以上が合格です。
