@@ -276,5 +276,5 @@ test("held item pokemon evolves when it levels up after picking up an item", () 
 
   assert.equal(monster.heldItemType, null);
   assert.equal(monster.heldItemName, null);
-  assert.equal(state.species.name, "ペトラルク");
+  assert.equal(state.species.name, "ガンセキ");
 });
