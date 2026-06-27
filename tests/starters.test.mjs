@@ -73,7 +73,7 @@ test("champion victory awards rival starter seed at level 5", () => {
   const result = resolveBattleVictory(progress, "champion-rival", collection, { poolSize: 2000 });
   assert.equal(collectionHasLineId(result.collection, "squirtle"), true);
   assert.equal(
-    result.rewards.some(reward => reward.message.includes("ゼニガメ")),
+    result.rewards.some(reward => reward.message.includes("スペクレット")),
     true,
   );
 });
