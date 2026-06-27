@@ -27,6 +27,7 @@ create table if not exists user_meta (
 alter table user_meta add column if not exists active_monster_id text;
 alter table user_meta add column if not exists monster_collection jsonb;
 alter table user_meta add column if not exists professor_transfers jsonb not null default '{}'::jsonb;
+alter table user_meta add column if not exists approved_answers jsonb not null default '{}'::jsonb;
 
 -- updated_at 自動更新トリガー
 create or replace function set_updated_at()
