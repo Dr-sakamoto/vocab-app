@@ -11,6 +11,7 @@ import ProgressDashboard from "./components/ProgressDashboard";
 import ResultScreen from "./components/ResultScreen";
 import ToastQueue from "./components/ToastQueue";
 import TrainerChallengeAlert from "./components/TrainerChallengeAlert";
+import SyncButton from "./components/SyncButton";
 
 import {
   applyCaptureResultToCollection,
@@ -432,6 +433,14 @@ export default function Page() {
       window.localStorage.setItem(MONSTER_LINE_STORAGE_KEY, active.lineId);
     } catch { /* ignore */ }
   }, [stats, unlockedPoolSize]);
+
+  const handleMerged = useCallback(({ stats: mergedStats, unlockedPoolSize: mergedPoolSize, monsterCollection: mergedCollection, approvedAnswers: mergedAnswers }) => {
+    setStats(mergedStats);
+    setUnlockedPoolSize(mergedPoolSize);
+    setMonsterCollection(mergedCollection);
+    monsterCollectionRef.current = mergedCollection;
+    setApprovedAnswers(mergedAnswers);
+  }, []);
 
   const startScreenBattle = useMemo(
     () => getStartScreenBattle(storyProgress),
@@ -1313,6 +1322,13 @@ export default function Page() {
               >
                 ポケモン
               </button>
+              <SyncButton
+                stats={stats}
+                unlockedPoolSize={unlockedPoolSize}
+                monsterCollection={monsterCollection}
+                approvedAnswers={approvedAnswers}
+                onMerged={handleMerged}
+              />
             </div>
           </div>
 
