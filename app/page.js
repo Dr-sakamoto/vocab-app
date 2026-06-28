@@ -1503,14 +1503,19 @@ export default function Page() {
                   )}
 
                   {!isCorrect && !reviewResult && (
-                    <button
-                      type="button"
-                      onClick={requestAiReview}
-                      disabled={isRequestingReview}
-                      className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition text-left"
-                    >
-                      {isRequestingReview ? "AIが審議中..." : "AIに審議してもらう"}
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={requestAiReview}
+                        disabled={isRequestingReview}
+                        className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition text-left"
+                      >
+                        {isRequestingReview ? "AIが審議中..." : "AIに審議してもらう"}
+                      </button>
+                      {isRequestingReview && (
+                        <p className="text-xs text-zinc-400 px-1">AIの審議には少し時間がかかります。そのままお待ちください。</p>
+                      )}
+                    </div>
                   )}
 
                   {reviewResult && !reviewResult.approved && (
