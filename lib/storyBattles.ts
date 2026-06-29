@@ -1,12 +1,13 @@
-import { createMonsterInstance, getMonsterLine, getSpecies, normalizeMonsterCollection } from "./monster.js";
-import { awardRivalStarterSeed, resolveBattleForProgress, RIVAL_STARTER_MARKER } from "./starters.js";
+import { createMonsterInstance, getMonsterLine, getSpecies, normalizeMonsterCollection } from "./monster";
+import { awardRivalStarterSeed, resolveBattleForProgress, RIVAL_STARTER_MARKER } from "./starters";
+import { StoryProgress, MonsterCollection, Battle, WordStat } from "./types";
 
 const SPRITE_ROOT =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-ii/crystal/animated";
 
 const TRAINER_SPRITE_ROOT = "https://play.pokemonshowdown.com/sprites/trainers";
 
-export const TRAINER_SPRITE_BY_BATTLE_ID = {
+export const TRAINER_SPRITE_BY_BATTLE_ID: Record<string, string> = {
   "rival-1": "blue",
   "rival-2": "blue",
   "rival-3": "blue",
@@ -42,43 +43,28 @@ export const TRAINER_SPRITE_BY_BATTLE_ID = {
 
 export const STORY_PROGRESS_STORAGE_KEY = "story-progress";
 
-export const BATTLE_TIERS = {
+export interface BattleTierConfig {
+  label: string;
+  winAccuracy: number;
+  xpMultiplier: number;
+  playLimit: number;
+  questionMode?: string;
+  blocksProgress?: boolean;
+}
+
+export const BATTLE_TIERS: Record<string, BattleTierConfig> = {
   normal: { label: "トレーナー", winAccuracy: 0.6, xpMultiplier: 1.5, playLimit: 10 },
   rocket: { label: "ロケット団", winAccuracy: 0.55, xpMultiplier: 1.5, playLimit: 10, questionMode: "weakness" },
   gym: { label: "ジムリーダー", winAccuracy: 0.7, xpMultiplier: 1.8, playLimit: 10, blocksProgress: true },
   elite: { label: "四天王", winAccuracy: 0.75, xpMultiplier: 2.0, playLimit: 12, blocksProgress: true },
   champion: { label: "チャンピオン", winAccuracy: 0.8, xpMultiplier: 2.5, playLimit: 15, blocksProgress: true },
-  symbol: { label: "シンボル", winAccuracy: 0.65, xpMultiplier: 1.6, playLimit: 10 },
+  symbol: { label: "シンロール", winAccuracy: 0.65, xpMultiplier: 1.6, playLimit: 10 },
   legendary: { label: "伝説", winAccuracy: 0.7, xpMultiplier: 2.2, playLimit: 12 },
   endurance: { label: "トラップ", winAccuracy: 0.55, xpMultiplier: 1.4, playLimit: 80 },
   chain: { label: "連戦", winAccuracy: 0.6, xpMultiplier: 1.5, playLimit: 50 },
 };
 
-/** @typedef {{ lineId: string, level: number }} BattlePokemon */
-
-/**
- * @typedef {object} StoryBattle
- * @property {string} id
- * @property {string} name
- * @property {string} location
- * @property {keyof typeof BATTLE_TIERS} tier
- * @property {number} minPool
- * @property {number|null} [maxPool]
- * @property {string} [habitatId]
- * @property {string[]} [requiresDefeat]
- * @property {string[]} [requiresBadges]
- * @property {boolean} [optional]
- * @property {boolean} [boss]
- * @property {boolean} [reappearOnHabitat]
- * @property {boolean} [relocateOnDefeat]
- * @property {BattlePokemon[]} party
- * @property {object} [rewards]
- * @property {string} [preMessage]
- * @property {number} [firstEncounterGuaranteed]
- * @property {number} [reappearChance]
- */
-
-export const STORY_BATTLES = [
+export const STORY_BATTLES: Battle[] = [
   {
     id: "rival-1",
     name: "ライバル",
@@ -628,9 +614,9 @@ export const STORY_BATTLES = [
   },
 ];
 
-const BATTLE_BY_ID = new Map(STORY_BATTLES.map(battle => [battle.id, battle]));
+const BATTLE_BY_ID = new Map<string, Battle>(STORY_BATTLES.map(battle => [battle.id, battle]));
 
-export const DEFAULT_STORY_PROGRESS = {
+export const DEFAULT_STORY_PROGRESS: StoryProgress = {
   version: 1,
   defeated: {},
   badges: [],
@@ -651,26 +637,26 @@ export const DEFAULT_STORY_PROGRESS = {
   professorStartersAwarded: false,
 };
 
-export function normalizeStoryProgress(raw) {
+export function normalizeStoryProgress(raw: any): StoryProgress {
   const source = raw && typeof raw === "object" ? raw : {};
-  const defeated = {};
+  const defeated: Record<string, boolean> = {};
   if (source.defeated && typeof source.defeated === "object") {
     for (const [id, value] of Object.entries(source.defeated)) {
       if (value && BATTLE_BY_ID.has(id)) defeated[id] = true;
     }
   }
 
-  const badges = Array.isArray(source.badges)
-    ? source.badges.filter(badge => typeof badge === "string")
+  const badges: string[] = Array.isArray(source.badges)
+    ? (source.badges as unknown[]).filter((badge): badge is string => typeof badge === "string")
     : [];
 
-  const mewWordsSeen = Array.isArray(source.mewWordsSeen)
-    ? source.mewWordsSeen
-        .map(index => Number(index))
-        .filter(index => Number.isInteger(index) && index >= 0)
+  const mewWordsSeen: number[] = Array.isArray(source.mewWordsSeen)
+    ? (source.mewWordsSeen as unknown[])
+        .map((i: unknown) => Number(i))
+        .filter((i): i is number => Number.isInteger(i) && i >= 0)
     : [];
 
-  const legendaryFirstSeen = {};
+  const legendaryFirstSeen: Record<string, boolean> = {};
   if (source.legendaryFirstSeen && typeof source.legendaryFirstSeen === "object") {
     for (const [id, value] of Object.entries(source.legendaryFirstSeen)) {
       if (value && BATTLE_BY_ID.has(id)) legendaryFirstSeen[id] = true;
@@ -714,11 +700,11 @@ export function normalizeStoryProgress(raw) {
   };
 }
 
-export function getBattleById(battleId) {
+export function getBattleById(battleId: string): Battle | null {
   return BATTLE_BY_ID.get(battleId) ?? null;
 }
 
-export function getBattlePoolSize(progress, battle = null) {
+export function getBattlePoolSize(progress: StoryProgress, battle: Battle | null = null): number {
   const normalized = normalizeStoryProgress(progress);
   if (Number.isFinite(Number(normalized.activeBattlePoolSize))) {
     return Number(normalized.activeBattlePoolSize);
@@ -732,59 +718,59 @@ export function getBattlePoolSize(progress, battle = null) {
   return 0;
 }
 
-export function getBattleForProgress(battleId, progress) {
+export function getBattleForProgress(battleId: string, progress: StoryProgress): Battle | null {
   const battle = getBattleById(battleId);
   if (!battle) return null;
   return resolveBattleForProgress(battle, normalizeStoryProgress(progress));
 }
 
-export function getBattleTierConfig(battle) {
-  return BATTLE_TIERS[battle?.tier] ?? BATTLE_TIERS.normal;
+export function getBattleTierConfig(battle: Battle | null): BattleTierConfig {
+  return BATTLE_TIERS[battle?.tier ?? ""] ?? BATTLE_TIERS.normal;
 }
 
-export function getBattlePlayLimit(battle) {
+export function getBattlePlayLimit(battle: Battle): number {
   return getBattleTierConfig(battle).playLimit;
 }
 
-export function getBattleWinAccuracy(battle) {
+export function getBattleWinAccuracy(battle: Battle): number {
   return getBattleTierConfig(battle).winAccuracy;
 }
 
-export function getBattleProgressAccuracy(score, playLimit) {
+export function getBattleProgressAccuracy(score: number, playLimit: number): number {
   if (playLimit <= 0) return 0;
   return Math.max(0, Math.min(1, score / playLimit));
 }
 
-export function isBattleWon(score, playLimit, battle) {
+export function isBattleWon(score: number, playLimit: number, battle: Battle): boolean {
   if (playLimit <= 0) return false;
   return getBattleProgressAccuracy(score, playLimit) >= getBattleWinAccuracy(battle);
 }
 
-export function hasBadge(progress, badgeId) {
+export function hasBadge(progress: StoryProgress, badgeId: string): boolean {
   return normalizeStoryProgress(progress).badges.includes(badgeId);
 }
 
-export function isBattleDefeated(progress, battleId) {
+export function isBattleDefeated(progress: StoryProgress, battleId: string): boolean {
   return Boolean(normalizeStoryProgress(progress).defeated[battleId]);
 }
 
-function meetsBadgeRequirements(progress, battle) {
-  const required = battle.requiresBadges ?? [];
-  return required.every(badge => hasBadge(progress, badge));
+function meetsBadgeRequirements(progress: StoryProgress, battle: Battle): boolean {
+  const required: string[] = battle.requiresBadges ?? [];
+  return required.every((badge: string) => hasBadge(progress, badge));
 }
 
-function meetsDefeatRequirements(progress, battle) {
-  const required = battle.requiresDefeat ?? [];
-  return required.every(id => isBattleDefeated(progress, id));
+function meetsDefeatRequirements(progress: StoryProgress, battle: Battle): boolean {
+  const required: string[] = battle.requiresDefeat ?? [];
+  return required.every((id: string) => isBattleDefeated(progress, id));
 }
 
-function isWithinPoolWindow(battle, poolSize) {
+function isWithinPoolWindow(battle: Battle, poolSize: number): boolean {
   if (poolSize < battle.minPool) return false;
-  if (Number.isFinite(battle.maxPool) && poolSize > battle.maxPool) return false;
+  if (Number.isFinite(battle.maxPool) && poolSize > battle.maxPool!) return false;
   return true;
 }
 
-function isBattleEligible(progress, battle, poolSize, habitatId) {
+function isBattleEligible(progress: StoryProgress, battle: Battle, poolSize: number, habitatId: string | null): boolean {
   const normalized = normalizeStoryProgress(progress);
   if (isBattleDefeated(normalized, battle.id) && !battle.reappearOnHabitat) return false;
   if (battle.optional === false && !isWithinPoolWindow(battle, poolSize)) return false;
@@ -797,7 +783,7 @@ function isBattleEligible(progress, battle, poolSize, habitatId) {
   return true;
 }
 
-export function getPoolUnlockBlocker(progress, poolSize) {
+export function getPoolUnlockBlocker(progress: StoryProgress, poolSize: number): Battle | null {
   const normalized = normalizeStoryProgress(progress);
   const boss = STORY_BATTLES.find(battle =>
     battle.boss &&
@@ -809,11 +795,11 @@ export function getPoolUnlockBlocker(progress, poolSize) {
   return boss ?? null;
 }
 
-export function getBlockingBoss(progress, poolSize) {
+export function getBlockingBoss(progress: StoryProgress, poolSize: number): Battle | null {
   return getPoolUnlockBlocker(progress, poolSize);
 }
 
-function shouldTriggerLegendary(progress, battle, rng = Math.random) {
+function shouldTriggerLegendary(progress: StoryProgress, battle: Battle, rng = Math.random): boolean {
   const normalized = normalizeStoryProgress(progress);
   if (isBattleDefeated(normalized, battle.id)) return false;
   if (!normalized.legendaryFirstSeen[battle.id] && battle.firstEncounterGuaranteed) {
@@ -822,10 +808,19 @@ function shouldTriggerLegendary(progress, battle, rng = Math.random) {
   return rng() < (battle.reappearChance ?? 0.1);
 }
 
-export function scanBattleTriggers(progress, { unlockedPoolSize = 0, habitatId = null, rng = Math.random } = {}) {
+export interface ScanBattleTriggersProps {
+  unlockedPoolSize?: number;
+  habitatId?: string | null;
+  rng?: () => number;
+}
+
+export function scanBattleTriggers(
+  progress: StoryProgress,
+  { unlockedPoolSize = 0, habitatId = null, rng = Math.random }: ScanBattleTriggersProps = {},
+): Battle[] {
   const normalized = normalizeStoryProgress(progress);
   const poolSize = Math.max(0, Number(unlockedPoolSize) || 0);
-  const triggered = [];
+  const triggered: Battle[] = [];
 
   for (const battle of STORY_BATTLES) {
     if (isBattleDefeated(normalized, battle.id) && !battle.reappearOnHabitat) continue;
@@ -850,7 +845,11 @@ export function scanBattleTriggers(progress, { unlockedPoolSize = 0, habitatId =
   return triggered.sort((a, b) => a.minPool - b.minPool || STORY_BATTLES.indexOf(a) - STORY_BATTLES.indexOf(b));
 }
 
-export function pickNextBattleTrigger(progress, context, rng = Math.random) {
+export function pickNextBattleTrigger(
+  progress: StoryProgress,
+  context: ScanBattleTriggersProps,
+  rng = Math.random,
+): Battle | null {
   const candidates = scanBattleTriggers(progress, context);
   if (candidates.length === 0) return null;
   const required = candidates.filter(battle => !battle.optional);
@@ -858,7 +857,7 @@ export function pickNextBattleTrigger(progress, context, rng = Math.random) {
   return pool[Math.floor(rng() * pool.length)] ?? pool[0];
 }
 
-export function setPendingChallenge(progress, battleId, poolSize = null) {
+export function setPendingChallenge(progress: StoryProgress, battleId: string, poolSize: number | null = null): StoryProgress {
   const normalized = normalizeStoryProgress(progress);
   if (!BATTLE_BY_ID.has(battleId)) return normalized;
   return {
@@ -868,7 +867,7 @@ export function setPendingChallenge(progress, battleId, poolSize = null) {
   };
 }
 
-export function clearPendingChallenge(progress) {
+export function clearPendingChallenge(progress: StoryProgress): StoryProgress {
   const normalized = normalizeStoryProgress(progress);
   return {
     ...normalized,
@@ -877,7 +876,7 @@ export function clearPendingChallenge(progress) {
   };
 }
 
-export function startBattleSession(progress, battleId, { poolSize = null } = {}) {
+export function startBattleSession(progress: StoryProgress, battleId: string, { poolSize = null }: { poolSize?: number | null } = {}): StoryProgress {
   const normalized = normalizeStoryProgress(progress);
   if (!BATTLE_BY_ID.has(battleId)) return normalized;
   const battle = getBattleById(battleId);
@@ -886,7 +885,7 @@ export function startBattleSession(progress, battleId, { poolSize = null } = {})
     : Number.isFinite(Number(normalized.pendingChallengePoolSize))
       ? Number(normalized.pendingChallengePoolSize)
       : Number.isFinite(Number(battle?.minPool))
-        ? Number(battle.minPool)
+        ? Number(battle!.minPool)
         : null;
   return {
     ...normalized,
@@ -898,7 +897,7 @@ export function startBattleSession(progress, battleId, { poolSize = null } = {})
   };
 }
 
-export function clearActiveBattle(progress) {
+export function clearActiveBattle(progress: StoryProgress): StoryProgress {
   const normalized = normalizeStoryProgress(progress);
   return {
     ...normalized,
@@ -910,13 +909,13 @@ export function clearActiveBattle(progress) {
   };
 }
 
-export function getResumeBattle(progress) {
+export function getResumeBattle(progress: StoryProgress): Battle | null {
   const normalized = normalizeStoryProgress(progress);
   if (!normalized.activeBattleId) return null;
   return getBattleForProgress(normalized.activeBattleId, normalized);
 }
 
-export function getStartScreenBattle(progress) {
+export function getStartScreenBattle(progress: StoryProgress): Battle | null {
   const normalized = normalizeStoryProgress(progress);
   const battleId = normalized.pendingChallengeId ?? normalized.activeBattleId;
   if (!battleId) return null;
@@ -926,12 +925,17 @@ export function getStartScreenBattle(progress) {
   return battle;
 }
 
-export function getOpponentPokemonIndex(battle, questionNumber, playLimit = getBattlePlayLimit(battle), currentAccuracy = 0) {
+export function getOpponentPokemonIndex(
+  battle: Battle,
+  questionNumber: number,
+  playLimit = getBattlePlayLimit(battle),
+  currentAccuracy = 0,
+): number {
   const party = battle?.party ?? [];
   if (party.length === 0) return 0;
 
   const winAccuracy = getBattleWinAccuracy(battle);
-  const thresholds = party.map((entry, index) => {
+  const thresholds = party.map((entry: any, index: number) => {
     if (party.length === 1) return winAccuracy;
     return winAccuracy * (0.5 + 0.5 * (index / (party.length - 1)));
   });
@@ -947,19 +951,24 @@ export function getOpponentPokemonIndex(battle, questionNumber, playLimit = getB
   return Math.min(party.length - 1, currentIndex);
 }
 
-export function getOpponentPokemonStatus(battle, questionNumber, playLimit, currentAccuracy = 0) {
+export function getOpponentPokemonStatus(
+  battle: Battle,
+  questionNumber: number,
+  playLimit: number,
+  currentAccuracy = 0,
+): any[] {
   const party = battle?.party ?? [];
   if (party.length === 0) return [];
 
   const winAccuracy = getBattleWinAccuracy(battle);
-  const thresholds = party.map((entry, index) => {
+  const thresholds = party.map((entry: any, index: number) => {
     if (party.length === 1) return winAccuracy;
     return winAccuracy * (0.5 + 0.5 * (index / (party.length - 1)));
   });
 
   const currentIndex = getOpponentPokemonIndex(battle, questionNumber, playLimit, currentAccuracy);
 
-  return party.map((entry, index) => {
+  return party.map((entry: any, index: number) => {
     const requiredAccuracy = thresholds[index];
     const line = getMonsterLine(entry.lineId);
     const species = getSpecies(entry.level, entry.lineId);
@@ -968,7 +977,7 @@ export function getOpponentPokemonStatus(battle, questionNumber, playLimit, curr
       index,
       lineId: entry.lineId,
       level: entry.level,
-      name: line.name,
+      name: line?.name ?? entry.lineId,
       speciesName: species.name,
       sprite: species.sprite,
       speciesId: species.id,
@@ -979,7 +988,12 @@ export function getOpponentPokemonStatus(battle, questionNumber, playLimit, curr
   });
 }
 
-export function getOpponentPokemon(battle, questionNumber, playLimit, currentAccuracy = 0) {
+export function getOpponentPokemon(
+  battle: Battle,
+  questionNumber: number,
+  playLimit: number,
+  currentAccuracy = 0,
+): any {
   const party = battle?.party ?? [];
   const index = getOpponentPokemonIndex(battle, questionNumber, playLimit, currentAccuracy);
   const entry = party[index] ?? party[0];
@@ -987,7 +1001,7 @@ export function getOpponentPokemon(battle, questionNumber, playLimit, currentAcc
   const species = getSpecies(entry.level, entry.lineId);
   return {
     ...entry,
-    name: line.name,
+    name: line?.name ?? entry.lineId,
     sprite: species.sprite,
     speciesId: species.id,
     index,
@@ -995,7 +1009,7 @@ export function getOpponentPokemon(battle, questionNumber, playLimit, currentAcc
   };
 }
 
-function pickWeaknessQuestionIndex(candidates, stats) {
+function pickWeaknessQuestionIndex(candidates: number[], stats: WordStat[]): number {
   const weighted = candidates.map(index => {
     const stat = stats[index] ?? { correct: 0, wrong: 0 };
     const wrong = stat.wrong ?? 0;
@@ -1012,6 +1026,15 @@ function pickWeaknessQuestionIndex(candidates, stats) {
   return weighted.at(-1)?.index ?? candidates[0];
 }
 
+interface PickBattleQuestionIndexProps {
+  stats: WordStat[];
+  unlockedPoolSize: number;
+  seenSet: Set<number>;
+  avoidIndex?: number | null;
+  battle: Battle | null;
+  questionMode?: string | null;
+}
+
 export function pickBattleQuestionIndex({
   stats,
   unlockedPoolSize,
@@ -1019,7 +1042,7 @@ export function pickBattleQuestionIndex({
   avoidIndex,
   battle,
   questionMode = null,
-}) {
+}: PickBattleQuestionIndexProps): number | null {
   const poolLimit = Math.max(1, Math.min(unlockedPoolSize, stats.length));
   let candidates = Array.from({ length: poolLimit }, (_, i) => i).filter(i => !seenSet?.has(i));
   if (typeof avoidIndex === "number" && candidates.length > 1) {
@@ -1039,7 +1062,7 @@ export function pickBattleQuestionIndex({
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-export function markMewWordSeen(progress, wordIndex, totalWords) {
+export function markMewWordSeen(progress: StoryProgress, wordIndex: number, totalWords: number): StoryProgress {
   const normalized = normalizeStoryProgress(progress);
   const safeIndex = Number(wordIndex);
   if (!Number.isInteger(safeIndex) || safeIndex < 0) return normalized;
@@ -1047,14 +1070,19 @@ export function markMewWordSeen(progress, wordIndex, totalWords) {
   return { ...normalized, mewWordsSeen: nextSeen };
 }
 
-function addBadge(progress, badgeId) {
+function addBadge(progress: StoryProgress, badgeId: string): StoryProgress {
   if (!badgeId) return progress;
   const normalized = normalizeStoryProgress(progress);
   if (normalized.badges.includes(badgeId)) return normalized;
   return { ...normalized, badges: [...normalized.badges, badgeId] };
 }
 
-function awardHitmon(progress, collection) {
+function awardHitmon(progress: StoryProgress, collection: MonsterCollection): {
+  progress: StoryProgress;
+  collection: MonsterCollection;
+  rewardMessage: string;
+  rewardSprite: string;
+} {
   const lineId = Math.random() < 0.5 ? "hitmonlee" : "hitmonchan";
   const monster = createMonsterInstance({
     id: `reward-dojo-${lineId}`,
@@ -1068,12 +1096,17 @@ function awardHitmon(progress, collection) {
       ...normalizeMonsterCollection(collection),
       monsters: [...normalizeMonsterCollection(collection).monsters, monster],
     }),
-    rewardMessage: `からておうに勝って${getMonsterLine(lineId).name}をもらった！`,
+    rewardMessage: `からておうに勝って${getMonsterLine(lineId)!.name}をもらった！`,
     rewardSprite: getSpecies(1, lineId).sprite,
   };
 }
 
-function awardFossilItem(progress, collection) {
+function awardFossilItem(progress: StoryProgress, collection: MonsterCollection): {
+  progress: StoryProgress;
+  collection: MonsterCollection;
+  rewardMessage: string;
+  rewardSprite: string;
+} {
   const items = [
     { lineId: "omanyte", label: "かいの化石" },
     { lineId: "kabuto", label: "こうらの化石" },
@@ -1087,7 +1120,18 @@ function awardFossilItem(progress, collection) {
   };
 }
 
-export function resolveBattleVictory(progress, battleId, collection, { poolSize = 0 } = {}) {
+export interface ResolveBattleVictoryResult {
+  progress: StoryProgress;
+  collection: MonsterCollection;
+  rewards: any[];
+}
+
+export function resolveBattleVictory(
+  progress: StoryProgress,
+  battleId: string,
+  collection: MonsterCollection,
+  { poolSize = 0 } = {},
+): ResolveBattleVictoryResult {
   const battle = getBattleById(battleId);
   if (!battle) return { progress, collection, rewards: [] };
 
@@ -1177,7 +1221,16 @@ export function resolveBattleVictory(progress, battleId, collection, { poolSize 
   return { progress: nextProgress, collection: nextCollection, rewards };
 }
 
-export function resolveBattleDefeat(progress, battleId, { habitatId = null, habitatMinPools = {} } = {}) {
+interface ResolveBattleDefeatProps {
+  habitatId?: string | null;
+  habitatMinPools?: Record<string, number>;
+}
+
+export function resolveBattleDefeat(
+  progress: StoryProgress,
+  battleId: string,
+  { habitatId = null, habitatMinPools = {} }: ResolveBattleDefeatProps = {},
+): any {
   const battle = getBattleById(battleId);
   let nextProgress = clearActiveBattle(normalizeStoryProgress(progress));
 
@@ -1203,14 +1256,14 @@ export function resolveBattleDefeat(progress, battleId, { habitatId = null, habi
   };
 }
 
-export function shouldReappearAfterHabitatVisit(progress, battleId, habitatId) {
+export function shouldReappearAfterHabitatVisit(progress: StoryProgress, battleId: string, habitatId: string): boolean {
   const battle = getBattleById(battleId);
   if (!battle || isBattleDefeated(progress, battleId)) return false;
   if (!battle.reappearOnHabitat) return false;
   return battle.habitatId === habitatId;
 }
 
-export function mergeStoryProgress(local, remote) {
+export function mergeStoryProgress(local: StoryProgress, remote: StoryProgress): StoryProgress {
   const a = normalizeStoryProgress(local);
   const b = normalizeStoryProgress(remote);
   const defeated = { ...b.defeated, ...a.defeated };
@@ -1240,22 +1293,22 @@ export function mergeStoryProgress(local, remote) {
   });
 }
 
-export function consumeMasterBall(progress) {
+export function consumeMasterBall(progress: StoryProgress): StoryProgress {
   const normalized = normalizeStoryProgress(progress);
   if (!normalized.masterBall || normalized.usedMasterBall) return normalized;
   return { ...normalized, masterBall: false, usedMasterBall: true };
 }
 
-export function canUseMasterBall(progress) {
+export function canUseMasterBall(progress: StoryProgress): boolean {
   const normalized = normalizeStoryProgress(progress);
   return normalized.masterBall && !normalized.usedMasterBall;
 }
 
-export function isCapturableBattle(battle) {
+export function isCapturableBattle(battle: Battle | null): boolean {
   return battle?.tier === "legendary" || battle?.tier === "symbol";
 }
 
-export function getTrainerSprite(battle) {
+export function getTrainerSprite(battle: Battle | null): string | null {
   if (!battle) return null;
   const trainerId = TRAINER_SPRITE_BY_BATTLE_ID[battle.id];
   if (trainerId) {
@@ -1268,10 +1321,10 @@ export function getTrainerSprite(battle) {
   return null;
 }
 
-export function getBattleResultMessage(battle, won, capture = null) {
+export function getBattleResultMessage(battle: Battle | null, won: boolean, capture: any | null = null): string | null {
   if (!battle) return null;
   if (!won) {
-    if (battle.boss || BATTLE_TIERS[battle.tier]?.blocksProgress) {
+    if (battle.boss || BATTLE_TIERS[battle.tier ?? ""]?.blocksProgress) {
       return `${battle.name}に負けた…　スタート画面から再挑戦しよう。`;
     }
     return `${battle.name}に負けた。　同じエリアで学習を続けると再挑戦できる。`;
@@ -1291,8 +1344,7 @@ export function getBattleResultMessage(battle, won, capture = null) {
   return `${battle.name}に勝利した！`;
 }
 
-/** 実装前に到達済みのプレイヤーへ、未撃破のストーリー戦を遡及キューする */
-export function syncRetroactiveBattles(progress, { unlockedPoolSize = 0 } = {}) {
+export function syncRetroactiveBattles(progress: StoryProgress, { unlockedPoolSize = 0 } = {}): StoryProgress {
   const normalized = normalizeStoryProgress(progress);
   if (normalized.pendingChallengeId || normalized.activeBattleId) {
     return normalized;

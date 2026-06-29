@@ -1,11 +1,11 @@
 import kuromoji from "kuromoji";
-import { normalizeAnswer, normalizeForMorphology } from "./answerNormalization.js";
+import { normalizeAnswer, normalizeForMorphology } from "./answerNormalization";
 
 const TOKENIZER_DIC_PATH = "node_modules/kuromoji/dict";
 const IGNORE_POS = new Set(["助詞", "助動詞", "記号", "接頭詞", "フィラー"]);
 const CONTENT_POS = new Set(["名詞", "動詞", "形容詞", "副詞"]);
 
-const SYNONYM_GROUPS = [
+const SYNONYM_GROUPS: string[][] = [
   ["軽減", "緩和", "和らげる", "軽くする", "改善", "改善する"],
   ["実行", "実施", "遂行", "行う", "実装", "導入"],
   ["調査", "検査", "精査", "吟味", "究明", "調べる"],
@@ -47,7 +47,7 @@ const SYNONYM_GROUPS = [
   ["十分", "充分", "足りる"],
   ["制裁", "罰則", "処罰"],
   ["再現", "複製", "再作成"],
-  ["激しい", "猛烈", "強烈", "熾烈"],
+  ["激しい", "猛烈", "強烈", "シ烈", "熾烈"],
   ["予期", "予想", "想定", "見込み"],
   ["透明性", "明瞭性", "開放性"],
   ["交渉", "協議", "折衝"],
@@ -138,54 +138,60 @@ const SYNONYM_GROUPS = [
   ["活気", "鮮やか", "生き生き"],
 ];
 
-let tokenizerPromise;
-let synonymIndex;
+let tokenizerPromise: Promise<any> | undefined;
+let synonymIndex: Map<string, Set<number>> | undefined;
 
-function getTokenizer() {
+function getTokenizer(): Promise<any> {
   if (!tokenizerPromise) {
     tokenizerPromise = new Promise((resolve, reject) => {
-      kuromoji.builder({ dicPath: TOKENIZER_DIC_PATH }).build((error, tokenizer) => {
+      kuromoji.builder({ dicPath: TOKENIZER_DIC_PATH }).build((error: any, tokenizer: any) => {
         if (error) reject(error);
         else resolve(tokenizer);
       });
     });
   }
-
   return tokenizerPromise;
 }
 
-function kanaToHiragana(value) {
+function kanaToHiragana(value: string): string {
   return String(value ?? "").replace(/[\u30A1-\u30F6]/g, char =>
     String.fromCharCode(char.charCodeAt(0) - 0x60),
   );
 }
 
-function tokenBase(token) {
+function tokenBase(token: any): string {
   if (token.base_form && token.base_form !== "*") return token.base_form;
   return token.surface_form ?? "";
 }
 
-function tokenReading(token) {
+function tokenReading(token: any): string {
   const reading = token.reading && token.reading !== "*" ? token.reading : tokenBase(token);
   return kanaToHiragana(normalizeAnswer(reading));
 }
 
-function isContentToken(token) {
+function isContentToken(token: any): boolean {
   if (!token?.surface_form) return false;
   if (IGNORE_POS.has(token.pos)) return false;
   if (!CONTENT_POS.has(token.pos)) return false;
   return normalizeAnswer(token.surface_form).length > 0;
 }
 
-function unique(values) {
+function unique<T>(values: T[]): T[] {
   return [...new Set(values.filter(Boolean))];
 }
 
-function isKanaOnly(value) {
+function isKanaOnly(value: string): boolean {
   return /^[ぁ-ゖー〜]+$/.test(String(value ?? ""));
 }
 
-export function getCoreTermsFromTokens(tokens) {
+export interface Term {
+  surface: string;
+  base: string;
+  reading: string;
+  pos: string;
+}
+
+export function getCoreTermsFromTokens(tokens: any[]): Term[] {
   const terms = tokens
     .filter(isContentToken)
     .map(token => ({
@@ -205,7 +211,15 @@ export function getCoreTermsFromTokens(tokens) {
   }));
 }
 
-export async function analyzeAnswer(value) {
+export interface AnswerAnalysis {
+  normalized: string;
+  baseKey: string;
+  readingKey: string;
+  termKeys: string[];
+  terms: Term[];
+}
+
+export async function analyzeAnswer(value: string): Promise<AnswerAnalysis> {
   const tokenizer = await getTokenizer();
   const normalized = normalizeAnswer(value);
   const tokens = tokenizer.tokenize(normalizeForMorphology(value));
@@ -223,7 +237,7 @@ export async function analyzeAnswer(value) {
   };
 }
 
-function getSynonymIndex() {
+function getSynonymIndex(): Map<string, Set<number>> {
   if (synonymIndex) return synonymIndex;
 
   synonymIndex = new Map();
@@ -231,18 +245,18 @@ function getSynonymIndex() {
     for (const word of group) {
       const key = normalizeAnswer(word);
       if (!key) continue;
-      const ids = synonymIndex.get(key) ?? new Set();
+      const ids = synonymIndex!.get(key) ?? new Set();
       ids.add(groupIndex);
-      synonymIndex.set(key, ids);
+      synonymIndex!.set(key, ids);
     }
   });
 
   return synonymIndex;
 }
 
-function hasSharedSynonym(leftKeys, rightKeys) {
+function hasSharedSynonym(leftKeys: string[], rightKeys: string[]): boolean {
   const index = getSynonymIndex();
-  const leftGroupIds = new Set();
+  const leftGroupIds = new Set<number>();
 
   for (const key of leftKeys) {
     for (const groupId of index.get(key) ?? []) leftGroupIds.add(groupId);
@@ -259,7 +273,7 @@ function hasSharedSynonym(leftKeys, rightKeys) {
   return false;
 }
 
-function isAlternativeMatch(userAnalysis, answerAnalysis) {
+function isAlternativeMatch(userAnalysis: AnswerAnalysis, answerAnalysis: AnswerAnalysis): boolean {
   if (userAnalysis.baseKey === answerAnalysis.baseKey) return true;
   if (isKanaOnly(userAnalysis.normalized) && userAnalysis.normalized === answerAnalysis.readingKey) return true;
   if (isKanaOnly(answerAnalysis.normalized) && answerAnalysis.normalized === userAnalysis.readingKey) return true;
@@ -278,7 +292,21 @@ function isAlternativeMatch(userAnalysis, answerAnalysis) {
   return hasSharedSynonym(userKeys, answerKeys);
 }
 
-export async function evaluateAnswer({ input, answers }) {
+export interface EvaluateAnswerProps {
+  input: string;
+  answers: string[];
+}
+
+export interface EvaluateAnswerResult {
+  status: "exact" | "alternative" | "wrong";
+  normalizedInput: string;
+  normalizedAnswers: string[];
+  matchedAnswer?: string;
+  userCore?: string;
+  answerCore?: string;
+}
+
+export async function evaluateAnswer({ input, answers }: EvaluateAnswerProps): Promise<EvaluateAnswerResult> {
   const safeAnswers = Array.isArray(answers) ? answers : [];
   const normalizedInput = normalizeAnswer(input);
   const normalizedAnswers = safeAnswers.map(normalizeAnswer);

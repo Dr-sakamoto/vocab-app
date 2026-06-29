@@ -1,6 +1,8 @@
 "use client";
 
-const LEVEL_RING_COLORS = {
+import React from "react";
+
+const LEVEL_RING_COLORS: Record<number, string> = {
   0: "#d4d4d8",
   1: "#fef08a",
   2: "#fde047",
@@ -9,7 +11,7 @@ const LEVEL_RING_COLORS = {
   5: "#15803d",
 };
 
-function masteryLevel(stat) {
+function masteryLevel(stat: any) {
   const c = stat?.correct ?? 0;
   const w = stat?.wrong ?? 0;
   const net = c - w;
@@ -23,11 +25,11 @@ function masteryLevel(stat) {
   return 5;
 }
 
-function countLvAtLeast1(statsArr) {
+function countLvAtLeast1(statsArr: any[]) {
   return statsArr.filter((s) => masteryLevel(s) >= 1).length;
 }
 
-function buildMasteryConicGradient(levelCounts) {
+function buildMasteryConicGradient(levelCounts: number[]) {
   const total = levelCounts.reduce((a, b) => a + b, 0);
   if (total === 0) {
     return `conic-gradient(from -90deg, ${LEVEL_RING_COLORS[0]} 0deg 360deg)`;
@@ -49,12 +51,17 @@ function buildMasteryConicGradient(levelCounts) {
   return `conic-gradient(from -90deg, ${stops.join(", ")})`;
 }
 
-function MasteryDonutChart({ levelCounts, lv1PlusPct }) {
+interface MasteryDonutChartProps {
+  levelCounts: number[];
+  lv1PlusPct: number;
+}
+
+function MasteryDonutChart({ levelCounts, lv1PlusPct }: MasteryDonutChartProps) {
   const clamped = Math.max(0, Math.min(100, lv1PlusPct));
   const ariaParts = [0, 1, 2, 3, 4, 5].map(
     (lv) => `レベル${lv}が${levelCounts[lv]}語`,
   );
-  const chartLabel = `習熟度の円グラフ。${ariaParts.join("。") }。Lv.1以上の割合は${Math.round(clamped)}パーセント。`;
+  const chartLabel = `習熟度の円グラフ。${ariaParts.join("。")}。Lv.1以上の割合は${Math.round(clamped)}パーセント。`;
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -106,23 +113,33 @@ function MasteryDonutChart({ levelCounts, lv1PlusPct }) {
   );
 }
 
-export default function ProgressDashboard({ stats, totalWords, onBack }) {
+interface ProgressDashboardProps {
+  stats: any[];
+  totalWords: number;
+  onBack: () => void;
+}
+
+export default function ProgressDashboard({
+  stats,
+  totalWords,
+  onBack,
+}: ProgressDashboardProps) {
   const lv1Plus = countLvAtLeast1(stats);
   const pct = totalWords === 0 ? 0 : (lv1Plus / totalWords) * 100;
 
-  const levelCounts = [0, 1, 2, 3, 4, 5].map((lv) =>
-    stats.filter((s) => masteryLevel(s) === lv).length,
+  const levelCounts = [0, 1, 2, 3, 4, 5].map(
+    (lv) => stats.filter((s) => masteryLevel(s) === lv).length,
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6 animate-fade-in">
       <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-xl font-semibold">進捗ダッシュボード</h1>
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+            className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 transition"
           >
             戻る
           </button>

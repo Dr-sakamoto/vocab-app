@@ -1,15 +1,26 @@
 "use client";
 
+import React from "react";
 import { getMonsterDisplayState } from "@/lib/monster";
+
+interface MonsterCompanionProps {
+  monster?: any;
+  totalXP?: number;
+  gainedXP?: number;
+  size?: "sm" | "md" | "lg";
+  lineId?: string;
+}
 
 /**
  * モンスターの現在状態を表示するコンポーネント
- *
- * @param {number}  totalXP   - 現在の累計 XP（今セッション分を加算済み）
- * @param {number}  gainedXP  - 今セッションで獲得した XP（進化判定・+XP表示に使用）
- * @param {"sm"|"md"|"lg"} size
  */
-export default function MonsterCompanion({ monster = null, totalXP = 0, gainedXP = 0, size = "md", lineId }) {
+export default function MonsterCompanion({
+  monster = null,
+  totalXP = 0,
+  gainedXP = 0,
+  size = "md",
+  lineId,
+}: MonsterCompanionProps) {
   const monsterXP = monster?.totalXP ?? totalXP;
   const monsterLineId = monster?.lineId ?? lineId;
   const current = getMonsterDisplayState({
@@ -17,13 +28,14 @@ export default function MonsterCompanion({ monster = null, totalXP = 0, gainedXP
     totalXP: monsterXP,
     lineId: monsterLineId,
   });
-  const prev = gainedXP > 0
-    ? getMonsterDisplayState({
-        ...monster,
-        totalXP: Math.max(0, monsterXP - gainedXP),
-        lineId: monsterLineId,
-      })
-    : null;
+  const prev =
+    gainedXP > 0
+      ? getMonsterDisplayState({
+          ...monster,
+          totalXP: Math.max(0, monsterXP - gainedXP),
+          lineId: monsterLineId,
+        })
+      : null;
   const evolved = prev !== null && prev.species.id !== current.species.id;
 
   const spriteSize = size === "sm" ? 56 : size === "lg" ? 112 : 80;
@@ -32,7 +44,7 @@ export default function MonsterCompanion({ monster = null, totalXP = 0, gainedXP
     <div className="rounded-xl border bg-white p-4 shadow-sm">
       {/* 進化バナー */}
       {evolved && (
-        <div className="mb-3 rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-center text-sm font-bold text-yellow-900">
+        <div className="mb-3 rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-center text-sm font-bold text-yellow-900 animate-pulse">
           🎉 {prev.species.name} → {current.species.name} に進化した！
         </div>
       )}
@@ -46,7 +58,7 @@ export default function MonsterCompanion({ monster = null, totalXP = 0, gainedXP
           <img
             src={current.species.sprite}
             alt={current.species.name}
-            onError={e => {
+            onError={(e) => {
               if (e.currentTarget.src !== current.species.fallbackSprite) {
                 e.currentTarget.src = current.species.fallbackSprite;
               }
@@ -64,8 +76,17 @@ export default function MonsterCompanion({ monster = null, totalXP = 0, gainedXP
         <div className="flex-1 min-w-0">
           {/* 名前 + レベル */}
           <div className="flex items-baseline justify-between gap-2">
-            <span className={['font-semibold', monster?.heldItemType ? 'text-sky-600' : 'text-zinc-900'].join(' ')}>{current.species.name}</span>
-            <span className="text-xs tabular-nums text-zinc-500">Lv. {current.level}</span>
+            <span
+              className={[
+                "font-semibold",
+                monster?.heldItemType ? "text-sky-600" : "text-zinc-900",
+              ].join(" ")}
+            >
+              {current.species.name}
+            </span>
+            <span className="text-xs tabular-nums text-zinc-500">
+              Lv. {current.level}
+            </span>
           </div>
 
           {/* EXP バー */}
@@ -73,13 +94,16 @@ export default function MonsterCompanion({ monster = null, totalXP = 0, gainedXP
             <div className="mb-1 flex justify-between text-xs text-zinc-400">
               <span>EXP</span>
               <span className="tabular-nums">
-                {current.currentXP.toLocaleString()} / {current.neededXP.toLocaleString()}
+                {current.currentXP.toLocaleString()} /{" "}
+                {current.neededXP.toLocaleString()}
               </span>
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-100">
               <div
                 className="h-full rounded-full bg-blue-500 transition-[width] duration-700 ease-out"
-                style={{ width: `${Math.min(100, current.pct * 100).toFixed(1)}%` }}
+                style={{
+                  width: `${Math.min(100, current.pct * 100).toFixed(1)}%`,
+                }}
               />
             </div>
           </div>
