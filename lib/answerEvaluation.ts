@@ -1,11 +1,11 @@
 import kuromoji from "kuromoji";
-import { normalizeAnswer, normalizeForMorphology } from "./answerNormalization.js";
+import { normalizeAnswer, normalizeForMorphology } from "./answerNormalization";
 
 const TOKENIZER_DIC_PATH = "node_modules/kuromoji/dict";
 const IGNORE_POS = new Set(["助詞", "助動詞", "記号", "接頭詞", "フィラー"]);
 const CONTENT_POS = new Set(["名詞", "動詞", "形容詞", "副詞"]);
 
-const SYNONYM_GROUPS = [
+const SYNONYM_GROUPS: string[][] = [
   ["軽減", "緩和", "和らげる", "軽くする", "改善", "改善する"],
   ["実行", "実施", "遂行", "行う", "実装", "導入"],
   ["調査", "検査", "精査", "吟味", "究明", "調べる"],
@@ -47,7 +47,7 @@ const SYNONYM_GROUPS = [
   ["十分", "充分", "足りる"],
   ["制裁", "罰則", "処罰"],
   ["再現", "複製", "再作成"],
-  ["激しい", "猛烈", "強烈", "熾烈"],
+  ["激しい", "猛烈", "強烈", "シ烈", "熾烈"],
   ["予期", "予想", "想定", "見込み"],
   ["透明性", "明瞭性", "開放性"],
   ["交渉", "協議", "折衝"],
@@ -138,54 +138,60 @@ const SYNONYM_GROUPS = [
   ["活気", "鮮やか", "生き生き"],
 ];
 
-let tokenizerPromise;
-let synonymIndex;
+let tokenizerPromise: Promise<any> | undefined;
+let synonymIndex: Map<string, Set<number>> | undefined;
 
-function getTokenizer() {
+function getTokenizer(): Promise<any> {
   if (!tokenizerPromise) {
     tokenizerPromise = new Promise((resolve, reject) => {
-      kuromoji.builder({ dicPath: TOKENIZER_DIC_PATH }).build((error, tokenizer) => {
+      kuromoji.builder({ dicPath: TOKENIZER_DIC_PATH }).build((error: any, tokenizer: any) => {
         if (error) reject(error);
         else resolve(tokenizer);
       });
     });
   }
-
   return tokenizerPromise;
 }
 
-function kanaToHiragana(value) {
+function kanaToHiragana(value: string): string {
   return String(value ?? "").replace(/[\u30A1-\u30F6]/g, char =>
     String.fromCharCode(char.charCodeAt(0) - 0x60),
   );
 }
 
-function tokenBase(token) {
+function tokenBase(token: any): string {
   if (token.base_form && token.base_form !== "*") return token.base_form;
   return token.surface_form ?? "";
 }
 
-function tokenReading(token) {
+function tokenReading(token: any): string {
   const reading = token.reading && token.reading !== "*" ? token.reading : tokenBase(token);
   return kanaToHiragana(normalizeAnswer(reading));
 }
 
-function isContentToken(token) {
+function isContentToken(token: any): boolean {
   if (!token?.surface_form) return false;
   if (IGNORE_POS.has(token.pos)) return false;
   if (!CONTENT_POS.has(token.pos)) return false;
   return normalizeAnswer(token.surface_form).length > 0;
 }
 
-function unique(values) {
+function unique<T>(values: T[]): T[] {
   return [...new Set(values.filter(Boolean))];
 }
 
-function isKanaOnly(value) {
+function isKanaOnly(value: string): boolean {
   return /^[ぁ-ゖー〜]+$/.test(String(value ?? ""));
 }
 
-export function getCoreTermsFromTokens(tokens) {
+export interface Term {
+  surface: string;
+  base: string;
+  reading: string;
+  pos: string;
+}
+
+export function getCoreTermsFromTokens(tokens: any[]): Term[] {
   const terms = tokens
     .filter(isContentToken)
     .map(token => ({
@@ -205,7 +211,15 @@ export function getCoreTermsFromTokens(tokens) {
   }));
 }
 
-export async function analyzeAnswer(value) {
+export interface AnswerAnalysis {
+  normalized: string;
+  baseKey: string;
+  readingKey: string;
+  termKeys: string[];
+  terms: Term[];
+}
+
+export async function analyzeAnswer(value: string): Promise<AnswerAnalysis> {
   const tokenizer = await getTokenizer();
   const normalized = normalizeAnswer(value);
   const tokens = tokenizer.tokenize(normalizeForMorphology(value));
@@ -224,16 +238,14 @@ export async function analyzeAnswer(value) {
   };
 }
 
-function checkPosViolation(tokens, partOfSpeech) {
+function checkPosViolation(tokens: any[], partOfSpeech: string | undefined): string | null {
   if (!partOfSpeech || tokens.length === 0) return null;
 
   if (partOfSpeech === "adjective") {
-    // 副詞トークンが直接ある場合
-    if (tokens.some(t => t.pos === "副詞")) {
+    if (tokens.some((t: any) => t.pos === "副詞")) {
       return "副詞の形（〜に/〜く）ではなく、形容詞の形（〜な/〜い）で答えてください";
     }
 
-    // 形容動詞語幹 + 助詞「に」のパターン（例: 深刻に、重大に）
     for (let i = 0; i < tokens.length - 1; i++) {
       if (
         tokens[i].pos_detail_1 === "形容動詞語幹" &&
@@ -244,11 +256,10 @@ function checkPosViolation(tokens, partOfSpeech) {
       }
     }
 
-    // 形容詞が連用形のみ（例: 激しく）—基本形の形容詞がある場合は除外（例: 避けられない）
-    const adjTokens = tokens.filter(t => t.pos === "形容詞");
-    const hasBaseAdj = adjTokens.some(t => t.conjugated_form === "基本形");
+    const adjTokens = tokens.filter((t: any) => t.pos === "形容詞");
+    const hasBaseAdj = adjTokens.some((t: any) => t.conjugated_form === "基本形");
     const hasAdverbialAdj = adjTokens.some(
-      t => t.conjugated_form === "連用テ接続" || t.conjugated_form === "連用形",
+      (t: any) => t.conjugated_form === "連用テ接続" || t.conjugated_form === "連用形",
     );
     if (hasAdverbialAdj && !hasBaseAdj) {
       return "「〜く」は副詞的な形です。形容詞の基本形（〜い/〜な）で答えてください";
@@ -256,8 +267,8 @@ function checkPosViolation(tokens, partOfSpeech) {
   }
 
   if (partOfSpeech === "verb") {
-    const hasVerb = tokens.some(t => t.pos === "動詞");
-    if (!hasVerb && tokens.some(t => t.pos === "名詞" || t.pos === "形容詞")) {
+    const hasVerb = tokens.some((t: any) => t.pos === "動詞");
+    if (!hasVerb && tokens.some((t: any) => t.pos === "名詞" || t.pos === "形容詞")) {
       return "動詞の形（〜する/〜る/〜う）で答えましょう";
     }
   }
@@ -265,7 +276,7 @@ function checkPosViolation(tokens, partOfSpeech) {
   return null;
 }
 
-function getSynonymIndex() {
+function getSynonymIndex(): Map<string, Set<number>> {
   if (synonymIndex) return synonymIndex;
 
   synonymIndex = new Map();
@@ -273,18 +284,18 @@ function getSynonymIndex() {
     for (const word of group) {
       const key = normalizeAnswer(word);
       if (!key) continue;
-      const ids = synonymIndex.get(key) ?? new Set();
+      const ids = synonymIndex!.get(key) ?? new Set();
       ids.add(groupIndex);
-      synonymIndex.set(key, ids);
+      synonymIndex!.set(key, ids);
     }
   });
 
   return synonymIndex;
 }
 
-function hasSharedSynonym(leftKeys, rightKeys) {
+function hasSharedSynonym(leftKeys: string[], rightKeys: string[]): boolean {
   const index = getSynonymIndex();
-  const leftGroupIds = new Set();
+  const leftGroupIds = new Set<number>();
 
   for (const key of leftKeys) {
     for (const groupId of index.get(key) ?? []) leftGroupIds.add(groupId);
@@ -301,7 +312,7 @@ function hasSharedSynonym(leftKeys, rightKeys) {
   return false;
 }
 
-function isAlternativeMatch(userAnalysis, answerAnalysis) {
+function isAlternativeMatch(userAnalysis: AnswerAnalysis, answerAnalysis: AnswerAnalysis): boolean {
   if (userAnalysis.baseKey === answerAnalysis.baseKey) return true;
   if (isKanaOnly(userAnalysis.normalized) && userAnalysis.normalized === answerAnalysis.readingKey) return true;
   if (isKanaOnly(answerAnalysis.normalized) && answerAnalysis.normalized === userAnalysis.readingKey) return true;
@@ -320,7 +331,23 @@ function isAlternativeMatch(userAnalysis, answerAnalysis) {
   return hasSharedSynonym(userKeys, answerKeys);
 }
 
-export async function evaluateAnswer({ input, answers, partOfSpeech }) {
+export interface EvaluateAnswerProps {
+  input: string;
+  answers: string[];
+  partOfSpeech?: string;
+}
+
+export interface EvaluateAnswerResult {
+  status: "exact" | "alternative" | "wrong";
+  normalizedInput: string;
+  normalizedAnswers: string[];
+  matchedAnswer?: string;
+  userCore?: string;
+  answerCore?: string;
+  posViolation?: string | null;
+}
+
+export async function evaluateAnswer({ input, answers, partOfSpeech }: EvaluateAnswerProps): Promise<EvaluateAnswerResult> {
   const safeAnswers = Array.isArray(answers) ? answers : [];
   const normalizedInput = normalizeAnswer(input);
   const normalizedAnswers = safeAnswers.map(normalizeAnswer);

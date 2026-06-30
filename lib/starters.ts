@@ -5,11 +5,12 @@ import {
   normalizeMonsterCollection,
   PARTY_SIZE,
   totalXPForLevel,
-} from "./monster.js";
+} from "./monster";
+import { MonsterCollection, StoryProgress, Battle } from "./types";
 
 export const STARTER_LINE_IDS = ["bulbasaur", "charmander", "squirtle"];
 
-export const RIVAL_COUNTER_STARTER = {
+export const RIVAL_COUNTER_STARTER: Record<string, string> = {
   bulbasaur: "charmander",
   charmander: "squirtle",
   squirtle: "bulbasaur",
@@ -17,7 +18,7 @@ export const RIVAL_COUNTER_STARTER = {
 
 export const RIVAL_STARTER_MARKER = "__rival_starter__";
 
-const RIVAL_STARTER_LEVELS = {
+const RIVAL_STARTER_LEVELS: Record<string, number> = {
   "rival-1": 5,
   "rival-2": 9,
   "rival-3": 18,
@@ -28,39 +29,39 @@ const RIVAL_STARTER_LEVELS = {
   "champion-rival": 61,
 };
 
-export function isStarterLineId(lineId) {
+export function isStarterLineId(lineId: string): boolean {
   return STARTER_LINE_IDS.includes(lineId);
 }
 
-export function getRivalCounterStarter(lineId) {
+export function getRivalCounterStarter(lineId: string): string | null {
   return RIVAL_COUNTER_STARTER[lineId] ?? null;
 }
 
-export function collectionHasLineId(collection, lineId) {
+export function collectionHasLineId(collection: MonsterCollection, lineId: string): boolean {
   return normalizeMonsterCollection(collection).monsters.some(monster => monster.lineId === lineId);
 }
 
-export function countOwnedStarters(collection) {
+export function countOwnedStarters(collection: MonsterCollection): number {
   return STARTER_LINE_IDS.filter(lineId => collectionHasLineId(collection, lineId)).length;
 }
 
-export function isRivalBattleId(battleId) {
+export function isRivalBattleId(battleId: string): boolean {
   return typeof battleId === "string" && (battleId.startsWith("rival-") || battleId === "champion-rival");
 }
 
-export function needsStarterChoice(progress, battleId = "rival-1") {
+export function needsStarterChoice(progress: StoryProgress, battleId = "rival-1"): boolean {
   const normalized = progress ?? {};
   return battleId === "rival-1" && !normalized.chosenStarterLineId;
 }
 
-export function resolveBattleForProgress(battle, progress) {
+export function resolveBattleForProgress(battle: Battle, progress: StoryProgress): Battle {
   if (!battle || !isRivalBattleId(battle.id) || !progress?.rivalStarterLineId) {
     return battle;
   }
 
   const rivalLineId = progress.rivalStarterLineId;
   const starterLevel = RIVAL_STARTER_LEVELS[battle.id] ?? 5;
-  const party = battle.party.map(slot => {
+  const party = battle.party.map((slot: any) => {
     if (slot.lineId === RIVAL_STARTER_MARKER || isStarterLineId(slot.lineId)) {
       return { lineId: rivalLineId, level: starterLevel };
     }
@@ -70,7 +71,7 @@ export function resolveBattleForProgress(battle, progress) {
   return { ...battle, party };
 }
 
-export function createStarterMonster(lineId, { level = 5, acquiredAt = "oak-starter" } = {}) {
+export function createStarterMonster(lineId: string, { level = 5, acquiredAt = "oak-starter" } = {}): any {
   return createMonsterInstance({
     id: `starter-${lineId}`,
     lineId,
@@ -79,12 +80,16 @@ export function createStarterMonster(lineId, { level = 5, acquiredAt = "oak-star
   });
 }
 
-export function applyStarterChoice(collection, progress, chosenLineId) {
+export function applyStarterChoice(
+  collection: MonsterCollection,
+  progress: StoryProgress,
+  chosenLineId: string,
+): { collection: MonsterCollection; progress: StoryProgress } {
   if (!isStarterLineId(chosenLineId)) {
     return { collection: normalizeMonsterCollection(collection), progress };
   }
 
-  const rivalLineId = getRivalCounterStarter(chosenLineId);
+  const rivalLineId = getRivalCounterStarter(chosenLineId)!;
   const starter = createStarterMonster(chosenLineId);
   const normalized = normalizeMonsterCollection(collection);
   const withoutOldStarters = normalized.monsters.filter(monster => !isStarterLineId(monster.lineId));
@@ -96,7 +101,7 @@ export function applyStarterChoice(collection, progress, chosenLineId) {
     monsters: [...withoutOldStarters, starter],
   });
 
-  const nextProgress = {
+  const nextProgress: StoryProgress = {
     ...progress,
     chosenStarterLineId: chosenLineId,
     rivalStarterLineId: rivalLineId,
@@ -105,11 +110,11 @@ export function applyStarterChoice(collection, progress, chosenLineId) {
   return { collection: nextCollection, progress: nextProgress };
 }
 
-function pickRandomStarterLineId(rng = Math.random) {
+function pickRandomStarterLineId(rng = Math.random): string {
   return STARTER_LINE_IDS[Math.floor(rng() * STARTER_LINE_IDS.length)];
 }
 
-function inferChosenStarterFromCollection(collection) {
+function inferChosenStarterFromCollection(collection: MonsterCollection): string | null {
   const normalized = normalizeMonsterCollection(collection);
   const active = normalized.monsters.find(monster => monster.id === normalized.activeId);
   if (active && isStarterLineId(active.lineId)) return active.lineId;
@@ -120,7 +125,11 @@ function inferChosenStarterFromCollection(collection) {
   return null;
 }
 
-export function migrateStarterState(collection, progress, { rng = Math.random } = {}) {
+export function migrateStarterState(
+  collection: MonsterCollection,
+  progress: StoryProgress,
+  { rng = Math.random } = {},
+): { collection: MonsterCollection; progress: StoryProgress } {
   const normalized = normalizeMonsterCollection(collection);
   let nextProgress = { ...progress };
   let nextCollection = normalized;
@@ -130,7 +139,7 @@ export function migrateStarterState(collection, progress, { rng = Math.random } 
       const owned = countOwnedStarters(nextCollection);
       nextProgress.rivalStarterLineId = owned >= 3
         ? pickRandomStarterLineId(rng)
-        : getRivalCounterStarter(nextProgress.chosenStarterLineId);
+        : getRivalCounterStarter(nextProgress.chosenStarterLineId)!;
     }
     return { collection: nextCollection, progress: nextProgress };
   }
@@ -145,15 +154,11 @@ export function migrateStarterState(collection, progress, { rng = Math.random } 
     return { collection: nextCollection, progress: nextProgress };
   }
 
-  // If we inferred a chosen starter from the collection, set it in progress.
-  // Also ensure the starter monster is the active party member when possible
-  // so the UI won't appear to have an empty party.
   const starterMonster = normalizeMonsterCollection(nextCollection).monsters.find(m => m.lineId === inferred);
   let adjustedCollection = nextCollection;
   if (starterMonster) {
     const normalized = normalizeMonsterCollection(nextCollection);
     const partyIds = normalized.partyIds.slice(0, PARTY_SIZE);
-    // Move starter to front of partyIds if present, otherwise set as first slot
     const idx = partyIds.indexOf(starterMonster.id);
     if (idx > 0) {
       [partyIds[0], partyIds[idx]] = [partyIds[idx], partyIds[0]];
@@ -168,13 +173,17 @@ export function migrateStarterState(collection, progress, { rng = Math.random } 
     chosenStarterLineId: inferred,
     rivalStarterLineId: ownedCount >= 3
       ? pickRandomStarterLineId(rng)
-      : getRivalCounterStarter(inferred),
+      : getRivalCounterStarter(inferred)!,
   };
 
   return { collection: adjustedCollection, progress: nextProgress };
 }
 
-export function awardRivalStarterSeed(collection, progress, { level = 5 } = {}) {
+export function awardRivalStarterSeed(
+  collection: MonsterCollection,
+  progress: StoryProgress,
+  { level = 5 } = {},
+): { collection: MonsterCollection; progress: StoryProgress; awarded: any | null } {
   const rivalLineId = progress?.rivalStarterLineId;
   if (!rivalLineId || collectionHasLineId(collection, rivalLineId)) {
     return { collection: normalizeMonsterCollection(collection), progress, awarded: null };
@@ -196,14 +205,18 @@ export function awardRivalStarterSeed(collection, progress, { level = 5 } = {}) 
     progress,
     awarded: {
       lineId: rivalLineId,
-      name: getMonsterLine(rivalLineId).name,
+      name: getMonsterLine(rivalLineId)!.name,
       sprite: getSpecies(level, rivalLineId).sprite,
-      message: `ライバルから${getMonsterLine(rivalLineId).name}をもらった！`,
+      message: `ライバルから${getMonsterLine(rivalLineId)!.name}をもらった！`,
     },
   };
 }
 
-export function awardMissingProfessorStarters(collection, progress, { level = 5 } = {}) {
+export function awardMissingProfessorStarters(
+  collection: MonsterCollection,
+  progress: StoryProgress,
+  { level = 5 } = {},
+): { collection: MonsterCollection; progress: StoryProgress; awarded: any[] } {
   if (!progress?.hallOfFame || progress?.professorStartersAwarded) {
     return { collection: normalizeMonsterCollection(collection), progress, awarded: [] };
   }
@@ -234,9 +247,9 @@ export function awardMissingProfessorStarters(collection, progress, { level = 5 
     monsters.push(monster);
     awarded.push({
       lineId,
-      name: getMonsterLine(lineId).name,
+      name: getMonsterLine(lineId)!.name,
       sprite: getSpecies(level, lineId).sprite,
-      message: `博士から${getMonsterLine(lineId).name}をもらった！`,
+      message: `博士から${getMonsterLine(lineId)!.name}をもらった！`,
     });
   }
 
@@ -247,9 +260,9 @@ export function awardMissingProfessorStarters(collection, progress, { level = 5 
   };
 }
 
-export function getStarterChoices() {
+export function getStarterChoices(): any[] {
   return STARTER_LINE_IDS.map(lineId => {
-    const line = getMonsterLine(lineId);
+    const line = getMonsterLine(lineId)!;
     const species = getSpecies(5, lineId);
     return { lineId, name: line.name, sprite: species.sprite };
   });

@@ -1,5 +1,22 @@
-import { evaluatePlay } from "./playEvaluation.js";
-import { getBattleTierConfig } from "./storyBattles.js";
+import { evaluatePlay } from "./playEvaluation";
+import { getBattleTierConfig } from "./storyBattles";
+import { SessionAnswer, Battle, PlayEvaluation } from "./types";
+
+interface EvaluateBattlePlayProps {
+  answers: SessionAnswer[] | null;
+  score: number;
+  playLimit: number;
+  unlockedPoolSize: number;
+  playCount?: number;
+  battle?: Battle | null;
+}
+
+export interface BattleEvaluation extends PlayEvaluation {
+  battleMultiplier: number;
+  battleTier: string;
+  trainerName: string | null;
+  isBattle: boolean;
+}
 
 export function evaluateBattlePlay({
   answers,
@@ -8,7 +25,7 @@ export function evaluateBattlePlay({
   unlockedPoolSize,
   playCount = 1,
   battle = null,
-}) {
+}: EvaluateBattlePlayProps): BattleEvaluation {
   const base = evaluatePlay({
     answers,
     score,

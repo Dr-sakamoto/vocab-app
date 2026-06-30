@@ -1,5 +1,5 @@
-import { evaluateBattlePlay } from "./battleEvaluation.js";
-import { CAPTURE_RATES_BY_GRADE, applyCaptureResultToCollection } from "./capture.js";
+import { evaluateBattlePlay, BattleEvaluation } from "./battleEvaluation";
+import { CAPTURE_RATES_BY_GRADE, applyCaptureResultToCollection } from "./capture";
 import {
   canUseMasterBall,
   consumeMasterBall,
@@ -12,26 +12,31 @@ import {
   resolveBattleDefeat,
   resolveBattleVictory,
   setPendingChallenge,
-} from "./storyBattles.js";
-import { resolveBattleForProgress } from "./starters.js";
+} from "./storyBattles";
+import { resolveBattleForProgress } from "./starters";
+import { StoryProgress, MonsterCollection, Battle, SessionAnswer, ToastItem, TrainerChallenge } from "./types";
 
-export function getSessionPlayLimit(activeBattle, defaultLimit = 10) {
+export function getSessionPlayLimit(activeBattle: Battle | null, defaultLimit: number = 10): number {
   return activeBattle ? getBattlePlayLimit(activeBattle) : defaultLimit;
 }
 
-export function buildTrainerChallengeAlert(battle) {
+export function buildTrainerChallengeAlert(battle: Battle): TrainerChallenge {
   const opponent = getOpponentPokemon(battle, 1, getBattlePlayLimit(battle));
   return {
     title: `${battle.name}が勝負をしかけてきた！`,
     message: battle.preMessage ?? `${battle.location}でバトルが始まる！`,
     image: opponent.sprite,
-    trainerSprite: getTrainerSprite(battle),
+    trainerSprite: getTrainerSprite(battle) ?? undefined,
     duration: 5200,
     battleId: battle.id,
   };
 }
 
-export function applyMasterBallCapture(progress, collection, capturePreview) {
+export function applyMasterBallCapture(
+  progress: StoryProgress,
+  collection: MonsterCollection,
+  capturePreview: any,
+): { progress: StoryProgress; collection: MonsterCollection; capture: any | null } {
   if (!canUseMasterBall(progress) || !capturePreview?.lineId) {
     return { progress, collection, capture: null };
   }
@@ -54,6 +59,32 @@ export function applyMasterBallCapture(progress, collection, capturePreview) {
   };
 }
 
+interface ProcessBattleEndProps {
+  progress: StoryProgress;
+  collection: MonsterCollection;
+  battle: Battle;
+  score: number;
+  playLimit: number;
+  answers: SessionAnswer[] | null;
+  unlockedPoolSize: number;
+  playCount: number;
+  habitat: any;
+  habitatMinPools: Record<string, number>;
+  useMasterBall?: boolean;
+}
+
+interface ProcessBattleEndResult {
+  won: boolean;
+  lost: boolean;
+  evaluation: BattleEvaluation;
+  progress: StoryProgress;
+  collection: MonsterCollection;
+  capture: any | null;
+  alerts: TrainerChallenge[];
+  toasts: ToastItem[];
+  relocatedHabitatId: string | null;
+}
+
 export function processBattleEnd({
   progress,
   collection,
@@ -66,13 +97,13 @@ export function processBattleEnd({
   habitat,
   habitatMinPools,
   useMasterBall = false,
-}) {
+}: ProcessBattleEndProps): ProcessBattleEndResult {
   const won = isBattleWon(score, playLimit, battle);
   let nextProgress = progress;
   let nextCollection = collection;
-  const alerts = [];
-  const toasts = [];
-  let capture = null;
+  const alerts: TrainerChallenge[] = [];
+  const toasts: ToastItem[] = [];
+  let capture: any | null = null;
 
   const evaluation = evaluateBattlePlay({
     answers,
@@ -172,7 +203,16 @@ export function processBattleEnd({
   };
 }
 
-export function processNormalPlayBattleTriggers(progress, { unlockedPoolSize, habitatId, rng = Math.random } = {}) {
+interface ProcessNormalPlayBattleTriggersProps {
+  unlockedPoolSize: number;
+  habitatId: string | null;
+  rng?: () => number;
+}
+
+export function processNormalPlayBattleTriggers(
+  progress: StoryProgress,
+  { unlockedPoolSize, habitatId, rng = Math.random }: ProcessNormalPlayBattleTriggersProps,
+): { progress: StoryProgress; alert: TrainerChallenge | null } {
   const battle = pickNextBattleTrigger(progress, { unlockedPoolSize, habitatId, rng });
   if (!battle) return { progress, alert: null };
   const resolved = resolveBattleForProgress(battle, progress);
@@ -182,17 +222,30 @@ export function processNormalPlayBattleTriggers(progress, { unlockedPoolSize, ha
   };
 }
 
-export function getPoolUnlockStepWithBossGate(score, playLimit, progress, poolSize, {
-  perfectStep = 50,
-  unlockStep = 30,
-  unlockAccuracy = 0.8,
-} = {}) {
+interface GetPoolUnlockStepWithBossGateProps {
+  perfectStep?: number;
+  unlockStep?: number;
+  unlockAccuracy?: number;
+}
+
+export function getPoolUnlockStepWithBossGate(
+  score: number,
+  playLimit: number,
+  progress: StoryProgress,
+  poolSize: number,
+  {
+    perfectStep = 50,
+    unlockStep = 30,
+    unlockAccuracy = 0.8,
+  }: GetPoolUnlockStepWithBossGateProps = {},
+): number {
   const accuracy = playLimit > 0 ? score / playLimit : 0;
   let step = 0;
   if (accuracy >= 1) step = perfectStep;
   else if (accuracy >= unlockAccuracy) step = unlockStep;
 
-  if (step > 0 && getPoolUnlockBlocker(progress, poolSize + step)) {
+  // 現在のプールサイズでブロックチェック（次のサイズで判定するとデッドロックする）
+  if (step > 0 && getPoolUnlockBlocker(progress, poolSize)) {
     step = 0;
   }
   return step;
