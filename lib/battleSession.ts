@@ -244,9 +244,11 @@ export function getPoolUnlockStepWithBossGate(
   if (accuracy >= 1) step = perfectStep;
   else if (accuracy >= unlockAccuracy) step = unlockStep;
 
-  // 現在のプールサイズでブロックチェック（次のサイズで判定するとデッドロックする）
-  if (step > 0 && getPoolUnlockBlocker(progress, poolSize)) {
-    step = 0;
+  if (step > 0) {
+    const blocker = getPoolUnlockBlocker(progress, poolSize + step);
+    if (blocker && poolSize <= blocker.minPool) {
+      step = 0;
+    }
   }
   return step;
 }
