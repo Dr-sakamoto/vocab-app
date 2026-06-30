@@ -234,7 +234,46 @@ export async function analyzeAnswer(value: string): Promise<AnswerAnalysis> {
     readingKey: readingKey || normalized,
     termKeys: termKeys.length ? termKeys : [normalized],
     terms,
+    tokens,
   };
+}
+
+function checkPosViolation(tokens: any[], partOfSpeech: string | undefined): string | null {
+  if (!partOfSpeech || tokens.length === 0) return null;
+
+  if (partOfSpeech === "adjective") {
+    if (tokens.some((t: any) => t.pos === "副詞")) {
+      return "副詞の形（〜に/〜く）ではなく、形容詞の形（〜な/〜い）で答えてください";
+    }
+
+    for (let i = 0; i < tokens.length - 1; i++) {
+      if (
+        tokens[i].pos_detail_1 === "形容動詞語幹" &&
+        tokens[i + 1].surface_form === "に" &&
+        tokens[i + 1].pos === "助詞"
+      ) {
+        return "「〜に」は副詞的な使い方です。形容詞として「〜な/〜的な」の形で答えてください";
+      }
+    }
+
+    const adjTokens = tokens.filter((t: any) => t.pos === "形容詞");
+    const hasBaseAdj = adjTokens.some((t: any) => t.conjugated_form === "基本形");
+    const hasAdverbialAdj = adjTokens.some(
+      (t: any) => t.conjugated_form === "連用テ接続" || t.conjugated_form === "連用形",
+    );
+    if (hasAdverbialAdj && !hasBaseAdj) {
+      return "「〜く」は副詞的な形です。形容詞の基本形（〜い/〜な）で答えてください";
+    }
+  }
+
+  if (partOfSpeech === "verb") {
+    const hasVerb = tokens.some((t: any) => t.pos === "動詞");
+    if (!hasVerb && tokens.some((t: any) => t.pos === "名詞" || t.pos === "形容詞")) {
+      return "動詞の形（〜する/〜る/〜う）で答えましょう";
+    }
+  }
+
+  return null;
 }
 
 function getSynonymIndex(): Map<string, Set<number>> {
@@ -295,6 +334,7 @@ function isAlternativeMatch(userAnalysis: AnswerAnalysis, answerAnalysis: Answer
 export interface EvaluateAnswerProps {
   input: string;
   answers: string[];
+  partOfSpeech?: string;
 }
 
 export interface EvaluateAnswerResult {
@@ -304,9 +344,10 @@ export interface EvaluateAnswerResult {
   matchedAnswer?: string;
   userCore?: string;
   answerCore?: string;
+  posViolation?: string | null;
 }
 
-export async function evaluateAnswer({ input, answers }: EvaluateAnswerProps): Promise<EvaluateAnswerResult> {
+export async function evaluateAnswer({ input, answers, partOfSpeech }: EvaluateAnswerProps): Promise<EvaluateAnswerResult> {
   const safeAnswers = Array.isArray(answers) ? answers : [];
   const normalizedInput = normalizeAnswer(input);
   const normalizedAnswers = safeAnswers.map(normalizeAnswer);
@@ -336,5 +377,6 @@ export async function evaluateAnswer({ input, answers }: EvaluateAnswerProps): P
     };
   }
 
-  return { status: "wrong", normalizedInput, normalizedAnswers };
+  const posViolation = checkPosViolation(userAnalysis.tokens, partOfSpeech);
+  return { status: "wrong", normalizedInput, normalizedAnswers, posViolation };
 }

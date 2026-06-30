@@ -8,6 +8,7 @@ interface UseGameSessionProps {
   activeView: GameView;
   stats: WordStat[];
   setStats: React.Dispatch<React.SetStateAction<WordStat[]>>;
+  approvedAnswers?: Record<string, string[]>;
 }
 
 export function useGameSession({
@@ -16,6 +17,7 @@ export function useGameSession({
   activeView,
   stats,
   setStats,
+  approvedAnswers = {},
 }: UseGameSessionProps) {
   const [score, setScore] = useState<number>(0);
   const [total, setTotal] = useState<number>(1);
@@ -28,6 +30,7 @@ export function useGameSession({
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
   const [answerStatus, setAnswerStatus] = useState<string | null>(null);
   const [isCheckingAnswer, setIsCheckingAnswer] = useState<boolean>(false);
+  const [posViolation, setPosViolation] = useState<string | null>(null);
 
   const normalizedAnswers = useMemo(
     () => (q?.answers ?? []).map(normalizeAnswer),
@@ -37,30 +40,35 @@ export function useGameSession({
   const checkAnswer = useCallback(async () => {
     if (checked || isCheckingAnswer || activeView === "result" || !q) return;
     setIsCheckingAnswer(true);
+    setPosViolation(null);
 
     const user = normalizeAnswer(input);
-    let result = {
+    let result: { status: string; normalizedAnswers: string[]; posViolation?: string | null } = {
       status: normalizedAnswers.includes(user) ? "exact" : "wrong",
       normalizedAnswers,
     };
 
-    try {
-      const response = await fetch("/api/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input, answers: q.answers ?? [] }),
-      });
+    if (result.status === "wrong" && (approvedAnswers[q.id] ?? []).includes(user)) {
+      result = { status: "ai_approved", normalizedAnswers };
+    } else {
+      try {
+        const response = await fetch("/api/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input, answers: q.answers ?? [], partOfSpeech: q.partOfSpeech }),
+        });
 
-      if (response.ok) {
-        result = await response.json();
+        if (response.ok) result = await response.json();
+      } catch {
+        // Keep exact-match grading available if local API fails
+      } finally {
+        setIsCheckingAnswer(false);
       }
-    } catch {
-      // Keep exact-match grading available if local API fails
-    } finally {
-      setIsCheckingAnswer(false);
     }
 
-    const ok = result.status === "exact" || result.status === "alternative";
+    if (result.posViolation) setPosViolation(result.posViolation);
+
+    const ok = result.status === "exact" || result.status === "alternative" || result.status === "ai_approved";
     const prev = stats[index] ?? { correct: 0, wrong: 0 };
 
     setIsCorrect(ok);
@@ -95,7 +103,9 @@ export function useGameSession({
     } else {
       setStreak(0);
     }
-  }, [checked, isCheckingAnswer, activeView, q, input, normalizedAnswers, stats, index, setStats]);
+
+    setIsCheckingAnswer(false);
+  }, [checked, isCheckingAnswer, activeView, q, input, normalizedAnswers, approvedAnswers, stats, index, setStats]);
 
   const resetSession = useCallback(() => {
     setScore(0);
@@ -108,6 +118,7 @@ export function useGameSession({
     setIsCorrect(false);
     setAnswerStatus(null);
     setIsCheckingAnswer(false);
+    setPosViolation(null);
   }, []);
 
   const prepareNextQuestion = useCallback(() => {
@@ -115,6 +126,7 @@ export function useGameSession({
     setChecked(false);
     setIsCorrect(false);
     setAnswerStatus(null);
+    setPosViolation(null);
   }, []);
 
   return {
@@ -137,6 +149,8 @@ export function useGameSession({
     answerStatus,
     setAnswerStatus,
     isCheckingAnswer,
+    posViolation,
+    setPosViolation,
     checkAnswer,
     resetSession,
     prepareNextQuestion,

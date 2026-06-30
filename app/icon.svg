@@ -1,0 +1,52 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Etymon">
+  <defs>
+    <!-- 淡い夢空間（ミント→ラベンダーのブランド三和音） -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#BFF3E6"/>
+      <stop offset="1" stop-color="#DCC9FF"/>
+    </linearGradient>
+    <!-- 体：すりガラスのような淡い発光 -->
+    <linearGradient id="body" x1="0.2" y1="0.1" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.55" stop-color="#EAFBF6"/>
+      <stop offset="1" stop-color="#CDEFEA"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 背景：角丸スクエア（iPhone的な上質ミニマル） -->
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+
+  <!-- やわらかな発光 -->
+  <circle cx="256" cy="262" r="170" fill="url(#glow)"/>
+
+  <!-- 接地のぼかし影 -->
+  <ellipse cx="256" cy="404" rx="120" ry="22" fill="#7A6CA6" opacity="0.18"/>
+
+  <!-- 体：まるい雫型の Etymon（シンプル＆普遍） -->
+  <path d="M256 120
+           C320 120 372 178 372 262
+           C372 338 322 396 256 396
+           C190 396 140 338 140 262
+           C140 178 192 120 256 120 Z"
+        fill="url(#body)" stroke="#BBE6DC" stroke-width="4"/>
+
+  <!-- Y2Kのツヤ：左上のグロスハイライト -->
+  <ellipse cx="212" cy="196" rx="46" ry="30" fill="#FFFFFF" opacity="0.75"/>
+
+  <!-- 顔：最小限の点目＋やさしい口（藤子F的省略・老若男女向け） -->
+  <circle cx="220" cy="266" r="17" fill="#2C2742"/>
+  <circle cx="292" cy="266" r="17" fill="#2C2742"/>
+  <circle cx="226" cy="260" r="5" fill="#FFFFFF"/>
+  <circle cx="298" cy="260" r="5" fill="#FFFFFF"/>
+  <path d="M236 304 Q256 322 276 304" stroke="#2C2742" stroke-width="9" stroke-linecap="round" fill="none"/>
+  <!-- ほのかな頬 -->
+  <circle cx="186" cy="296" r="13" fill="#FFC7DE" opacity="0.7"/>
+  <circle cx="326" cy="296" r="13" fill="#FFC7DE" opacity="0.7"/>
+
+  <!-- 夢のきらめき（Y2K/dreamcore のひと粒） -->
+  <path d="M372 150 l8 20 20 8 -20 8 -8 20 -8 -20 -20 -8 20 -8 Z" fill="#FFFFFF" opacity="0.85"/>
+</svg>

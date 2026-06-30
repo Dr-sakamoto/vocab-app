@@ -315,14 +315,14 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "snorlax",
-    name: "カビゴン",
+    name: "ネボスケ",
     location: "12・16ばんどうろ",
     tier: "symbol",
     minPool: 1140,
     habitatId: "routes-12-15",
     requiresBadges: ["rainbow"],
     party: [{ lineId: "snorlax", level: 30 }],
-    preMessage: "カビゴンをポケモンのふえで起こした！",
+    preMessage: "ネボスケをふしぎなふえで起こした！",
   },
   {
     id: "dojo",
@@ -433,7 +433,7 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "zapdos",
-    name: "サンダー",
+    name: "イカヅチ",
     location: "むじんはつでんしょ",
     tier: "legendary",
     minPool: 1080,
@@ -446,7 +446,7 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "articuno",
-    name: "フリーザー",
+    name: "イテハ",
     location: "ふたごじま",
     tier: "legendary",
     minPool: 1620,
@@ -491,7 +491,7 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "moltres",
-    name: "ファイヤー",
+    name: "ホムラ",
     location: "チャンピオンロード",
     tier: "legendary",
     minPool: 1800,
@@ -590,7 +590,7 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "mewtwo",
-    name: "ミュウツー",
+    name: "ウツシ",
     location: "ハナダのどうくつ",
     tier: "legendary",
     minPool: 2200,
@@ -603,7 +603,7 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "mew",
-    name: "ミュウ",
+    name: "ハジマリ",
     location: "？？？",
     tier: "legendary",
     minPool: 3000,

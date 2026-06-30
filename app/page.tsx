@@ -52,6 +52,7 @@ import {
   startBattleSession,
   syncRetroactiveBattles,
 } from "@/lib/storyBattles";
+import { normalizeAnswer } from "@/lib/answerNormalization";
 import {
   applyStarterChoice,
   awardMissingProfessorStarters,
@@ -98,6 +99,8 @@ import {
   VocabItem,
 } from "@/lib/types";
 import storage from "@/lib/storage";
+
+const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
 
 /** 各問題に安定した ID */
 const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q, i) => ({
@@ -261,6 +264,12 @@ export default function Page() {
   const [isPokemonBoxOpen, setIsPokemonBoxOpen] = useState<boolean>(false);
   const savedCollectionExistsRef = useRef<boolean>(false);
 
+  const [approvedAnswers, setApprovedAnswers] = useState<Record<string, string[]>>(() => {
+    try { return JSON.parse(localStorage.getItem(APPROVED_ANSWERS_KEY) ?? "{}"); } catch { return {}; }
+  });
+  const [isRequestingReview, setIsRequestingReview] = useState<boolean>(false);
+  const [reviewResult, setReviewResult] = useState<{ approved: boolean; score: number; feedback?: string } | null>(null);
+
   const resultUnlockAppliedRef = useRef<boolean>(false);
 
   const q = VOCAB_ITEMS[index];
@@ -310,7 +319,9 @@ export default function Page() {
     resetSession,
     prepareNextQuestion,
     normalizedAnswers,
-  } = useGameSession({ q, index, activeView, stats, setStats });
+    posViolation,
+    setPosViolation,
+  } = useGameSession({ q, index, activeView, stats, setStats, approvedAnswers });
 
   const answeredCount = checked ? total : total - 1;
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
@@ -1003,6 +1014,7 @@ export default function Page() {
     seenInPlay.add(nextIndex);
     setIndex(nextIndex);
     prepareNextQuestion();
+    setReviewResult(null);
   };
 
   const openDashboard = useCallback((returnView: GameView = "study") => {
@@ -1010,11 +1022,67 @@ export default function Page() {
     setActiveView("dashboard");
   }, []);
 
+  const addApprovedAnswer = useCallback((wordId: string, normalizedAnswer: string) => {
+    setApprovedAnswers((prev) => {
+      const existing = prev[wordId] ?? [];
+      if (existing.includes(normalizedAnswer)) return prev;
+      const next = { ...prev, [wordId]: [...existing, normalizedAnswer] };
+      try { localStorage.setItem(APPROVED_ANSWERS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  const handleAiApproval = useCallback(() => {
+    if (!q) return;
+    addApprovedAnswer(q.id, normalizeAnswer(input));
+    setIsCorrect(true);
+    setAnswerStatus("ai_approved");
+    setScore((s) => s + 1);
+    setStreak((st) => {
+      const ns = st + 1;
+      setBestStreak((b) => Math.max(b, ns));
+      return ns;
+    });
+    setGameSessionAnswers((a) =>
+      a.map((ans) => (ans.id === q.id ? { ...ans, correct: true } : ans)),
+    );
+    setStats((prev) => {
+      const next = [...prev];
+      const cur = next[index] ?? { correct: 0, wrong: 0 };
+      next[index] = { correct: cur.correct + 1, wrong: Math.max(0, cur.wrong - 1) };
+      return next;
+    });
+  }, [q, input, index, addApprovedAnswer, setIsCorrect, setAnswerStatus, setScore, setStreak, setBestStreak, setGameSessionAnswers, setStats]);
+
+  const requestAiReview = useCallback(async () => {
+    if (isRequestingReview || !q) return;
+    setIsRequestingReview(true);
+    try {
+      const response = await fetch("/api/ai-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input, target: q.target }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setReviewResult(result);
+        if (result.approved) handleAiApproval();
+      } else {
+        setReviewResult({ approved: false, score: 0, feedback: "審議に失敗しました" });
+      }
+    } catch {
+      setReviewResult({ approved: false, score: 0, feedback: "通信エラー" });
+    } finally {
+      setIsRequestingReview(false);
+    }
+  }, [isRequestingReview, q, input, handleAiApproval]);
+
   const handleSyncMerged = useCallback(
-    (merged: { stats: WordStat[]; unlockedPoolSize: number; monsterCollection: MonsterCollection }) => {
+    (merged: { stats: WordStat[]; unlockedPoolSize: number; monsterCollection: MonsterCollection; approvedAnswers?: Record<string, string[]> }) => {
       setStats(merged.stats);
       setUnlockedPoolSize(merged.unlockedPoolSize);
       setMonsterCollection(merged.monsterCollection);
+      if (merged.approvedAnswers) setApprovedAnswers(merged.approvedAnswers);
       if (merged.monsterCollection.storyProgress) {
         const normalizedStory = normalizeStoryProgressForPage(merged.monsterCollection.storyProgress);
         storyProgressRef.current = normalizedStory;
@@ -1436,6 +1504,7 @@ export default function Page() {
                     stats={stats}
                     unlockedPoolSize={unlockedPoolSize}
                     monsterCollection={monsterCollection}
+                    approvedAnswers={approvedAnswers}
                     onMerged={handleSyncMerged}
                   />
                 </div>
@@ -1624,13 +1693,36 @@ export default function Page() {
                     {isCorrect ? (
                       <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
                         <div className="text-sm font-bold text-emerald-700">
-                          {answerStatus === "alternative" ? "◯ 正解（別解）" : "◯ 正解"}
+                          {answerStatus === "ai_approved" ? "〇（AI承認）" : answerStatus === "alternative" ? "◯ 正解（別解）" : "◯ 正解"}
                         </div>
                       </div>
                     ) : (
                       <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3">
                         <div className="text-xs font-semibold text-rose-400 mb-0.5">不正解</div>
                         <div className="text-sm font-bold text-rose-900">{normalizedAnswers.join(" / ")}</div>
+                        {posViolation && (
+                          <div className="mt-1 text-xs text-rose-700 opacity-80">{posViolation}</div>
+                        )}
+                        {!reviewResult && (
+                          <div className="mt-2 flex flex-col gap-1">
+                            <button
+                              type="button"
+                              onClick={requestAiReview}
+                              disabled={isRequestingReview}
+                              className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition text-left"
+                            >
+                              {isRequestingReview ? "AIが審議中..." : "AIに審議してもらう"}
+                            </button>
+                            {isRequestingReview && (
+                              <p className="text-xs text-zinc-400 px-1">AIの審議には少し時間がかかります。そのままお待ちください。</p>
+                            )}
+                          </div>
+                        )}
+                        {reviewResult && !reviewResult.approved && (
+                          <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                            AI審議: 不承認（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
+                          </div>
+                        )}
                       </div>
                     )}
                   </motion.div>
