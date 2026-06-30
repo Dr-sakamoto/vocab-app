@@ -1,0 +1,65 @@
+name: Auto Merge AI PRs
+
+on:
+  schedule:
+    # 毎朝 12:00 JST (= UTC 03:00) — AI更新から3時間後に自動マージ
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Merge open AI Daily PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr list \
+            --repo ${{ github.repository }} \
+            --state open \
+            --json number,title \
+            --jq '.[] | select(.title | startswith("[AI Daily]")) | .number' \
+          | while read -r PR_NUM; do
+            echo "Merging PR #$PR_NUM ..."
+            gh pr merge "$PR_NUM" \
+              --squash \
+              --repo ${{ github.repository }} \
+              --delete-branch \
+              || echo "PR #$PR_NUM のマージに失敗しました（スキップ）"
+          done
+
+      - name: Send merge confirmation email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_ADDRESS }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          to: r.naruo33@gmail.com
+          from: ${{ github.event.repository.name }} AI <${{ secrets.GMAIL_ADDRESS }}>
+          subject: "✅ [${{ github.event.repository.name }}] 今日のAI改善がマージされました"
+          html_body: |
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: #48bb78; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
+                <strong>✅ ${{ github.event.repository.name }}</strong>
+                <span style="float: right; font-size: 13px; opacity: 0.8;">マージ完了</span>
+              </div>
+
+              <div style="border: 1px solid #e2e8f0; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
+                <p>今朝のAI改善が本番コードに反映されました。</p>
+                <p>
+                  <a href="https://github.com/${{ github.repository }}/commits/main"
+                     style="display: inline-block; background: #4299e1; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none;">
+                    📝 変更履歴を確認する
+                  </a>
+                </p>
+                <p style="color: #a0aec0; font-size: 12px;">
+                  リポジトリ: github.com/${{ github.repository }}
+                </p>
+              </div>
+            </div>
