@@ -15,6 +15,7 @@ interface SyncButtonProps {
   stats: WordStat[];
   unlockedPoolSize: number;
   monsterCollection: MonsterCollection;
+  approvedAnswers?: Record<string, string[]>;
   onMerged: (merged: any) => void;
 }
 
