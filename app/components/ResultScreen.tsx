@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import AuroraBackground from "./AuroraBackground";
 
 const PRIMARY_BUTTON_CLASS =
-  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-5 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-40 transition-shadow";
+  "gradient-cta inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-300/50 hover:shadow-indigo-400/60 disabled:opacity-40 transition-shadow";
 const SECONDARY_BUTTON_CLASS =
   "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 px-5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-40 transition-colors";
 const BATTLE_WIN_BUTTON_CLASS =
@@ -57,6 +57,8 @@ export default function ResultScreen({
       : "border-zinc-300 bg-gradient-to-b from-zinc-100 to-white"
     : "border-emerald-100 bg-emerald-50";
 
+  const isVictory = isBattle && won;
+
   const primaryLabel = isBattle
     ? won
       ? "スタートに戻る"
@@ -69,12 +71,14 @@ export default function ResultScreen({
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-50 text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6">
-      <AuroraBackground />
+      <AuroraBackground vivid={isVictory} />
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="glass-panel relative z-10 w-full max-w-2xl rounded-3xl p-4 sm:p-6 shadow-xl shadow-indigo-100/60 space-y-5 my-auto"
+        className={`glass-panel relative z-10 w-full max-w-2xl rounded-3xl p-4 sm:p-6 shadow-xl shadow-indigo-100/60 space-y-5 my-auto ${
+          isVictory ? "neon-glow" : ""
+        }`}
       >
         {isBattle && (
           <motion.div
@@ -162,11 +166,13 @@ export default function ResultScreen({
                 </div>
                 <div className="mt-1 flex items-baseline gap-2">
                   <motion.span
-                    initial={{ scale: 0.6, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 16, delay: 0.2 }}
-                    className={`text-3xl font-bold ${
-                      isBattle ? "text-rose-950" : "text-emerald-950"
+                    initial={{ scale: 0.4, opacity: 0, rotate: -8 }}
+                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 14, delay: 0.2 }}
+                    className={`font-display text-4xl font-bold ${
+                      isBattle
+                        ? "text-rose-950 drop-shadow-[0_0_14px_rgba(244,63,94,0.45)]"
+                        : "text-emerald-950 drop-shadow-[0_0_14px_rgba(16,185,129,0.45)]"
                     }`}
                   >
                     {grade}
@@ -214,8 +220,10 @@ export default function ResultScreen({
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.25 }}
-                  className={`text-5xl font-black tabular-nums tracking-tight ${
-                    isBattle ? "text-rose-950" : "text-emerald-950"
+                  className={`font-display text-5xl sm:text-6xl font-bold tabular-nums tracking-tight ${
+                    isBattle
+                      ? "text-rose-950 drop-shadow-[0_0_18px_rgba(244,63,94,0.35)]"
+                      : "text-emerald-950 drop-shadow-[0_0_18px_rgba(16,185,129,0.35)]"
                   }`}
                 >
                   {(xp ?? 0).toLocaleString()}

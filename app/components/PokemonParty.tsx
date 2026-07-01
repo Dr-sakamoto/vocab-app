@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { MonsterCollection } from "@/lib/types";
 import { getPartyCount, getMonsterDisplayState, getPartySlots, normalizeMonsterCollection } from "@/lib/monster";
 
@@ -13,9 +14,9 @@ export default function PokemonParty({ collection, onSelect }: PokemonPartyProps
   const slots = getPartySlots(normalized);
 
   return (
-    <div className="rounded-xl border bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-4 shadow-sm">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="text-sm font-semibold text-zinc-900">Party</h2>
+        <h2 className="font-display text-sm font-bold text-indigo-950">Party</h2>
         <span className="text-xs text-zinc-400">
           {getPartyCount(normalized)} / {slots.length}
         </span>
@@ -41,14 +42,16 @@ export default function PokemonParty({ collection, onSelect }: PokemonPartyProps
           const isActive = monster.id === normalized.activeId;
 
           return (
-            <button
+            <motion.button
               key={monster.id}
               type="button"
               onClick={() => onSelect?.(monster.id)}
+              whileHover={onSelect ? { scale: 1.05, y: -2 } : undefined}
+              whileTap={onSelect ? { scale: 0.96 } : undefined}
               className={[
-                "flex aspect-square flex-col items-center justify-center rounded-lg border-2 bg-zinc-50 p-2 transition",
-                onSelect ? "hover:bg-white hover:border-zinc-300" : "",
-                isActive ? "border-zinc-950 ring-2 ring-zinc-950/10" : "border-transparent",
+                "flex aspect-square flex-col items-center justify-center rounded-lg border-2 bg-zinc-50 p-2 transition-colors",
+                onSelect ? "hover:bg-white hover:border-indigo-300" : "",
+                isActive ? "border-indigo-500 ring-2 ring-indigo-400/30 shadow-md shadow-indigo-200/60" : "border-transparent",
               ].join(" ")}
               aria-label={`${current.species.name} Lv. ${current.level}${isActive ? " active" : ""}`}
             >
@@ -71,7 +74,7 @@ export default function PokemonParty({ collection, onSelect }: PokemonPartyProps
               <span className="text-[10px] tabular-nums text-zinc-400">
                 Lv. {current.level}
               </span>
-            </button>
+            </motion.button>
           );
         })}
       </div>

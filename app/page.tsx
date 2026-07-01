@@ -1402,18 +1402,20 @@ export default function Page() {
     return (
       <>
         <div className="relative overflow-hidden min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 text-zinc-900 flex items-center justify-center p-4 sm:p-6">
-          <AuroraBackground />
+          <AuroraBackground vivid />
           <div className="relative z-10 w-full max-w-md space-y-3">
             {/* メインカード */}
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-3xl overflow-hidden shadow-xl shadow-indigo-100/60 border border-indigo-100/50"
+              className="rounded-3xl overflow-hidden shadow-2xl shadow-indigo-300/40 border border-indigo-100/50"
             >
-              {/* グラデーションヘッダー */}
-              <div className="bg-gradient-to-br from-indigo-500 via-blue-500 to-violet-600 px-6 pt-6 pb-6">
-                <h1 className="text-2xl font-bold text-white tracking-tight">英単語クイズ</h1>
+              {/* グラデーションヘッダー（ゆっくり色が動くアニメーションつき） */}
+              <div className="gradient-cta relative overflow-hidden px-6 pt-6 pb-6">
+                <h1 className="font-display text-2xl font-bold text-white tracking-tight drop-shadow-[0_0_18px_rgba(255,255,255,0.35)]">
+                  英単語クイズ
+                </h1>
                 <div className="mt-1 flex items-center gap-1.5 text-indigo-200 text-sm">
                   <span>{currentHabitat?.name || "—"}</span>
                   <span>·</span>
@@ -1479,7 +1481,7 @@ export default function Page() {
                   onClick={startGame}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full h-12 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:shadow-indigo-300 transition-shadow"
+                  className="gradient-cta w-full h-12 rounded-2xl text-sm font-semibold text-white shadow-lg shadow-indigo-300/50 hover:shadow-indigo-400/60 transition-shadow"
                 >
                   1プレイ開始（10問）
                 </motion.button>
@@ -1564,7 +1566,7 @@ export default function Page() {
   return (
     <>
       <div className="relative overflow-hidden flex flex-col min-h-dvh bg-gradient-to-b from-indigo-50/40 to-white text-zinc-900 sm:min-h-screen sm:items-center sm:justify-center sm:p-6">
-        <AuroraBackground />
+        <AuroraBackground vivid />
         {activeBattle && (
           <div className="sticky top-0 z-40 shrink-0 sm:hidden">
             <CompactBattleBar
@@ -1630,7 +1632,7 @@ export default function Page() {
                       key={bestStreak}
                       initial={{ scale: 0.7, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="text-amber-500 font-semibold"
+                      className="text-amber-500 font-semibold drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]"
                     >
                       🔥 {bestStreak}連続
                     </motion.span>
@@ -1650,15 +1652,15 @@ export default function Page() {
             {/* 問題カード：問題が変わるたびスライドイン */}
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="mx-4 mt-4 sm:mx-6 rounded-2xl bg-gradient-to-br from-indigo-500 via-blue-500 to-violet-600 px-5 py-8 sm:py-10 text-center shadow-lg shadow-indigo-200/50"
+              className="gradient-cta relative mx-4 mt-4 overflow-hidden rounded-2xl px-5 py-8 text-center shadow-xl shadow-indigo-300/40 sm:mx-6 sm:py-10"
             >
               <div className="text-xs font-semibold uppercase tracking-widest text-indigo-200">
                 {getPartOfSpeech(q)}
               </div>
-              <div className="mt-3 break-words text-4xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
+              <div className="font-display mt-3 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
                 {q.target}
               </div>
             </motion.div>
@@ -1744,7 +1746,7 @@ export default function Page() {
               className={`w-full h-14 text-base font-bold rounded-2xl transition-all flex items-center justify-center ${
                 checked
                   ? "bg-indigo-50 text-indigo-700 border-2 border-indigo-200 hover:bg-indigo-100"
-                  : "bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-200 hover:shadow-indigo-300"
+                  : "gradient-cta text-white shadow-lg shadow-indigo-300/50 hover:shadow-indigo-400/60"
               } disabled:opacity-40`}
             >
               {isCheckingAnswer ? "判定中…" : checked ? "次へ →" : "答え合わせ"}
