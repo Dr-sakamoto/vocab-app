@@ -217,6 +217,7 @@ export interface AnswerAnalysis {
   readingKey: string;
   termKeys: string[];
   terms: Term[];
+  tokens: any[];
 }
 
 export async function analyzeAnswer(value: string): Promise<AnswerAnalysis> {
