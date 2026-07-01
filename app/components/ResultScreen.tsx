@@ -3,6 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import AuroraBackground from "./AuroraBackground";
+import { getTierTheme } from "@/lib/tierTheme";
 
 const PRIMARY_BUTTON_CLASS =
   "gradient-cta inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-300/50 hover:shadow-indigo-400/60 disabled:opacity-40 transition-shadow";
@@ -58,6 +59,7 @@ export default function ResultScreen({
     : "border-emerald-100 bg-emerald-50";
 
   const isVictory = isBattle && won;
+  const tierTheme = getTierTheme(tier?.label);
 
   const primaryLabel = isBattle
     ? won
@@ -70,8 +72,11 @@ export default function ResultScreen({
   const handlePrimary = isBattle && won ? onBackToStart : onRestart;
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-50 text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6">
-      <AuroraBackground vivid={isVictory} />
+    <div
+      className="relative overflow-hidden text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6"
+      style={{ backgroundImage: tierTheme.pageGradient }}
+    >
+      <AuroraBackground vivid={isVictory} colors={tierTheme.auroraColors} />
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -139,6 +144,11 @@ export default function ResultScreen({
           onClick={handlePrimary}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
+          style={
+            isBattle && !won && battleResult?.battle?.boss
+              ? undefined
+              : { backgroundImage: tierTheme.accentGradient }
+          }
           className={
             isBattle && !won && battleResult?.battle?.boss
               ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
