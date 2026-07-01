@@ -10,6 +10,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -101,6 +102,30 @@ a {
   }
 }
 
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
 .glass-panel {
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(16px);
@@ -112,7 +137,7 @@ a {
   position: absolute;
   border-radius: 9999px;
   filter: blur(60px);
-  opacity: 0.55;
+  opacity: 0.6;
   animation: aurora-drift 14s ease-in-out infinite;
   will-change: transform;
 }
@@ -129,9 +154,53 @@ a {
   animation: shimmer-sweep 2.2s ease-in-out infinite;
 }
 
+/* 動くグラデーションテキスト（見出し・グレード表示など） */
+.gradient-text {
+  background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-shift 6s ease-in-out infinite;
+}
+
+/* 動くグラデーションのボタン背景（CTA用） */
+.gradient-cta {
+  background-image: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+  background-size: 200% auto;
+  animation: gradient-shift 4s ease-in-out infinite;
+}
+
+/* ネオン風グロー（枠の外側にぼんやり光を落とす） */
+.neon-glow {
+  box-shadow:
+    0 0 0 1px rgba(129, 140, 248, 0.4),
+    0 0 24px rgba(129, 140, 248, 0.45),
+    0 0 48px rgba(168, 85, 247, 0.25);
+}
+
+.glow-dot {
+  position: relative;
+}
+
+.glow-dot::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: currentColor;
+  filter: blur(8px);
+  opacity: 0.6;
+  animation: glow-pulse 2.4s ease-in-out infinite;
+  z-index: -1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob,
-  .shimmer-sweep {
+  .shimmer-sweep,
+  .gradient-text,
+  .gradient-cta,
+  .glow-dot::before {
     animation: none;
   }
 }

@@ -34,7 +34,7 @@ export default function FossilChoiceModal({ group, onSelect }: FossilChoiceModal
         transition={{ type: "spring", stiffness: 300, damping: 26 }}
         className="glass-panel w-full max-w-lg rounded-3xl p-5 shadow-2xl"
       >
-        <h2 className="text-lg font-semibold text-zinc-950">化石を復元する</h2>
+        <h2 className="gradient-text font-display text-xl font-bold">化石を復元する</h2>
         <p className="mt-2 text-sm leading-6 text-zinc-600">
           {group.location}の研究所で、復元する化石を1つ選んでください。
         </p>
@@ -53,7 +53,7 @@ export default function FossilChoiceModal({ group, onSelect }: FossilChoiceModal
                 transition={{ duration: 0.25, delay: 0.1 + i * 0.06 }}
                 whileHover={{ scale: 1.04, y: -2 }}
                 whileTap={{ scale: 0.97 }}
-                className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-center transition-colors hover:border-sky-300 hover:bg-sky-50"
+                className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-center transition-colors hover:border-sky-300 hover:bg-sky-50 hover:shadow-lg hover:shadow-sky-200/50"
               >
                 <div className="mx-auto h-20 w-20 overflow-hidden rounded-2xl bg-white shadow-inner">
                   <img

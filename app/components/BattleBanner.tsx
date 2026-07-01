@@ -47,7 +47,7 @@ export default function BattleBanner({
               : "トレーナー";
 
   return (
-    <div className="mb-4 overflow-hidden rounded-2xl border-2 border-rose-500 bg-gradient-to-r from-rose-50 via-white to-rose-50 shadow-sm">
+    <div className="mb-4 overflow-hidden rounded-2xl border-2 border-rose-500 bg-gradient-to-r from-rose-50 via-white to-rose-50 shadow-lg shadow-rose-200/50">
       <div className="flex items-center justify-between gap-3 border-b border-rose-200 bg-rose-500 px-4 py-2 text-white">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-100">{tierLabel}</p>
@@ -81,7 +81,7 @@ export default function BattleBanner({
         )}
 
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white shadow-inner ring-2 ring-sky-200">
+          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white shadow-inner ring-2 ring-sky-300 shadow-sky-200/60">
             <img
               src={opponent.sprite}
               alt=""
@@ -90,7 +90,7 @@ export default function BattleBanner({
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-lg font-semibold text-zinc-950">
+            <p className="font-display text-lg font-bold text-zinc-950">
               {opponent.name}
               <span className="ml-2 text-sm font-medium text-zinc-500">Lv.{opponent.level}</span>
             </p>
@@ -103,7 +103,7 @@ export default function BattleBanner({
                   key={status.index}
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
                     status.isActive
-                      ? "bg-rose-600 text-white shadow"
+                      ? "bg-rose-600 text-white shadow-md shadow-rose-300/60"
                       : status.isDefeated
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-zinc-200 text-zinc-600"
@@ -127,7 +127,7 @@ export default function BattleBanner({
             onClick={onToggleMasterBall}
             className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
               useMasterBall
-                ? "border-violet-500 bg-violet-600 text-white shadow-md"
+                ? "border-violet-500 bg-violet-600 text-white shadow-md shadow-violet-300/60"
                 : "border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
             }`}
           >

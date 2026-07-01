@@ -86,7 +86,7 @@ function MasteryDonutChart({ levelCounts, lv1PlusPct }: MasteryDonutChartProps) 
           aria-hidden
         />
         <div className="pointer-events-none relative z-10 text-center">
-          <div className="text-2xl font-semibold tabular-nums text-emerald-900">
+          <div className="font-display text-3xl font-bold tabular-nums text-emerald-900">
             {Math.round(clamped)}%
           </div>
           <div className="text-[11px] leading-tight text-zinc-500">
@@ -138,7 +138,7 @@ export default function ProgressDashboard({
 
   return (
     <div className="relative overflow-hidden min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 text-zinc-900 flex items-center justify-center p-6">
-      <AuroraBackground />
+      <AuroraBackground vivid />
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -146,7 +146,7 @@ export default function ProgressDashboard({
         className="glass-panel relative z-10 w-full max-w-2xl rounded-3xl p-6 shadow-xl shadow-indigo-100/60"
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold">進捗ダッシュボード</h1>
+          <h1 className="gradient-text font-display text-2xl font-bold">進捗ダッシュボード</h1>
           <motion.button
             type="button"
             onClick={onBack}

@@ -30,7 +30,7 @@ export default function CompactBattleBar({
   const capturable = isCapturableBattle(battle);
 
   return (
-    <div className="shrink-0 border-b-2 border-rose-500 bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-md">
+    <div className="shrink-0 border-b-2 border-rose-500 bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-400/40">
       <div className="flex items-center gap-2 px-3 py-3">
         {trainerSprite ? (
           <img
