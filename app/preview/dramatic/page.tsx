@@ -15,11 +15,6 @@ const BIOMES: Record<BiomeId, { label: string; tagline: string }> = {
   snow: { label: "雪山", tagline: "Tier 3 ・ 出題プールが伸びた先のエリアのイメージ" },
 };
 
-const MARQUEE_WORDS = [
-  "SERENDIPITY", "EPHEMERAL", "LUMINOUS", "METAMORPHOSIS", "ZEITGEIST",
-  "CATALYST", "RESONANCE", "PARADOX", "ETHEREAL", "QUANTUM",
-];
-
 function TiltCard({
   title,
   desc,
@@ -194,24 +189,6 @@ export default function DramaticPreviewPage() {
         </div>
       </motion.section>
 
-      {/* ── マーキー：単語が流れる帯 ── */}
-      <div className="relative z-10 overflow-hidden border-y border-white/10 bg-gradient-to-r from-indigo-950 via-fuchsia-950 to-indigo-950 py-4">
-        <motion.div
-          className="flex w-max gap-10 whitespace-nowrap"
-          animate={{ x: ["0%", "-50%"] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-        >
-          {[...MARQUEE_WORDS, ...MARQUEE_WORDS, ...MARQUEE_WORDS].map((w, i) => (
-            <span
-              key={i}
-              className="font-display gradient-text text-2xl font-bold tracking-widest sm:text-3xl"
-            >
-              {w} ✦
-            </span>
-          ))}
-        </motion.div>
-      </div>
-
       {/* ── 3Dチルトカード群 ── */}
       <section className="relative z-10 px-4 py-24 sm:px-8">
         <motion.h2
@@ -237,8 +214,8 @@ export default function DramaticPreviewPage() {
             accent="#f472b6"
           />
           <TiltCard
-            title="無限マーキー"
-            desc="単語が絶えず流れ続けるティッカー帯で情報密度を演出。"
+            title="バイオーム切り替え"
+            desc="進捗（Tier）に応じて3D背景だけが変わり、手前のパネルUIは今まで通り。"
             accent="#38bdf8"
           />
         </div>
