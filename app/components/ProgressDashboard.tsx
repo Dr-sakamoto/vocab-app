@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
+import AuroraBackground from "./AuroraBackground";
 
 const LEVEL_RING_COLORS: Record<number, string> = {
   0: "#d4d4d8",
@@ -65,13 +67,16 @@ function MasteryDonutChart({ levelCounts, lv1PlusPct }: MasteryDonutChartProps) 
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85, rotate: -90 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 160, damping: 18 }}
         className="relative inline-flex h-[152px] w-[152px] shrink-0 items-center justify-center"
         role="img"
         aria-label={chartLabel}
       >
         <div
-          className="absolute inset-0 rounded-full shadow-sm transition-[background] duration-500"
+          className="absolute inset-0 rounded-full shadow-md shadow-indigo-100 transition-[background] duration-500"
           style={{
             background: buildMasteryConicGradient(levelCounts),
             WebkitMask:
@@ -88,7 +93,7 @@ function MasteryDonutChart({ levelCounts, lv1PlusPct }: MasteryDonutChartProps) 
             Lv.1以上の割合
           </div>
         </div>
-      </div>
+      </motion.div>
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-zinc-600">
         {[1, 2, 3, 4, 5].map((lv) => (
           <span key={lv} className="inline-flex items-center gap-1.5">
@@ -132,17 +137,25 @@ export default function ProgressDashboard({
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex items-center justify-center p-6 animate-fade-in">
-      <div className="w-full max-w-2xl rounded-2xl border bg-white p-6 shadow-sm">
+    <div className="relative overflow-hidden min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 text-zinc-900 flex items-center justify-center p-6">
+      <AuroraBackground />
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="glass-panel relative z-10 w-full max-w-2xl rounded-3xl p-6 shadow-xl shadow-indigo-100/60"
+      >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-xl font-semibold">進捗ダッシュボード</h1>
-          <button
+          <motion.button
             type="button"
             onClick={onBack}
-            className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 transition"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 px-5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
           >
             戻る
-          </button>
+          </motion.button>
         </div>
 
         <p className="mt-2 text-sm text-zinc-600">
@@ -155,10 +168,13 @@ export default function ProgressDashboard({
           <div className="w-full max-w-sm space-y-3">
             <h2 className="text-sm font-semibold text-zinc-800">レベル別の単語数</h2>
             <ul className="space-y-2 text-sm">
-              {[5, 4, 3, 2, 1, 0].map((lv) => (
-                <li
+              {[5, 4, 3, 2, 1, 0].map((lv, i) => (
+                <motion.li
                   key={lv}
-                  className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.25, delay: 0.15 + i * 0.05 }}
+                  className="flex items-center justify-between rounded-lg bg-indigo-50/60 px-3 py-2"
                 >
                   <span className="flex items-center gap-2 text-zinc-600">
                     <span
@@ -170,7 +186,7 @@ export default function ProgressDashboard({
                     {lv === 0 ? "（未・苦手）" : ""}
                   </span>
                   <span className="tabular-nums font-medium">{levelCounts[lv]}</span>
-                </li>
+                </motion.li>
               ))}
             </ul>
             <p className="text-xs leading-relaxed text-zinc-500">
@@ -178,7 +194,7 @@ export default function ProgressDashboard({
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

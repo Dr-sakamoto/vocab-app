@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
+import AuroraBackground from "./AuroraBackground";
 
 const PRIMARY_BUTTON_CLASS =
-  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40 transition";
+  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-5 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-40 transition-shadow";
 const SECONDARY_BUTTON_CLASS =
-  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-40 transition";
+  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 px-5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-40 transition-colors";
 const BATTLE_WIN_BUTTON_CLASS =
   "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 text-sm font-bold text-white shadow-lg shadow-rose-200 hover:from-rose-500 hover:to-red-500 disabled:opacity-40 transition";
 
@@ -66,17 +68,26 @@ export default function ResultScreen({
   const handlePrimary = isBattle && won ? onBackToStart : onRestart;
 
   return (
-    <div className="bg-zinc-50 text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6 animate-fade-in">
-      <div className="w-full max-w-2xl rounded-2xl border bg-white p-4 sm:p-6 shadow-sm space-y-5 my-auto">
+    <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-50 text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6">
+      <AuroraBackground />
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="glass-panel relative z-10 w-full max-w-2xl rounded-3xl p-4 sm:p-6 shadow-xl shadow-indigo-100/60 space-y-5 my-auto"
+      >
         {isBattle && (
-          <div
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.35, delay: 0.05 }}
             className={`overflow-hidden rounded-2xl border-2 ${
-              won ? "border-rose-500 animate-pulse" : "border-zinc-400"
+              won ? "border-rose-500" : "border-zinc-400"
             }`}
           >
             <div
               className={`flex items-stretch ${
-                won ? "bg-rose-500" : "bg-zinc-600"
+                won ? "bg-gradient-to-r from-rose-500 to-orange-500" : "bg-zinc-600"
               } text-white`}
             >
               {battleResult.trainerSprite ? (
@@ -116,12 +127,14 @@ export default function ResultScreen({
                 </div>
               ) : null}
             </div>
-          </div>
+          </motion.div>
         )}
 
-        <button
+        <motion.button
           type="button"
           onClick={handlePrimary}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           className={
             isBattle && !won && battleResult?.battle?.boss
               ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
@@ -129,10 +142,15 @@ export default function ResultScreen({
           }
         >
           {primaryLabel}
-        </button>
+        </motion.button>
 
         {evaluation && (
-          <div className={`rounded-xl border p-4 ${shellClass}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.1 }}
+            className={`rounded-xl border p-4 ${shellClass}`}
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div
@@ -143,13 +161,16 @@ export default function ResultScreen({
                   {isBattle ? "Battle Grade" : "Learning Grade"}
                 </div>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span
+                  <motion.span
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 16, delay: 0.2 }}
                     className={`text-3xl font-bold ${
                       isBattle ? "text-rose-950" : "text-emerald-950"
                     }`}
                   >
                     {grade}
-                  </span>
+                  </motion.span>
                   <span
                     className={`text-base font-medium ${
                       isBattle ? "text-rose-800" : "text-emerald-800"
@@ -176,25 +197,29 @@ export default function ResultScreen({
             </div>
 
             <div
-              className={`mt-4 rounded-lg bg-white/80 px-4 py-3 text-center ring-1 ${
+              className={`relative mt-4 overflow-hidden rounded-lg bg-white/80 px-4 py-3 text-center ring-1 ${
                 isBattle ? "ring-rose-900/10" : "ring-emerald-900/10"
               }`}
             >
+              <div className="shimmer-sweep" />
               <div
-                className={`text-[11px] font-semibold uppercase tracking-widest ${
+                className={`relative text-[11px] font-semibold uppercase tracking-widest ${
                   isBattle ? "text-rose-600" : "text-emerald-600"
                 }`}
               >
                 Experience Points
               </div>
-              <div className="mt-1 flex items-baseline justify-center gap-2">
-                <span
+              <div className="relative mt-1 flex items-baseline justify-center gap-2">
+                <motion.span
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.25 }}
                   className={`text-5xl font-black tabular-nums tracking-tight ${
                     isBattle ? "text-rose-950" : "text-emerald-950"
                   }`}
                 >
                   {(xp ?? 0).toLocaleString()}
-                </span>
+                </motion.span>
                 <span
                   className={`text-2xl font-bold ${
                     isBattle ? "text-rose-700" : "text-emerald-700"
@@ -214,9 +239,12 @@ export default function ResultScreen({
             </p>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {breakdown?.map((item: any) => (
-                <div
+              {breakdown?.map((item: any, i: number) => (
+                <motion.div
                   key={item.label}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: 0.3 + i * 0.05 }}
                   className={`rounded-lg bg-white/70 px-3 py-2 text-sm ring-1 ${
                     isBattle
                       ? "text-rose-950 ring-rose-900/5"
@@ -236,28 +264,34 @@ export default function ResultScreen({
                   >
                     {item.detail}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {(canMasterBallCatch || showWildMasterBall) &&
           onUseMasterBall && (
-            <button
+            <motion.button
               type="button"
               onClick={onUseMasterBall}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-400 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-violet-200 hover:from-violet-500 hover:to-purple-500 transition"
             >
               <span className="text-lg">◎</span>
               マスターボールを使って捕獲する
-            </button>
+            </motion.button>
           )}
 
         {unlockedThisRun > 0 && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900"
+          >
             🔓 新単語が {unlockedThisRun} 語 解放されました
-          </div>
+          </motion.div>
         )}
 
         {!isBattle && (
@@ -301,7 +335,7 @@ export default function ResultScreen({
             )}
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
