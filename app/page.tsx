@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import AuroraBackground from "./components/AuroraBackground";
 import BattleBanner from "./components/BattleBanner";
 import CompactBattleBar from "./components/CompactBattleBar";
 import FossilChoiceModal from "./components/FossilChoiceModal";
@@ -1400,8 +1401,9 @@ export default function Page() {
     const poolPct = Math.min(100, (unlockedPoolSize / VOCAB_ITEMS.length) * 100);
     return (
       <>
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 text-zinc-900 flex items-center justify-center p-4 sm:p-6">
-          <div className="w-full max-w-md space-y-3">
+        <div className="relative overflow-hidden min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 text-zinc-900 flex items-center justify-center p-4 sm:p-6">
+          <AuroraBackground />
+          <div className="relative z-10 w-full max-w-md space-y-3">
             {/* メインカード */}
             <motion.div
               initial={{ opacity: 0, y: 24 }}
@@ -1561,7 +1563,8 @@ export default function Page() {
   // PC: 中央寄せカード
   return (
     <>
-      <div className="flex flex-col min-h-dvh bg-gradient-to-b from-indigo-50/40 to-white text-zinc-900 sm:min-h-screen sm:items-center sm:justify-center sm:p-6">
+      <div className="relative overflow-hidden flex flex-col min-h-dvh bg-gradient-to-b from-indigo-50/40 to-white text-zinc-900 sm:min-h-screen sm:items-center sm:justify-center sm:p-6">
+        <AuroraBackground />
         {activeBattle && (
           <div className="sticky top-0 z-40 shrink-0 sm:hidden">
             <CompactBattleBar
@@ -1579,7 +1582,7 @@ export default function Page() {
         )}
 
         {/* カード */}
-        <div className="flex flex-1 flex-col bg-white w-full sm:flex-initial sm:max-w-lg sm:rounded-3xl sm:border sm:border-indigo-100/60 sm:shadow-xl sm:shadow-indigo-100/40 sm:overflow-hidden">
+        <div className="relative z-10 flex flex-1 flex-col bg-white w-full sm:flex-initial sm:max-w-lg sm:rounded-3xl sm:border sm:border-indigo-100/60 sm:shadow-xl sm:shadow-indigo-100/40 sm:overflow-hidden">
 
           {/* スクロール可能なコンテンツ領域 */}
           <div className="flex-1 overflow-y-auto sm:overflow-visible">
@@ -1670,7 +1673,7 @@ export default function Page() {
                 onCompositionEnd={() => setIsComposing(false)}
                 placeholder="日本語訳を入力..."
                 aria-label="日本語訳を入力してください"
-                className="w-full rounded-xl border-2 border-indigo-100 bg-indigo-50/50 px-4 py-3 text-base outline-none focus:border-indigo-400 focus:bg-white transition-colors disabled:opacity-50"
+                className="w-full rounded-xl border-2 border-indigo-100 bg-indigo-50/50 px-4 py-3 text-base outline-none transition-all focus:border-indigo-400 focus:bg-white focus:shadow-lg focus:shadow-indigo-200/50 disabled:opacity-50"
                 onKeyDown={(e) => {
                   if (isComposing) return;
                   if (e.key !== "Enter") return;
