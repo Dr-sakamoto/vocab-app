@@ -105,6 +105,7 @@ import {
 import storage from "@/lib/storage";
 
 const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
+const TOAST_STAGGER_MS = 380;
 
 /** 各問題に安定した ID */
 const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q, i) => ({
@@ -335,6 +336,21 @@ export default function Page() {
     setActiveToasts((prev) => [{ ...toast, instanceId }, ...prev].slice(0, 3));
   }, []);
 
+  // 同じ操作から複数の通知が生まれた場合、Reactが同一tick内の更新をまとめてしまい
+  // 一斉に出現してしまうため、1件ずつ少し間隔をあけて積み上がるようにする
+  const enqueueToasts = useCallback(
+    (toasts: ToastItem[]) => {
+      toasts.forEach((toast, i) => {
+        if (i === 0) {
+          enqueueToast(toast);
+        } else {
+          window.setTimeout(() => enqueueToast(toast), i * TOAST_STAGGER_MS);
+        }
+      });
+    },
+    [enqueueToast],
+  );
+
   const dismissToast = useCallback((instanceId: string) => {
     setActiveToasts((prev) => prev.filter((t) => t.instanceId !== instanceId));
   }, []);
@@ -396,15 +412,15 @@ export default function Page() {
 
   const enqueueGiftToasts = useCallback(
     (awarded: any[] = []) => {
-      awarded.forEach((gift) => {
-        enqueueToast({
+      enqueueToasts(
+        awarded.map((gift) => ({
           title: getGiftToastTitle(gift),
           message: gift.message,
           image: gift.sprite,
-        });
-      });
+        })),
+      );
     },
-    [enqueueToast],
+    [enqueueToasts],
   );
 
   const syncGiftProgress = useCallback(
@@ -799,7 +815,7 @@ export default function Page() {
           currentCollection,
           nextCollection,
         );
-        partyToasts.forEach((toast) => enqueueToast(toast));
+        enqueueToasts(partyToasts);
 
         if (capture?.caught) {
           const capturedLine = getMonsterLine(capture.lineId);
@@ -927,7 +943,7 @@ export default function Page() {
         currentCollection,
         nextCollection,
       );
-      partyToasts.forEach((toast) => enqueueToast(toast));
+      enqueueToasts(partyToasts);
       enqueueGiftToasts(giftSync.awarded);
 
       if (didEvolve && evolutionSoundRef.current) {
@@ -956,6 +972,7 @@ export default function Page() {
     },
     [
       enqueueGiftToasts,
+      enqueueToasts,
       habitatMinPools,
       persistProgress,
       syncGiftProgress,
@@ -1260,13 +1277,13 @@ export default function Page() {
         persistProgress({ nextCollection, nextStory });
       }
       enqueueGiftToasts(awarded);
-      for (const gift of professorStarters.awarded) {
-        enqueueToast({
+      enqueueToasts(
+        professorStarters.awarded.map((gift) => ({
           title: "博士からの贈り物！",
           message: gift.message,
           image: gift.sprite,
-        });
-      }
+        })),
+      );
       const pendingFossil = getPendingFossilGift(nextCollection, {
         unlockedPoolSize,
         habitatMinPools,
@@ -1275,7 +1292,7 @@ export default function Page() {
     },
     [
       enqueueGiftToasts,
-      enqueueToast,
+      enqueueToasts,
       habitatMinPools,
       persistProgress,
       unlockedPoolSize,
