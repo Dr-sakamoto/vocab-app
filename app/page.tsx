@@ -1500,15 +1500,16 @@ export default function Page() {
                   onClick={startGame}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full h-12 rounded-2xl bg-black text-sm font-semibold text-white shadow-lg shadow-black/30 hover:shadow-black/40 transition-shadow"
+                  style={fieldPaletteToCssVars(getFieldPalette(undefined))}
+                  className="field-marble w-full h-12 rounded-2xl text-sm font-semibold text-white shadow-lg shadow-black/20 hover:shadow-black/30 transition-shadow"
                 >
-                  1プレイ開始（10問）
+                  <span className="relative z-10">1プレイ開始（10問）</span>
                 </motion.button>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => openDashboard("start")}
-                    className="flex-1 h-10 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-100 text-sm font-medium text-indigo-700 hover:from-indigo-100 hover:to-violet-200 transition-colors"
+                    className="flex-1 h-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-black hover:bg-zinc-50 transition-colors"
                   >
                     進捗
                   </button>
@@ -1516,7 +1517,7 @@ export default function Page() {
                     type="button"
                     onClick={() => setIsPokemonBoxOpen(true)}
                     aria-expanded={isPokemonBoxOpen}
-                    className="flex-1 h-10 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-100 text-sm font-medium text-indigo-700 hover:from-indigo-100 hover:to-violet-200 transition-colors"
+                    className="flex-1 h-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-black hover:bg-zinc-50 transition-colors"
                   >
                     ポケモン
                   </button>
@@ -1560,7 +1561,6 @@ export default function Page() {
 
             <PokemonParty
               collection={monsterCollection}
-              accentGradient={tierTheme.accentGradient}
               onSelect={(monsterId: string) =>
                 setMonsterCollection((prev) =>
                   setActiveMonster(prev, monsterId),
