@@ -4,14 +4,6 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ActiveToast } from "@/lib/types";
 
-type Position = "top" | "mobile-bottom";
-
-const POSITION_CLASS: Record<Position, string> = {
-  top: "top-6 left-4 sm:left-6",
-  "mobile-bottom":
-    "bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] left-4 right-4 sm:bottom-auto sm:right-auto sm:top-6 sm:left-6",
-};
-
 const MAX_VISIBLE = 3;
 const DEFAULT_LIFETIME = 4200;
 const DEPTH_SCALE = [1, 0.98, 0.96];
@@ -20,15 +12,14 @@ const DEPTH_OPACITY = [1, 0.82, 0.55];
 interface ToastQueueProps {
   toasts: ActiveToast[];
   onDismiss: (instanceId: string) => void;
-  position?: Position;
 }
 
-export default function ToastQueue({ toasts, onDismiss, position = "top" }: ToastQueueProps) {
+export default function ToastQueue({ toasts, onDismiss }: ToastQueueProps) {
   const visible = toasts.slice(0, MAX_VISIBLE);
 
   return (
     <div
-      className={`pointer-events-none fixed z-30 flex w-[min(320px,calc(100vw-2rem))] flex-col gap-2 ${POSITION_CLASS[position] ?? POSITION_CLASS.top}`}
+      className="pointer-events-none fixed top-[max(1.5rem,env(safe-area-inset-top))] left-4 z-30 flex w-[min(320px,calc(100vw-2rem))] flex-col gap-2 sm:left-6"
     >
       <AnimatePresence initial={false}>
         {visible.map((toast, depth) => (
