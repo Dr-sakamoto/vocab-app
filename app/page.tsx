@@ -1560,7 +1560,6 @@ export default function Page() {
 
             <PokemonParty
               collection={monsterCollection}
-              accentGradient={tierTheme.accentGradient}
               onSelect={(monsterId: string) =>
                 setMonsterCollection((prev) =>
                   setActiveMonster(prev, monsterId),
