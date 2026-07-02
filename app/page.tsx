@@ -1727,13 +1727,20 @@ export default function Page() {
                               type="button"
                               onClick={requestAiReview}
                               disabled={isRequestingReview}
-                              className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition text-left"
+                              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-800 hover:bg-indigo-100 disabled:opacity-50 transition text-left"
                             >
                               {isRequestingReview && (
-                                <span className="radar-spinner" aria-hidden="true">
-                                  <span className="radar-spinner-ring" />
-                                  <span className="radar-spinner-sweep" />
-                                  <span className="radar-spinner-dot" />
+                                <span className="ios-spinner" aria-hidden="true">
+                                  {Array.from({ length: 12 }).map((_, i) => (
+                                    <span
+                                      key={i}
+                                      className="ios-spinner-bar"
+                                      style={{
+                                        transform: `rotate(${i * 30}deg)`,
+                                        animationDelay: `${-((12 - i) % 12) / 12}s`,
+                                      }}
+                                    />
+                                  ))}
                                 </span>
                               )}
                               {isRequestingReview ? "AIが審議中..." : "AIに審議してもらう"}
