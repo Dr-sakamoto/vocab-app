@@ -806,7 +806,7 @@ export default function Page() {
             enqueueToast({
               title: "ポケモン捕獲！",
               message: `${capturedLine.name}を捕まえた！`,
-              image: capturedLine.sprite,
+              image: getSpecies(capture.level ?? 1, capturedLine.id).sprite,
             });
           }
         }
@@ -917,7 +917,7 @@ export default function Page() {
           enqueueToast({
             title: "ポケモン捕獲！",
             message: `${capturedLine.name}を捕まえた！`,
-            image: capturedLine.sprite,
+            image: getSpecies(capture.level ?? 1, capturedLine.id).sprite,
           });
         }
       }
@@ -1196,7 +1196,7 @@ export default function Page() {
     enqueueToast({
       title: "マスターボール！",
       message: `${capturedLine?.name ?? "ポケモン"}を捕まえた！`,
-      image: capturedLine?.sprite,
+      image: capturedLine ? getSpecies(applied.capture.level ?? 1, capturedLine.id).sprite : undefined,
     });
     persistProgress({ nextCollection, nextStory });
   }, [
