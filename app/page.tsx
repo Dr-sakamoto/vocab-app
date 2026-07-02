@@ -86,6 +86,7 @@ import {
   getLevelUpGrowth,
 } from "@/lib/monster";
 import { getTierTheme } from "@/lib/tierTheme";
+import { getFieldPalette, fieldPaletteToCssVars } from "@/lib/fieldPalette";
 import { QUESTIONS } from "@/lib/vocab";
 import { GAME, STORAGE_KEYS } from "@/lib/constants";
 import {
@@ -1403,59 +1404,65 @@ export default function Page() {
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="rounded-3xl overflow-hidden shadow-2xl shadow-indigo-300/40 border border-indigo-100/50"
             >
-              {/* グラデーションヘッダー（ゆっくり色が動くアニメーションつき、ティアに応じて配色が変わる） */}
+              {/* グラデーションヘッダー（渦を巻く液体クロームの背景+ゆっくり明滅する光の粒。
+                  フィールドごとの配色は lib/fieldPalette.ts で手動設定する。未設定の間は
+                  フォールバック配色になる） */}
               <div
-                className="gradient-cta relative overflow-hidden px-6 pt-6 pb-6"
-                style={{ backgroundImage: tierTheme.accentGradient }}
+                className="field-marble relative overflow-hidden px-6 pt-6 pb-6"
+                style={fieldPaletteToCssVars(getFieldPalette(undefined))}
               >
-                <h1 className="font-display text-2xl font-bold text-white tracking-tight drop-shadow-[0_0_18px_rgba(255,255,255,0.35)]">
-                  英単語クイズ
-                </h1>
-                <div className="mt-1 flex items-center gap-1.5 text-indigo-200 text-sm">
-                  <span>{currentHabitat?.name || "—"}</span>
-                  <span>·</span>
-                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold text-white">
-                    {currentTier.label} ×{currentTier.multiplier}
-                  </span>
-                </div>
-
-                {/* プール進捗バー */}
-                <div className="mt-4">
-                  <div className="flex items-baseline justify-between mb-1.5">
-                    <span className="text-xs text-indigo-200">出題プール</span>
-                    <span className="text-xs font-semibold text-white tabular-nums">
-                      {unlockedPoolSize} <span className="text-indigo-300 font-normal">/ {VOCAB_ITEMS.length}</span>
+                <div className="field-dots field-dots-1" />
+                <div className="field-dots field-dots-2" />
+                <div className="relative z-10">
+                  <h1 className="font-display text-2xl font-bold text-white tracking-tight drop-shadow-[0_0_18px_rgba(255,255,255,0.35)]">
+                    英単語クイズ
+                  </h1>
+                  <div className="mt-1 flex items-center gap-1.5 text-indigo-200 text-sm">
+                    <span>{currentHabitat?.name || "—"}</span>
+                    <span>·</span>
+                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold text-white">
+                      {currentTier.label} ×{currentTier.multiplier}
                     </span>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-white/20">
-                    <motion.div
-                      className="h-full rounded-full bg-white"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${poolPct}%` }}
-                      transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-                    />
-                  </div>
-                </div>
 
-                {/* バッジ */}
-                {storyProgress.badges.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {storyProgress.badges.map((badge) => (
-                      <span
-                        key={badge}
-                        className="rounded-full bg-white/20 border border-white/30 px-2.5 py-0.5 text-xs font-semibold text-white"
-                      >
-                        {badge}
+                  {/* プール進捗バー */}
+                  <div className="mt-4">
+                    <div className="flex items-baseline justify-between mb-1.5">
+                      <span className="text-xs text-indigo-200">出題プール</span>
+                      <span className="text-xs font-semibold text-white tabular-nums">
+                        {unlockedPoolSize} <span className="text-indigo-300 font-normal">/ {VOCAB_ITEMS.length}</span>
                       </span>
-                    ))}
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-white/20">
+                      <motion.div
+                        className="h-full rounded-full bg-white"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${poolPct}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                      />
+                    </div>
                   </div>
-                )}
 
-                {canUseMasterBall(storyProgress) && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
-                    ◎ マスターボール所持
-                  </div>
-                )}
+                  {/* バッジ */}
+                  {storyProgress.badges.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {storyProgress.badges.map((badge) => (
+                        <span
+                          key={badge}
+                          className="rounded-full bg-white/20 border border-white/30 px-2.5 py-0.5 text-xs font-semibold text-white"
+                        >
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {canUseMasterBall(storyProgress) && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
+                      ◎ マスターボール所持
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* ボタンエリア */}
