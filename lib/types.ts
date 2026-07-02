@@ -44,7 +44,6 @@ export interface MonsterLine {
   id: string;
   name: string;
   species: Species[];
-  sprite?: string; // Add optional sprite to support line-level sprite referencing
 }
 
 export interface MonsterInstance {
