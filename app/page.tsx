@@ -1500,10 +1500,9 @@ export default function Page() {
                   onClick={startGame}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  style={fieldPaletteToCssVars(getFieldPalette(undefined))}
-                  className="field-marble w-full h-12 rounded-2xl text-sm font-semibold text-white shadow-lg shadow-black/20 hover:shadow-black/30 transition-shadow"
+                  className="w-full h-12 rounded-2xl bg-black text-sm font-semibold text-white shadow-lg shadow-black/30 hover:shadow-black/40 transition-shadow"
                 >
-                  <span className="relative z-10">1プレイ開始（10問）</span>
+                  1プレイ開始（10問）
                 </motion.button>
                 <div className="flex gap-2">
                   <button
