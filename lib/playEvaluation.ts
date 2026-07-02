@@ -1,6 +1,6 @@
-import { getPoolTier } from "./monster.js";
-import { XP } from "./constants.js";
-import { SessionAnswer, PlayEvaluation, PoolTier, EvaluationBreakdownItem } from "./types.js";
+import { getPoolTier } from "./monster";
+import { XP } from "./constants";
+import { SessionAnswer, PlayEvaluation, PoolTier, EvaluationBreakdownItem } from "./types";
 
 interface GradeEntry {
   minAccuracy: number;
