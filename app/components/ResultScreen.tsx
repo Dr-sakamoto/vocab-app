@@ -6,9 +6,9 @@ import AuroraBackground from "./AuroraBackground";
 import { getTierTheme } from "@/lib/tierTheme";
 
 const PRIMARY_BUTTON_CLASS =
-  "gradient-cta inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-300/50 hover:shadow-indigo-400/60 disabled:opacity-40 transition-shadow";
+  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-lg shadow-black/30 hover:shadow-black/40 disabled:opacity-40 transition-shadow";
 const SECONDARY_BUTTON_CLASS =
-  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 px-5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-40 transition-colors";
+  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-black hover:bg-zinc-50 disabled:opacity-40 transition-colors";
 const BATTLE_WIN_BUTTON_CLASS =
   "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 text-sm font-bold text-white shadow-lg shadow-rose-200 hover:from-rose-500 hover:to-red-500 disabled:opacity-40 transition";
 
@@ -144,11 +144,6 @@ export default function ResultScreen({
           onClick={handlePrimary}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          style={
-            isBattle && !won && battleResult?.battle?.boss
-              ? undefined
-              : { backgroundImage: tierTheme.accentGradient }
-          }
           className={
             isBattle && !won && battleResult?.battle?.boss
               ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
