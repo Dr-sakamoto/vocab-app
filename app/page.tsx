@@ -1417,7 +1417,7 @@ export default function Page() {
                   <h1 className="font-display text-2xl font-bold text-white tracking-tight drop-shadow-[0_0_18px_rgba(255,255,255,0.35)]">
                     英単語クイズ
                   </h1>
-                  <div className="mt-1 flex items-center gap-1.5 text-indigo-200 text-sm">
+                  <div className="mt-1 flex items-center gap-1.5 text-black text-sm">
                     <span>{currentHabitat?.name || "—"}</span>
                     <span>·</span>
                     <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold text-white">
@@ -1428,9 +1428,9 @@ export default function Page() {
                   {/* プール進捗バー */}
                   <div className="mt-4">
                     <div className="flex items-baseline justify-between mb-1.5">
-                      <span className="text-xs text-indigo-200">出題プール</span>
+                      <span className="text-xs text-black">出題プール</span>
                       <span className="text-xs font-semibold text-white tabular-nums">
-                        {unlockedPoolSize} <span className="text-indigo-300 font-normal">/ {VOCAB_ITEMS.length}</span>
+                        {unlockedPoolSize} <span className="text-black font-normal">/ {VOCAB_ITEMS.length}</span>
                       </span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-white/20">
@@ -1483,8 +1483,7 @@ export default function Page() {
                   onClick={startGame}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  style={{ backgroundImage: tierTheme.accentGradient }}
-                  className="gradient-cta w-full h-12 rounded-2xl text-sm font-semibold text-white shadow-lg shadow-indigo-300/50 hover:shadow-indigo-400/60 transition-shadow"
+                  className="w-full h-12 rounded-2xl bg-black text-sm font-semibold text-white shadow-lg shadow-black/30 hover:shadow-black/40 transition-shadow"
                 >
                   1プレイ開始（10問）
                 </motion.button>
@@ -1492,7 +1491,7 @@ export default function Page() {
                   <button
                     type="button"
                     onClick={() => openDashboard("start")}
-                    className="flex-1 h-10 rounded-xl border border-indigo-100 bg-indigo-50 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+                    className="flex-1 h-10 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-100 text-sm font-medium text-indigo-700 hover:from-indigo-100 hover:to-violet-200 transition-colors"
                   >
                     進捗
                   </button>
@@ -1500,7 +1499,7 @@ export default function Page() {
                     type="button"
                     onClick={() => setIsPokemonBoxOpen(true)}
                     aria-expanded={isPokemonBoxOpen}
-                    className="flex-1 h-10 rounded-xl border border-indigo-100 bg-indigo-50 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+                    className="flex-1 h-10 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-100 text-sm font-medium text-indigo-700 hover:from-indigo-100 hover:to-violet-200 transition-colors"
                   >
                     ポケモン
                   </button>
@@ -1544,6 +1543,7 @@ export default function Page() {
 
             <PokemonParty
               collection={monsterCollection}
+              accentGradient={tierTheme.accentGradient}
               onSelect={(monsterId: string) =>
                 setMonsterCollection((prev) =>
                   setActiveMonster(prev, monsterId),
@@ -1623,7 +1623,8 @@ export default function Page() {
                   aria-valuemax={sessionPlayLimit}
                 >
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                    className="gradient-cta h-full rounded-full"
+                    style={{ backgroundImage: tierTheme.accentGradient }}
                     animate={{ width: `${progressPct}%` }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
                   />
@@ -1664,7 +1665,7 @@ export default function Page() {
               style={{ backgroundImage: tierTheme.accentGradient }}
               className="gradient-cta relative mx-4 mt-4 overflow-hidden rounded-2xl px-5 py-8 text-center shadow-xl shadow-indigo-300/40 sm:mx-6 sm:py-10"
             >
-              <div className="text-xs font-semibold uppercase tracking-widest text-indigo-200">
+              <div className="text-xs font-semibold uppercase tracking-widest text-black">
                 {getPartOfSpeech(q)}
               </div>
               <div className="mt-3 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
@@ -1721,7 +1722,7 @@ export default function Page() {
                               type="button"
                               onClick={requestAiReview}
                               disabled={isRequestingReview}
-                              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-800 hover:bg-indigo-100 disabled:opacity-50 transition text-left"
+                              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-100 px-3 py-2 text-xs font-medium text-indigo-800 hover:from-indigo-100 hover:to-violet-200 disabled:opacity-50 transition text-left"
                             >
                               {isRequestingReview && (
                                 <span className="ios-spinner" aria-hidden="true">
@@ -1767,7 +1768,7 @@ export default function Page() {
               style={checked ? undefined : { backgroundImage: tierTheme.accentGradient }}
               className={`w-full h-14 text-base font-bold rounded-2xl transition-all flex items-center justify-center ${
                 checked
-                  ? "bg-indigo-50 text-indigo-700 border-2 border-indigo-200 hover:bg-indigo-100"
+                  ? "bg-gradient-to-r from-indigo-50 to-violet-100 text-indigo-700 border-2 border-indigo-200 hover:from-indigo-100 hover:to-violet-200"
                   : "gradient-cta text-white shadow-lg shadow-indigo-300/50 hover:shadow-indigo-400/60"
               } disabled:opacity-40`}
             >
