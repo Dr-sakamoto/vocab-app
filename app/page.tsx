@@ -1389,11 +1389,7 @@ export default function Page() {
           onOpenDashboard={() => openDashboard("result")}
           onBackToStart={backToStart}
         />
-        <ToastQueue
-          toasts={activeToasts}
-          onDismiss={dismissToast}
-          position="mobile-bottom"
-        />
+        <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
         <TrainerChallengeAlert
           alert={trainerChallenge}
           onDismiss={() => setTrainerChallenge(null)}
