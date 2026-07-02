@@ -212,10 +212,10 @@ a {
   animation: gradient-shift 4s ease-in-out infinite;
 }
 
-/* フィールドごとの「動くマーブル」背景。色はここでは決めない（決め打ちしない）。
+/* フィールドごとの「動く液体クローム」背景。色はここでは決めない（決め打ちしない）。
    lib/fieldPalette.ts の5色を --field-base/sub/dark/accent/highlight として
-   style props で渡すだけで、速さも向きも違う2層のグラデーションが重なって
-   動き、境界のないマーブル模様になる。要素は position:relative; overflow:hidden;
+   style props で渡すだけで、扇形グラデーション（conic-gradient）が回転し、
+   渦を巻く液体のような動きになる。要素は position:relative; overflow:hidden;
    にした上で使う（中身のテキストなどは z-index を1以上にすること） */
 .field-marble {
   position: relative;
@@ -225,88 +225,173 @@ a {
 .field-marble::after {
   content: "";
   position: absolute;
-  inset: -30%;
+  inset: -60%;
   z-index: 0;
-  background-size: 300% 300%;
-  filter: blur(12px);
+  filter: blur(20px);
 }
-/* stopの間隔は等間隔ではなく、各色の「面積比率」の目安
-   （base 55% / sub 25% / dark 12% / accent 6% / highlight 2%）に
-   合わせてプラトー（同色が続く区間）の幅を配分している。2層をブレンド
-   した結果はCSSグラデーションの性質上ピクセル単位の厳密な面積保証には
-   ならないが、狙った比率にかなり近い見た目になる */
 .field-marble::before {
-  background-image: linear-gradient(
-    120deg,
-    var(--field-dark) 0%,
-    var(--field-dark) 9%,
-    var(--field-base) 13%,
-    var(--field-base) 64%,
-    var(--field-sub) 68%,
-    var(--field-sub) 89%,
-    var(--field-accent) 92%,
-    var(--field-accent) 96%,
-    var(--field-highlight) 98%,
-    var(--field-highlight) 100%
+  background: conic-gradient(
+    from 0deg at 45% 50%,
+    var(--field-dark),
+    var(--field-base),
+    var(--field-sub),
+    var(--field-accent),
+    var(--field-dark)
   );
-  animation: field-sweep-a 38s ease-in-out infinite;
+  animation: field-spin-a 24s linear infinite;
 }
 .field-marble::after {
-  background-image: linear-gradient(
-    205deg,
-    var(--field-base) 0%,
-    var(--field-base) 51%,
-    var(--field-accent) 54%,
-    var(--field-accent) 58%,
-    var(--field-highlight) 60%,
-    var(--field-highlight) 62%,
-    var(--field-sub) 65%,
-    var(--field-sub) 86%,
-    var(--field-dark) 90%,
-    var(--field-dark) 99%,
-    var(--field-base) 100%
+  background: conic-gradient(
+    from 200deg at 58% 42%,
+    var(--field-base),
+    var(--field-accent),
+    var(--field-sub),
+    var(--field-dark),
+    var(--field-base)
   );
-  background-size: 260% 260%;
-  opacity: 0.7;
-  animation: field-sweep-b 47s ease-in-out infinite;
+  opacity: 0.75;
+  animation: field-spin-b 32s linear infinite reverse;
+}
+@keyframes field-spin-a {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes field-spin-b {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-@keyframes field-sweep-a {
+/* .field-marble の上に重ねる、柔らかい光の粒。ChatGPTの画像生成中
+   インジケーターを参考に、単一の柔らかい「灯り」がゆっくり位置を巡回しつつ、
+   明るさはきちんと0まで消えてまた出てくる（常時点灯ではない）。
+   .field-marble を使う要素の中に .field-dots とその子として
+   .field-dots-1 / .field-dots-2 を並べて使う */
+.field-dots {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6'%3E%3Cpath d='M3 1.2 L3.4 3 L3 4.8 L2.6 3 Z' fill='white' fill-opacity='0.4'/%3E%3Cpath d='M1.2 3 L3 2.6 L4.8 3 L3 3.4 Z' fill='white' fill-opacity='0.4'/%3E%3C/svg%3E"),
+    radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  background-size:
+    6px 6px,
+    6px 6px;
+  background-position:
+    1.5px 3px,
+    1.5px 3px;
+  mix-blend-mode: screen;
+  filter: blur(0.5px);
+}
+.field-dots-1 {
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 120px 120px;
+  mask-size: 120px 120px;
+  -webkit-mask-image: radial-gradient(circle, black 0%, black 28%, transparent 68%);
+  mask-image: radial-gradient(circle, black 0%, black 28%, transparent 68%);
+  animation:
+    field-dots-roam-1 34s ease-in-out infinite,
+    field-dots-fade-1 14s ease-in-out infinite;
+}
+.field-dots-2 {
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 90px 90px;
+  mask-size: 90px 90px;
+  -webkit-mask-image: radial-gradient(circle, black 0%, black 24%, transparent 62%);
+  mask-image: radial-gradient(circle, black 0%, black 24%, transparent 62%);
+  animation:
+    field-dots-roam-2 41s ease-in-out infinite,
+    field-dots-fade-2 17s ease-in-out infinite;
+  animation-delay:
+    -15s,
+    -6s;
+}
+@keyframes field-dots-fade-1 {
+  0%,
+  45%,
+  100% {
+    opacity: 0;
+  }
+  59% {
+    opacity: 0.4;
+  }
+  73% {
+    opacity: 0;
+  }
+}
+@keyframes field-dots-fade-2 {
+  0%,
+  42%,
+  100% {
+    opacity: 0;
+  }
+  56% {
+    opacity: 0.34;
+  }
+  70% {
+    opacity: 0;
+  }
+}
+@keyframes field-dots-roam-1 {
   0% {
-    background-position: 12% 22%;
+    -webkit-mask-position: 10% 15%;
+    mask-position: 10% 15%;
+  }
+  18% {
+    -webkit-mask-position: 70% 10%;
+    mask-position: 70% 10%;
+  }
+  38% {
+    -webkit-mask-position: 85% 60%;
+    mask-position: 85% 60%;
+  }
+  58% {
+    -webkit-mask-position: 45% 85%;
+    mask-position: 45% 85%;
+  }
+  78% {
+    -webkit-mask-position: 5% 65%;
+    mask-position: 5% 65%;
+  }
+  100% {
+    -webkit-mask-position: 10% 15%;
+    mask-position: 10% 15%;
+  }
+}
+@keyframes field-dots-roam-2 {
+  0% {
+    -webkit-mask-position: 80% 75%;
+    mask-position: 80% 75%;
   }
   22% {
-    background-position: 58% 8%;
+    -webkit-mask-position: 25% 88%;
+    mask-position: 25% 88%;
   }
   45% {
-    background-position: 88% 42%;
+    -webkit-mask-position: 5% 35%;
+    mask-position: 5% 35%;
   }
-  64% {
-    background-position: 72% 78%;
+  68% {
+    -webkit-mask-position: 55% 5%;
+    mask-position: 55% 5%;
   }
-  83% {
-    background-position: 30% 88%;
-  }
-  100% {
-    background-position: 12% 22%;
-  }
-}
-
-@keyframes field-sweep-b {
-  0% {
-    background-position: 82% 68%;
-  }
-  28% {
-    background-position: 28% 84%;
-  }
-  52% {
-    background-position: 8% 32%;
-  }
-  77% {
-    background-position: 62% 12%;
+  88% {
+    -webkit-mask-position: 92% 30%;
+    mask-position: 92% 30%;
   }
   100% {
-    background-position: 82% 68%;
+    -webkit-mask-position: 80% 75%;
+    mask-position: 80% 75%;
   }
 }
 
@@ -341,7 +426,9 @@ a {
   .gradient-cta,
   .glow-dot::before,
   .field-marble::before,
-  .field-marble::after {
+  .field-marble::after,
+  .field-dots-1,
+  .field-dots-2 {
     animation: none;
   }
 }
