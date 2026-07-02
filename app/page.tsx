@@ -1673,7 +1673,7 @@ export default function Page() {
               <div className="text-xs font-semibold uppercase tracking-widest text-indigo-200">
                 {getPartOfSpeech(q)}
               </div>
-              <div className="font-display mt-3 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
+              <div className="mt-3 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
                 {q.target}
               </div>
             </motion.div>
@@ -1727,8 +1727,15 @@ export default function Page() {
                               type="button"
                               onClick={requestAiReview}
                               disabled={isRequestingReview}
-                              className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition text-left"
+                              className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition text-left"
                             >
+                              {isRequestingReview && (
+                                <span className="radar-spinner" aria-hidden="true">
+                                  <span className="radar-spinner-ring" />
+                                  <span className="radar-spinner-sweep" />
+                                  <span className="radar-spinner-dot" />
+                                </span>
+                              )}
                               {isRequestingReview ? "AIが審議中..." : "AIに審議してもらう"}
                             </button>
                             {isRequestingReview && (
