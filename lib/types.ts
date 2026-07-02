@@ -137,6 +137,10 @@ export interface ToastItem {
   isActive?: boolean;
 }
 
+export interface ActiveToast extends ToastItem {
+  instanceId: string;
+}
+
 export interface TrainerChallenge {
   title: string;
   message: string;

@@ -96,6 +96,7 @@ import {
   PlayEvaluation,
   SessionAnswer,
   StoryProgress,
+  ActiveToast,
   ToastItem,
   TrainerChallenge,
   VocabItem,
@@ -236,8 +237,7 @@ export default function Page() {
   const [captureResult, setCaptureResult] = useState<CaptureResult | null>(null);
   const [currentHabitat, setCurrentHabitat] = useState<HabitatSummary | null>(null);
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
-  const [toastQueue, setToastQueue] = useState<ToastItem[]>([]);
-  const [activeToast, setActiveToast] = useState<ToastItem | null>(null);
+  const [activeToasts, setActiveToasts] = useState<ActiveToast[]>([]);
   const [fossilChoice, setFossilChoice] = useState<GiftGroup | null>(null);
   const [storyProgress, setStoryProgress] = useState<StoryProgress>(() =>
     normalizeStoryProgressForPage(DEFAULT_STORY_PROGRESS),
@@ -330,23 +330,13 @@ export default function Page() {
   const currentBattleAccuracy = getBattleProgressAccuracy(score, sessionPlayLimit);
 
   const enqueueToast = useCallback((toast: ToastItem) => {
-    setToastQueue((prev) => [
-      ...prev,
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        duration: 800,
-        ...toast,
-      },
-    ]);
+    const instanceId = `${Date.now()}-${Math.random()}`;
+    setActiveToasts((prev) => [{ ...toast, instanceId }, ...prev].slice(0, 3));
   }, []);
 
-  useEffect(() => {
-    if (activeToast || toastQueue.length === 0) return;
-    setActiveToast(toastQueue[0]);
-    setToastQueue((prev) => prev.slice(1));
-  }, [activeToast, toastQueue]);
-
-  const dismissActiveToast = useCallback(() => setActiveToast(null), []);
+  const dismissToast = useCallback((instanceId: string) => {
+    setActiveToasts((prev) => prev.filter((t) => t.instanceId !== instanceId));
+  }, []);
 
   const buildPartyChangeToasts = (
     previousCollection: MonsterCollection,
@@ -410,7 +400,6 @@ export default function Page() {
           title: getGiftToastTitle(gift),
           message: gift.message,
           image: gift.sprite,
-          duration: 1600,
         });
       });
     },
@@ -1208,7 +1197,6 @@ export default function Page() {
       title: "マスターボール！",
       message: `${capturedLine?.name ?? "ポケモン"}を捕まえた！`,
       image: capturedLine?.sprite,
-      duration: 2000,
     });
     persistProgress({ nextCollection, nextStory });
   }, [
@@ -1276,7 +1264,6 @@ export default function Page() {
           title: "博士からの贈り物！",
           message: gift.message,
           image: gift.sprite,
-          duration: 2200,
         });
       }
       const pendingFossil = getPendingFossilGift(nextCollection, {
@@ -1332,7 +1319,7 @@ export default function Page() {
             <p className="mt-3 text-zinc-700">問題データがありません。</p>
           </div>
         </div>
-        <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+        <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
         <TrainerChallengeAlert
           alert={trainerChallenge}
           onDismiss={() => setTrainerChallenge(null)}
@@ -1351,7 +1338,7 @@ export default function Page() {
           totalWords={VOCAB_ITEMS.length}
           onBack={() => setActiveView(dashboardReturnView)}
         />
-        <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+        <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
         <TrainerChallengeAlert
           alert={trainerChallenge}
           onDismiss={() => setTrainerChallenge(null)}
@@ -1385,8 +1372,8 @@ export default function Page() {
           onBackToStart={backToStart}
         />
         <ToastQueue
-          toast={activeToast}
-          onDismiss={dismissActiveToast}
+          toasts={activeToasts}
+          onDismiss={dismissToast}
           position="mobile-bottom"
         />
         <TrainerChallengeAlert
@@ -1558,7 +1545,7 @@ export default function Page() {
             />
           </div>
         </div>
-        <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+        <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
         <TrainerChallengeAlert
           alert={trainerChallenge}
           onDismiss={() => setTrainerChallenge(null)}
@@ -1783,7 +1770,7 @@ export default function Page() {
         </div>
       </div>
 
-      <ToastQueue toast={activeToast} onDismiss={dismissActiveToast} />
+      <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
       <TrainerChallengeAlert
         alert={trainerChallenge}
         onDismiss={() => setTrainerChallenge(null)}
