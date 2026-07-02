@@ -230,15 +230,24 @@ a {
   background-size: 300% 300%;
   filter: blur(12px);
 }
+/* stopの間隔は等間隔ではなく、各色の「面積比率」の目安
+   （base 55% / sub 25% / dark 12% / accent 6% / highlight 2%）に
+   合わせてプラトー（同色が続く区間）の幅を配分している。2層をブレンド
+   した結果はCSSグラデーションの性質上ピクセル単位の厳密な面積保証には
+   ならないが、狙った比率にかなり近い見た目になる */
 .field-marble::before {
   background-image: linear-gradient(
     120deg,
     var(--field-dark) 0%,
-    var(--field-base) 20%,
-    var(--field-sub) 40%,
-    var(--field-highlight) 55%,
-    var(--field-sub) 70%,
-    var(--field-dark) 100%
+    var(--field-dark) 9%,
+    var(--field-base) 13%,
+    var(--field-base) 64%,
+    var(--field-sub) 68%,
+    var(--field-sub) 89%,
+    var(--field-accent) 92%,
+    var(--field-accent) 96%,
+    var(--field-highlight) 98%,
+    var(--field-highlight) 100%
   );
   animation: field-sweep-a 38s ease-in-out infinite;
 }
@@ -246,10 +255,15 @@ a {
   background-image: linear-gradient(
     205deg,
     var(--field-base) 0%,
-    var(--field-accent) 18%,
-    var(--field-highlight) 36%,
-    var(--field-sub) 56%,
-    var(--field-dark) 78%,
+    var(--field-base) 51%,
+    var(--field-accent) 54%,
+    var(--field-accent) 58%,
+    var(--field-highlight) 60%,
+    var(--field-highlight) 62%,
+    var(--field-sub) 65%,
+    var(--field-sub) 86%,
+    var(--field-dark) 90%,
+    var(--field-dark) 99%,
     var(--field-base) 100%
   );
   background-size: 260% 260%;
