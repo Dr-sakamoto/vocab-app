@@ -7,9 +7,13 @@ import { getPartyCount, getMonsterDisplayState, getPartySlots, normalizeMonsterC
 interface PokemonPartyProps {
   collection: MonsterCollection;
   onSelect?: (monsterId: string) => void;
+  /** 選択中のパーティ枠に使う動くグラデーション。進捗（ティア）に応じて変化する */
+  accentGradient?: string;
 }
 
-export default function PokemonParty({ collection, onSelect }: PokemonPartyProps) {
+const DEFAULT_ACCENT_GRADIENT = "linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1)";
+
+export default function PokemonParty({ collection, onSelect, accentGradient }: PokemonPartyProps) {
   const normalized = normalizeMonsterCollection(collection);
   const slots = getPartySlots(normalized);
 
@@ -48,10 +52,12 @@ export default function PokemonParty({ collection, onSelect }: PokemonPartyProps
               onClick={() => onSelect?.(monster.id)}
               whileHover={onSelect ? { scale: 1.05, y: -2 } : undefined}
               whileTap={onSelect ? { scale: 0.96 } : undefined}
+              style={isActive ? { backgroundImage: accentGradient ?? DEFAULT_ACCENT_GRADIENT } : undefined}
               className={[
-                "flex aspect-square flex-col items-center justify-center rounded-lg border-2 bg-zinc-50 p-2 transition-colors",
-                onSelect ? "hover:bg-white hover:border-indigo-300" : "",
-                isActive ? "border-indigo-500 ring-2 ring-indigo-400/30 shadow-md shadow-indigo-200/60" : "border-transparent",
+                "flex aspect-square flex-col items-center justify-center rounded-lg border-2 p-2 transition-colors",
+                isActive
+                  ? "gradient-cta border-transparent shadow-md shadow-indigo-200/60"
+                  : ["bg-zinc-50 border-transparent", onSelect ? "hover:bg-white hover:border-indigo-300" : ""].join(" "),
               ].join(" ")}
               aria-label={`${current.species.name} Lv. ${current.level}${isActive ? " active" : ""}`}
             >
@@ -68,10 +74,15 @@ export default function PokemonParty({ collection, onSelect }: PokemonPartyProps
                 className="h-12 w-12 object-contain sm:h-14 sm:w-14"
                 style={{ imageRendering: "pixelated" }}
               />
-              <span className={["mt-1 max-w-full truncate text-[11px] font-medium", isHoldingItem ? "text-sky-600" : "text-zinc-700"].join(" ")}>
+              <span
+                className={[
+                  "mt-1 max-w-full truncate text-[11px] font-medium",
+                  isActive ? "text-white" : isHoldingItem ? "text-sky-600" : "text-zinc-700",
+                ].join(" ")}
+              >
                 {current.species.name}
               </span>
-              <span className="text-[10px] tabular-nums text-zinc-400">
+              <span className={["text-[10px] tabular-nums", isActive ? "text-white/80" : "text-zinc-400"].join(" ")}>
                 Lv. {current.level}
               </span>
             </motion.button>
