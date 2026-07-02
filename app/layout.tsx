@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
-<Toaster position="top-left" />
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
