@@ -105,7 +105,7 @@ import {
 import storage from "@/lib/storage";
 
 const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
-const TOAST_STAGGER_MS = 380;
+const MIN_FRONT_TOAST_MS = 1000;
 
 /** 各問題に安定した ID */
 const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q, i) => ({
@@ -239,7 +239,7 @@ export default function Page() {
   const [captureResult, setCaptureResult] = useState<CaptureResult | null>(null);
   const [currentHabitat, setCurrentHabitat] = useState<HabitatSummary | null>(null);
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
-  const [activeToasts, setActiveToasts] = useState<ActiveToast[]>([]);
+  const [activeToasts, setActiveToastsState] = useState<ActiveToast[]>([]);
   const [fossilChoice, setFossilChoice] = useState<GiftGroup | null>(null);
   const [storyProgress, setStoryProgress] = useState<StoryProgress>(() =>
     normalizeStoryProgressForPage(DEFAULT_STORY_PROGRESS),
@@ -331,29 +331,70 @@ export default function Page() {
   const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
   const currentBattleAccuracy = getBattleProgressAccuracy(score, sessionPlayLimit);
 
-  const enqueueToast = useCallback((toast: ToastItem) => {
+  // 通知は1段目に来たら最低でもMIN_FRONT_TOAST_MSだけ留まってから、
+  // 後続の通知に押し出される（新しいものが来ても即座には奪わせない）
+  const activeToastsRef = useRef<ActiveToast[]>([]);
+  const frontToastEnteredAtRef = useRef<number>(0);
+  const pendingToastQueueRef = useRef<ToastItem[]>([]);
+  const toastPromoteTimerRef = useRef<number | null>(null);
+
+  // activeToastsRef が現在値の正本。setState の更新関数はレンダー時に遅延実行される
+  // ため、直後に同期的な判定（enqueueToastの秒数計算など）で参照すると古い値を
+  // 掴んでしまう。そのためここでは ref を直接同期更新してから setState へ渡す。
+  const promoteToast = useCallback((toast: ToastItem) => {
     const instanceId = `${Date.now()}-${Math.random()}`;
-    setActiveToasts((prev) => [{ ...toast, instanceId }, ...prev].slice(0, 3));
+    const next = [{ ...toast, instanceId }, ...activeToastsRef.current].slice(0, 3);
+    frontToastEnteredAtRef.current = Date.now();
+    activeToastsRef.current = next;
+    setActiveToastsState(next);
   }, []);
 
-  // 同じ操作から複数の通知が生まれた場合、Reactが同一tick内の更新をまとめてしまい
-  // 一斉に出現してしまうため、1件ずつ少し間隔をあけて積み上がるようにする
+  const dismissToast = useCallback((instanceId: string) => {
+    const prev = activeToastsRef.current;
+    const next = prev.filter((t) => t.instanceId !== instanceId);
+    if (next[0]?.instanceId !== prev[0]?.instanceId) {
+      frontToastEnteredAtRef.current = Date.now();
+    }
+    activeToastsRef.current = next;
+    setActiveToastsState(next);
+  }, []);
+
+  const scheduleToastQueueDrainRef = useRef<() => void>(() => {});
+  const scheduleToastQueueDrain = useCallback(() => {
+    if (toastPromoteTimerRef.current !== null) return;
+    if (pendingToastQueueRef.current.length === 0) return;
+    const elapsed = Date.now() - frontToastEnteredAtRef.current;
+    const wait = Math.max(0, MIN_FRONT_TOAST_MS - elapsed);
+    toastPromoteTimerRef.current = window.setTimeout(() => {
+      toastPromoteTimerRef.current = null;
+      const next = pendingToastQueueRef.current.shift();
+      if (next) promoteToast(next);
+      scheduleToastQueueDrainRef.current();
+    }, wait);
+  }, [promoteToast]);
+  useEffect(() => {
+    scheduleToastQueueDrainRef.current = scheduleToastQueueDrain;
+  }, [scheduleToastQueueDrain]);
+
+  const enqueueToast = useCallback(
+    (toast: ToastItem) => {
+      const elapsed = Date.now() - frontToastEnteredAtRef.current;
+      if (activeToastsRef.current.length === 0 || elapsed >= MIN_FRONT_TOAST_MS) {
+        promoteToast(toast);
+      } else {
+        pendingToastQueueRef.current.push(toast);
+        scheduleToastQueueDrain();
+      }
+    },
+    [promoteToast, scheduleToastQueueDrain],
+  );
+
   const enqueueToasts = useCallback(
     (toasts: ToastItem[]) => {
-      toasts.forEach((toast, i) => {
-        if (i === 0) {
-          enqueueToast(toast);
-        } else {
-          window.setTimeout(() => enqueueToast(toast), i * TOAST_STAGGER_MS);
-        }
-      });
+      toasts.forEach((toast) => enqueueToast(toast));
     },
     [enqueueToast],
   );
-
-  const dismissToast = useCallback((instanceId: string) => {
-    setActiveToasts((prev) => prev.filter((t) => t.instanceId !== instanceId));
-  }, []);
 
   const buildPartyChangeToasts = (
     previousCollection: MonsterCollection,
