@@ -6,6 +6,7 @@ import {
   MonsterCollection,
   StoryProgress,
 } from "./types.js";
+import { ETYMON_NAME_OVERRIDES } from "./etymonNameOverrides";
 
 // プール倍率ティア（全3400語対応）
 export const POOL_TIERS: PoolTier[] = [
@@ -65,7 +66,7 @@ function species({ id, name, nameEn, minLevel, maxLevel = MAX_MONSTER_LEVEL }: S
   };
 }
 
-export const MONSTER_LINES: MonsterLine[] = [
+const RAW_MONSTER_LINES: MonsterLine[] = [
   {
     id: "bulbasaur",
     name: "フシギダネ",
@@ -710,6 +711,34 @@ export const MONSTER_LINES: MonsterLine[] = [
     ],
   },
 ];
+
+/** ETYMON_NAME_OVERRIDESに登録された行だけ表示名を差し替える。未登録の行は元のPokémon名のまま */
+function applyEtymonNameOverride(line: MonsterLine): MonsterLine {
+  const override = ETYMON_NAME_OVERRIDES[line.id];
+  if (!override) return line;
+
+  const lastIndex = line.species.length - 1;
+  const species = line.species.map((sp, i) => {
+    if (i === 0 && override.base) return { ...sp, name: override.base };
+    if (i === lastIndex && override.final) return { ...sp, name: override.final };
+    if (line.species.length === 3 && i === 1 && override.middle) {
+      return { ...sp, name: override.middle };
+    }
+    return sp;
+  });
+
+  // 単独（1段階のみ）の系統は base/final の区別がないため、final だけでも
+  // ライン名として採用する（そうしないと捕獲メッセージ等が旧名のままになる）
+  const singleStageName = line.species.length === 1 ? override.final : undefined;
+
+  return {
+    ...line,
+    name: override.base ?? singleStageName ?? line.name,
+    species,
+  };
+}
+
+export const MONSTER_LINES: MonsterLine[] = RAW_MONSTER_LINES.map(applyEtymonNameOverride);
 
 export const DEFAULT_MONSTER_LINE_ID = "bulbasaur";
 export const BULBASAUR_LINE = MONSTER_LINES.find(line => line.id === DEFAULT_MONSTER_LINE_ID)!.species;
