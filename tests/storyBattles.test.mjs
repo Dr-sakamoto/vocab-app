@@ -69,6 +69,26 @@ test("boss gate does not block when player already past boss threshold", () => {
   assert.equal(step, 30);
 });
 
+test("boss gate clamps the unlock step to the threshold instead of freezing below it", () => {
+  const progress = normalizeStoryProgress({
+    ...DEFAULT_STORY_PROGRESS,
+    defeated: { "rival-1": true },
+    pendingChallengeId: "brock",
+  });
+  // 素点では120(brockのminPool)を飛び越えてしまう位置からでも、
+  // 閾値ちょうどまでは伸びて足止めされ、二度と伸びなくなることはない
+  const step = getPoolUnlockStepWithBossGate(10, 10, progress, 90);
+  assert.equal(step, 30);
+  assert.equal(90 + step, 120);
+
+  // 閾値未満で繰り返しパーフェクトを取っても、閾値を超えて止まったままにはならない
+  let poolSize = 90;
+  for (let i = 0; i < 5; i += 1) {
+    poolSize += getPoolUnlockStepWithBossGate(10, 10, progress, poolSize);
+  }
+  assert.equal(poolSize, 120);
+});
+
 test("trainer battle uses higher play limits for endurance fights", () => {
   const battle = pickNextBattleTrigger(
     normalizeStoryProgress({
