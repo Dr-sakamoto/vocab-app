@@ -90,7 +90,7 @@ export default function ResultScreen({
 
   return (
     <div
-      className="relative overflow-hidden text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 pt-28 sm:p-6"
+      className="relative overflow-hidden text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6"
       style={{ backgroundImage: tierTheme.pageGradient }}
     >
       <AuroraBackground vivid={isVictory} colors={tierTheme.auroraColors} />
@@ -154,26 +154,6 @@ export default function ResultScreen({
               ) : null}
             </div>
           </motion.div>
-        )}
-
-        <motion.button
-          type="button"
-          onClick={handlePrimary}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={
-            isBattle && !won && battleResult?.battle?.boss
-              ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
-              : `${PRIMARY_BUTTON_CLASS} w-full text-base`
-          }
-        >
-          {primaryLabel}
-        </motion.button>
-
-        {autoContinueEnabled && (
-          <p className="-mt-3 text-center text-xs text-emerald-800/70">
-            {autoContinueSecondsLeft}秒後に自動で次へ進みます（タップでスキップ）
-          </p>
         )}
 
         {evaluation && (
@@ -328,6 +308,26 @@ export default function ResultScreen({
           >
             🔓 新単語が {unlockedThisRun} 語 解放されました
           </motion.div>
+        )}
+
+        <motion.button
+          type="button"
+          onClick={handlePrimary}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={
+            isBattle && !won && battleResult?.battle?.boss
+              ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
+              : `${PRIMARY_BUTTON_CLASS} w-full text-base`
+          }
+        >
+          {primaryLabel}
+        </motion.button>
+
+        {autoContinueEnabled && (
+          <p className="-mt-3 text-center text-xs text-emerald-800/70">
+            {autoContinueSecondsLeft}秒後に自動で次へ進みます（タップでスキップ）
+          </p>
         )}
 
         {!isBattle && (
