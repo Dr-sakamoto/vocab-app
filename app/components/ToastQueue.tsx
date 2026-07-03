@@ -6,7 +6,7 @@ import { ActiveToast } from "@/lib/types";
 
 const MAX_VISIBLE = 3;
 // 段位置ごとの「そこに来てから消えるまで」の残り時間。奥へ押し出されるほど短くする
-const DEPTH_LIFETIMES = [4200, 2000, 1000];
+const DEPTH_LIFETIMES = [3000, 2000, 1000];
 const DEPTH_SCALE = [1, 0.98, 0.96];
 const DEPTH_OPACITY = [1, 0.82, 0.55];
 
