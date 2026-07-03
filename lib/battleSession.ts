@@ -247,7 +247,9 @@ export function getPoolUnlockStepWithBossGate(
   if (step > 0) {
     const blocker = getPoolUnlockBlocker(progress, poolSize + step);
     if (blocker && poolSize <= blocker.minPool) {
-      step = 0;
+      // ボスの閾値を飛び越えさせず、ちょうど閾値まで伸ばして足止めする
+      // （満額を0にすると、閾値未満で足止めされたまま二度と閾値に到達できずボス戦もプール解放も永久に止まる）
+      step = Math.max(0, blocker.minPool - poolSize);
     }
   }
   return step;
