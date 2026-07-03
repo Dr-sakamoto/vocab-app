@@ -92,6 +92,7 @@ export default function ResultScreen({
     <div
       className="relative overflow-hidden text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6"
       style={{ backgroundImage: tierTheme.pageGradient }}
+      onClick={autoContinueEnabled ? onRestart : undefined}
     >
       <AuroraBackground vivid={isVictory} colors={tierTheme.auroraColors} />
       <motion.div
@@ -310,37 +311,29 @@ export default function ResultScreen({
           </motion.div>
         )}
 
-        <motion.button
-          type="button"
-          onClick={handlePrimary}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={
-            isBattle && !won && battleResult?.battle?.boss
-              ? `${BATTLE_WIN_BUTTON_CLASS} relative w-full overflow-hidden text-base`
-              : `${PRIMARY_BUTTON_CLASS} relative w-full overflow-hidden text-base`
-          }
-        >
-          {autoContinueEnabled && (
-            <span
-              aria-hidden
-              className="absolute inset-y-0 left-0 bg-white/25"
-              style={{
-                width: `${((AUTO_CONTINUE_SECONDS - autoContinueSecondsLeft) / AUTO_CONTINUE_SECONDS) * 100}%`,
-                transition: "width 1s linear",
-              }}
-            />
-          )}
-          <span className="relative">{primaryLabel}</span>
-        </motion.button>
+        {(isBattle || !autoContinueEnabled) && (
+          <motion.button
+            type="button"
+            onClick={handlePrimary}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className={
+              isBattle && !won && battleResult?.battle?.boss
+                ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
+                : `${PRIMARY_BUTTON_CLASS} w-full text-base`
+            }
+          >
+            {primaryLabel}
+          </motion.button>
+        )}
 
         {autoContinueEnabled && (
-          <div className="-mt-2 flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-black text-sm font-bold tabular-nums text-white">
               {autoContinueSecondsLeft}
             </span>
             <p className="text-sm font-semibold text-zinc-700">
-              秒後に自動で次のプレイへ進みます（タップで今すぐ）
+              秒後に次のプレイへ進みます（画面をタップでスキップ）
             </p>
           </div>
         )}
@@ -349,7 +342,10 @@ export default function ResultScreen({
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={onBackToStart}
+              onClick={(e) => {
+                e.stopPropagation();
+                onBackToStart();
+              }}
               className={SECONDARY_BUTTON_CLASS}
             >
               スタートに戻る
