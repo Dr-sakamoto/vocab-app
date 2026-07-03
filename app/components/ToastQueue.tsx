@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ActiveToast } from "@/lib/types";
 
 const MAX_VISIBLE = 3;
-const DEFAULT_LIFETIME = 4200;
+// 段位置ごとの「そこに来てから消えるまで」の残り時間。奥へ押し出されるほど短くする
+const DEPTH_LIFETIMES = [4200, 2000, 1000];
 const DEPTH_SCALE = [1, 0.98, 0.96];
 const DEPTH_OPACITY = [1, 0.82, 0.55];
 
@@ -40,14 +41,15 @@ function ToastRow({
   onDismiss: (instanceId: string) => void;
 }) {
   useEffect(() => {
-    const timer = window.setTimeout(
-      () => onDismiss(toast.instanceId),
-      toast.duration ?? DEFAULT_LIFETIME,
-    );
+    const lifetime =
+      depth === 0
+        ? toast.duration ?? DEPTH_LIFETIMES[0]
+        : DEPTH_LIFETIMES[depth] ?? DEPTH_LIFETIMES[DEPTH_LIFETIMES.length - 1];
+    const timer = window.setTimeout(() => onDismiss(toast.instanceId), lifetime);
     return () => window.clearTimeout(timer);
-    // 個体の表示時間は初回マウント時のdurationのみで決める（依存にtoast/onDismissを含めない）
+    // 段位置(depth)が変わるたび、その段に応じた残り時間で仕切り直す
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toast.instanceId]);
+  }, [toast.instanceId, depth]);
 
   return (
     <motion.div
