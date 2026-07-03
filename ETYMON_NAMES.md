@@ -7,61 +7,59 @@
 
 | 内部ID | 基本形 | 中間形 | 最終形 | ステージ | 動物イメージ | status | section | habitat | type | memo |
 |---|---|---|---|---|---|---|---|---|---|---|
-| bulbasaur | マウス | — | ビッグマウス | 2 | ネズミ | confirmed | A | | | |
-| charmander | ミミ | — | ジゴクミミ | 2 | ウサギ | confirmed | A | | | |
-| squirtle | マナコ | — | センリガン | 2 | メガネザル | confirmed | A | | | |
-| pikachu | ベロロ | — | ベロベロロ | 2 | ワオキツネザル | confirmed | A | | | |
-| weedle | アンヨ | — | イダテン | 2 | チーター | confirmed | A | | | |
-| pidgey | ハナスケ | — | テングバナ | 2 | テングザル | confirmed | A | | | |
-| spearow | ホタル | — | ゴコウ | 2 | 蛍 | confirmed | A | | | |
-| sandshrew | オテテ | — | センジュ | 2 | — | confirmed | A | | | |
-| clefairy | ホシノコ | ヤドリボシ | アマノガワ | 3 | 星（天体） | confirmed | A | | | |
-| oddish | ハル | ハルサメ | ハルイチバン | 3 | — | confirmed | A | | | |
-| seel | シモ | — | シモバシラ | 2 | — | confirmed | A | | | |
-| futtoppara | ハラ | — | フトッパラ | 2 | タヌキ | confirmed | A | | | 元ID未定（ポケモンIDは暫定） |
-| utsuro | ポカン | — | ウツロ | 2 | — | confirmed | A | | | 元ID未定（ポケモンIDは暫定） |
-| rattata | カゲマル | — | クロマク | 2 | — | confirmed | B | | | |
-| zubat | ヨバネ | — | ヨトウガ | 2 | 蛾 | confirmed | B | | | |
-| kasha | カリン | — | カシャ | 2 | ネコ妖怪（火車） | confirmed | C | | | 元ID未定（ポケモンIDは暫定） |
-| toranoi | コン | — | トラノイ | 2 | キツネ（虎の威を借る） | confirmed | D | | | 元ID未定（ポケモンIDは暫定） |
-| ekans | — | — | サカズキ | 単独 | — | confirmed | standalone | | | |
-| hitmonlee | — | — | チュパカブラ | 単独 | — | confirmed | standalone | | | UMA・ラテンアメリカ |
-| onix | — | — | モスマン | 単独 | — | confirmed | standalone | | | UMA・北米 |
-| farfetchd | — | — | ユニコーン | 単独 | — | confirmed | standalone | | | UMA・欧州 |
-| yeti | — | — | イエティ | 単独 | — | confirmed | standalone | | | UMA・ヒマラヤ（枠未定） |
-| oboroduki | — | — | オボロヅキ | 単独 | — | confirmed | standalone | | | 枠未定 |
-| kagerou | — | — | カゲロウ | 単独 | 虫（蜻蛉）×陽炎 | confirmed | standalone | | | 単独。「蜻蛉」と「陽炎」の同音異義（ダブルミーニング）が核 |
-| sasoibiru | — | — | サソイビル | 単独 | チョウチンアンコウ | confirmed | standalone | | | 単独。「誘い火」＝炎／ゴースト属性とアンコウの生態＝水属性のアンバランスさが核 |
-| arai-hiroshi | アライヒロシ | アライヒロシ | アライヒロシ | 3 | 人間（男系） | confirmed | standalone | | | 特殊単独枠。スプライトが基本形→トシカズ化→サブロウ化と変化。名前はヒロシ固定 |
-| arai-rika | アライリカ | アライリカ | アライリカ | 3 | 人間（女系） | confirmed | standalone | | | 特殊単独枠。中間形でトモミorカツヨにランダム分岐。カツヨ経由のみ正規最終形に到達 |
-| caterpie | — | — | — | — | — | pending | A | | | |
-| diglett | — | — | — | — | — | pending | A | | | |
-| jigglypuff | — | — | — | — | — | pending | A | | | |
-| snorlax | — | — | — | — | — | pending | A | | | |
-| venonat | — | — | — | — | — | pending | A | | | カミコ/オリヅル不採用後、再提案待ち |
-| drowzee | — | — | — | — | — | pending | A | | | ナギ/シジマ不採用後、再提案待ち |
-| vulpix | — | — | — | — | — | pending | A | | | 確認待ち |
-| nidoran | — | — | — | — | — | pending | A | | | 確認待ち |
-| growlithe | — | — | — | — | — | pending | A | | | 確認待ち |
-| amabie | — | — | アマビエ | — | — | rejected | — | | | 不採用 |
-| skyfish | — | — | スカイフィッシュ | — | — | rejected | — | | | 削除 |
-| kamaitachi | — | — | カマイタチ | — | — | rejected | — | | | 削除 |
-| kotoha | — | — | コトハ/コトダマ | — | — | rejected | — | | | マウス/ビッグマウスに置換 |
-| daruma | — | — | ダルマ/ヒダルマ | — | — | rejected | — | | | ポケモン既存名と重複（Darumaka/Darmanitan） |
-| hibagon | — | — | ヒバゴン | — | — | rejected | — | | | 不採用 |
-| jerseydevil | — | — | ジャージーデビル | — | — | rejected | — | | | 不採用 |
-| bunyip | — | — | バンイップ | — | — | rejected | — | | | 不採用 |
-| flatwoods | — | — | フラットウッズ | — | — | rejected | — | | | 不採用 |
-| temari | — | — | テマリ/テマリウタ | — | — | rejected | — | | | 不採用 |
-| kraken | — | — | クラーケン | — | — | rejected | — | | | 削除（ユニコーン=欧州・ニンゲン=海洋と地域重複） |
-| kamiko | — | — | カミコ/オリヅル | — | — | rejected | — | | | 不採用（モンスターとしての生き物感に欠ける） |
-| nagi | — | — | ナギ/シジマ | — | — | rejected | — | | | 不採用（ぴったりの水生生物が見つからず） |
-| shirokuma | — | — | シロクマ等 | — | — | rejected | — | | | 知名度・個性はあるが属性のアンバランスやダブルミーニングのコンセプトが乗っていないため却下 |
-| honepajama | — | — | ホネパジャマ | — | — | rejected | — | | | Undertaleのサンズに寄りすぎ／骨モチーフはサカヅキ（ekans）と被るため却下 |
-| akubirocket | — | — | アクビロケット | — | — | rejected | — | | | 一旦採用としたが最終的に取り下げ。Section Dへの追加は見送り |
-| kesaranpasaran | — | — | ケサランパサラン | — | — | rejected | — | | | UMA枠の中で知名度・見た目のインパクトが最も弱かったため削除 |
-
----
+| bulbasaur | マウス | — | ビッグマウス | 2 | ネズミ | confirmed | A |  | 悪・ノーマル |  |
+| charmander | ミミ | — | ジゴクミミ | 2 | ウサギ | confirmed | A | スターター | 炎・ゴースト・フェアリー |  |
+| squirtle | マナコ | — | センリガン | 2 | タカ | confirmed | A |  | 飛行・エスパー |  |
+| pikachu | ベロロ | — | ベロベロロ | 2 | ワオキツネザル | confirmed | A | 森・草原・川・廃墟 | ノーマル |  |
+| weedle | アンヨ | — | イダテン | 2 | チーター | confirmed | A | 草原・砂漠 | 電気・格闘・ノーマル |  |
+| pidgey | ハナスケ | — | テングバナ | 2 | テングザル | confirmed | A | 川・湿地 | 草・飛行・悪 |  |
+| spearow | ホタル | — | ゴコウ | 2 | 蛍 | confirmed | A | 森・川・ほしのくもい | 虫・フェアリー・神 |  |
+| sandshrew | シュシュ | — | センジュ | 2 | ヒトデ、テヅルモヅル | confirmed | A | 海・深海 | 水・岩・神 |  |
+| clefairy | ホシノコ | ヤドリボシ | アマノガワ | 3 | 星（天体） | confirmed | A | 空・ほしのくもい | フェアリー・星 |  |
+| oddish | ハル | ハルサメ | ハルイチバン | 3 | ツバメ | confirmed | A | 森・草原・空・都市・ほしのくもい | 水・格闘・飛行 |  |
+| seel | シモ | — | シモバシラ | 2 | 霜、霜柱、ドラクエのスライム | confirmed | A | 雪山 | 氷 |  |
+| futtoppara | ハラガル | — | ハラタイコウ | 2 | タヌキ、太閤 | confirmed | A | 森・草原・空 | ノーマル | 元ID未定（ポケモンIDは暫定） |
+| utsuro | ポカン | — | ウツロ | 2 | ブラックホール | confirmed | A | ほしのくもい | 星・闇 | 元ID未定（ポケモンIDは暫定） |
+| rattata | カゲマル | — | クロマク | 2 | イカ | confirmed | B | 海・深海 |  |  |
+| zubat | ヨバネ | — | ヨトウガ | 2 | 蛾 | confirmed | B | 森・草原・都市・廃墟 | 虫・悪・闇 |  |
+| kasha | カリン | — | カシャ | 2 | ネコ妖怪（火車） | confirmed | C | 都市・廃墟・地獄 | 炎・悪・闇 | 元ID未定（ポケモンIDは暫定） |
+| toranoi | コトラ | — | トラノイ | 2 | キツネ（虎の威を借る） | confirmed | D | 森・草原・都市・廃墟 | 悪・ノーマル | 元ID未定（ポケモンIDは暫定） |
+| ekans | — | — | サカズキ | 単独 | ドクロ | confirmed | standalone | 洞窟・地獄 | 水・ゴースト・闇 |  |
+| hitmonlee | — | — | チュパカブラ | 単独 | — | confirmed | standalone | 田舎 | UMA | UMA・ラテンアメリカ |
+| onix | — | — | モスマン | 単独 | — | confirmed | standalone | 森 | UMA | UMA・北米 |
+| farfetchd | — | — | ユニコーン | 単独 | — | confirmed | standalone | 森 | フェアリー・ノーマル・UMA | UMA・欧州 |
+| yeti | — | — | イエティ | 単独 | — | confirmed | standalone | 雪山 | UMA | UMA・ヒマラヤ（枠未定） |
+| oboroduki | — | — | オボロヅキ | 単独 | オボロ（雲）と月のペア | confirmed | standalone | 森・空・ほしのくもい・田舎 | 岩・星 | 枠未定 |
+| kagerou | — | — | カゲロウ | 単独 | 虫（蜻蛉）×陽炎 | confirmed | standalone | 森・草原・砂漠・田舎 | 炎・虫 | 単独。「蜻蛉」と「陽炎」の同音異義（ダブルミーニング）が核 |
+| sasoibiru | — | — | サソイビル | 単独 | チョウチンアンコウ | confirmed | standalone | 海・深海・地下 | 炎・水・ゴースト | 単独。「誘い火」＝炎／ゴースト属性とアンコウの生態＝水属性のアンバランスさが核 |
+| arai-hiroshi | アライヒロシ | アライヒロシ | アライヒロシ | 3 | 人間（男系） | confirmed | standalone | 森・都市・廃墟 | ノーマル | 特殊単独枠。スプライトが基本形→トシカズ化→サブロウ化と変化。名前はヒロシ固定 |
+| arai-rika | アライリカ | アライリカ | アライリカ | 3 | 人間（女系） | confirmed | standalone | 都市・廃墟・田舎 | UMA | 特殊単独枠。中間形でトモミorカツヨにランダム分岐。カツヨ経由のみ正規最終形に到達 |
+| caterpie | — | — | — | — | — | pending | A |  |  |  |
+| diglett | — | — | — | — | — | pending | A |  |  |  |
+| jigglypuff | — | — | — | — | — | pending | A |  |  |  |
+| snorlax | — | — | — | — | — | pending | A |  |  |  |
+| venonat | — | — | — | — | — | pending | A |  |  | カミコ/オリヅル不採用後、再提案待ち |
+| drowzee | — | — | — | — | — | pending | A |  |  | ナギ/シジマ不採用後、再提案待ち |
+| vulpix | — | — | — | — | — | pending | A |  |  | 確認待ち |
+| nidoran | — | — | — | — | — | pending | A |  |  | 確認待ち |
+| growlithe | — | — | — | — | — | pending | A |  |  | 確認待ち |
+| amabie | — | — | アマビエ | — | — | rejected | — |  |  | 不採用 |
+| skyfish | — | — | スカイフィッシュ | — | — | rejected | — |  |  | 削除 |
+| kamaitachi | — | — | カマイタチ | — | — | rejected | — |  |  | 削除 |
+| kotoha | — | — | コトハ/コトダマ | — | — | rejected | — |  |  | マウス/ビッグマウスに置換 |
+| daruma | — | — | ダルマ/ヒダルマ | — | — | rejected | — |  |  | ポケモン既存名と重複（Darumaka/Darmanitan） |
+| hibagon | — | — | ヒバゴン | — | — | rejected | — |  |  | 不採用 |
+| jerseydevil | — | — | ジャージーデビル | — | — | rejected | — |  |  | 不採用 |
+| bunyip | — | — | バンイップ | — | — | rejected | — |  |  | 不採用 |
+| flatwoods | — | — | フラットウッズ | — | — | rejected | — |  |  | 不採用 |
+| temari | — | — | テマリ/テマリウタ | — | — | rejected | — |  |  | 不採用 |
+| kraken | — | — | クラーケン | — | — | rejected | — |  |  | 削除（ユニコーン=欧州・ニンゲン=海洋と地域重複） |
+| kamiko | — | — | カミコ/オリヅル | — | — | rejected | — |  |  | 不採用（モンスターとしての生き物感に欠ける） |
+| nagi | — | — | ナギ/シジマ | — | — | rejected | — |  |  | 不採用（ぴったりの水生生物が見つからず） |
+| shirokuma | — | — | シロクマ等 | — | — | rejected | — |  |  | 知名度・個性はあるが属性のアンバランスやダブルミーニングのコンセプトが乗っていないため却下 |
+| honepajama | — | — | ホネパジャマ | — | — | rejected | — |  |  | Undertaleのサンズに寄りすぎ／骨モチーフはサカヅキ（ekans）と被るため却下 |
+| akubirocket | — | — | アクビロケット | — | — | rejected | — |  |  | 一旦採用としたが最終的に取り下げ。Section Dへの追加は見送り |
+| kesaranpasaran | — | — | ケサランパサラン | — | — | rejected | — |  |  | UMA枠の中で知名度・見た目のインパクトが最も弱かったため削除 |
 
 ## 使用済みモチーフ一覧
 
