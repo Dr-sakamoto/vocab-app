@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import AuroraBackground from "./AuroraBackground";
 import { getTierTheme } from "@/lib/tierTheme";
@@ -12,11 +12,12 @@ const SECONDARY_BUTTON_CLASS =
 const BATTLE_WIN_BUTTON_CLASS =
   "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 text-sm font-bold text-white shadow-lg shadow-rose-200 hover:from-rose-500 hover:to-red-500 disabled:opacity-40 transition";
 
+const AUTO_CONTINUE_SECONDS = 5;
+
 interface ResultScreenProps {
   unlockedThisRun: number;
   evaluation: any;
   onRestart: () => void;
-  onOpenDashboard: () => void;
   onBackToStart: () => void;
   battleResult?: any;
   playLimit?: number;
@@ -32,7 +33,6 @@ export default function ResultScreen({
   unlockedThisRun,
   evaluation,
   onRestart,
-  onOpenDashboard,
   onBackToStart,
   battleResult = null,
   playLimit = 10,
@@ -51,6 +51,23 @@ export default function ResultScreen({
   const canMasterBallCatch =
     masterBallAvailable && captureFailed && battleResult?.capture?.lineId;
   const showWildMasterBall = masterBallAvailable && wildCaptureFailed;
+
+  // 野生プレイの結果画面のみ、フローを止めないよう一定時間で自動的に次のプレイへ進む。
+  // マスターボールでの再捕獲を選べる間は、その判断を奪わないよう自動継続しない。
+  const autoContinueEnabled = !isBattle && !showWildMasterBall;
+  const [autoContinueSecondsLeft, setAutoContinueSecondsLeft] = useState(AUTO_CONTINUE_SECONDS);
+
+  useEffect(() => {
+    if (!autoContinueEnabled) return undefined;
+    if (autoContinueSecondsLeft <= 0) {
+      onRestart();
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      setAutoContinueSecondsLeft((seconds) => seconds - 1);
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [autoContinueEnabled, autoContinueSecondsLeft, onRestart]);
 
   const shellClass = isBattle
     ? won
@@ -138,20 +155,6 @@ export default function ResultScreen({
             </div>
           </motion.div>
         )}
-
-        <motion.button
-          type="button"
-          onClick={handlePrimary}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={
-            isBattle && !won && battleResult?.battle?.boss
-              ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
-              : `${PRIMARY_BUTTON_CLASS} w-full text-base`
-          }
-        >
-          {primaryLabel}
-        </motion.button>
 
         {evaluation && (
           <motion.div
@@ -307,15 +310,28 @@ export default function ResultScreen({
           </motion.div>
         )}
 
+        <motion.button
+          type="button"
+          onClick={handlePrimary}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={
+            isBattle && !won && battleResult?.battle?.boss
+              ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
+              : `${PRIMARY_BUTTON_CLASS} w-full text-base`
+          }
+        >
+          {primaryLabel}
+        </motion.button>
+
+        {autoContinueEnabled && (
+          <p className="-mt-3 text-center text-xs text-emerald-800/70">
+            {autoContinueSecondsLeft}秒後に自動で次へ進みます（タップでスキップ）
+          </p>
+        )}
+
         {!isBattle && (
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={onOpenDashboard}
-              className={SECONDARY_BUTTON_CLASS}
-            >
-              進捗ダッシュボード
-            </button>
             <button
               type="button"
               onClick={onBackToStart}

@@ -1386,7 +1386,6 @@ export default function Page() {
           masterBallAvailable={canUseMasterBall(storyProgress)}
           onUseMasterBall={handleUseMasterBall}
           onRestart={restart}
-          onOpenDashboard={() => openDashboard("result")}
           onBackToStart={backToStart}
         />
         <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
