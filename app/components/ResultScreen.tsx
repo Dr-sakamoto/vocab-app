@@ -12,7 +12,7 @@ const SECONDARY_BUTTON_CLASS =
 const BATTLE_WIN_BUTTON_CLASS =
   "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 text-sm font-bold text-white shadow-lg shadow-rose-200 hover:from-rose-500 hover:to-red-500 disabled:opacity-40 transition";
 
-const AUTO_CONTINUE_SECONDS = 5;
+const AUTO_CONTINUE_SECONDS = 10;
 
 interface ResultScreenProps {
   unlockedThisRun: number;
@@ -317,17 +317,32 @@ export default function ResultScreen({
           whileTap={{ scale: 0.98 }}
           className={
             isBattle && !won && battleResult?.battle?.boss
-              ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
-              : `${PRIMARY_BUTTON_CLASS} w-full text-base`
+              ? `${BATTLE_WIN_BUTTON_CLASS} relative w-full overflow-hidden text-base`
+              : `${PRIMARY_BUTTON_CLASS} relative w-full overflow-hidden text-base`
           }
         >
-          {primaryLabel}
+          {autoContinueEnabled && (
+            <span
+              aria-hidden
+              className="absolute inset-y-0 left-0 bg-white/25"
+              style={{
+                width: `${((AUTO_CONTINUE_SECONDS - autoContinueSecondsLeft) / AUTO_CONTINUE_SECONDS) * 100}%`,
+                transition: "width 1s linear",
+              }}
+            />
+          )}
+          <span className="relative">{primaryLabel}</span>
         </motion.button>
 
         {autoContinueEnabled && (
-          <p className="-mt-3 text-center text-xs text-emerald-800/70">
-            {autoContinueSecondsLeft}秒後に自動で次へ進みます（タップでスキップ）
-          </p>
+          <div className="-mt-2 flex items-center justify-center gap-2">
+            <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-black text-sm font-bold tabular-nums text-white">
+              {autoContinueSecondsLeft}
+            </span>
+            <p className="text-sm font-semibold text-zinc-700">
+              秒後に自動で次のプレイへ進みます（タップで今すぐ）
+            </p>
+          </div>
         )}
 
         {!isBattle && (
