@@ -90,6 +90,14 @@ import { getFieldPalette, fieldPaletteToCssVars } from "@/lib/fieldPalette";
 import { QUESTIONS } from "@/lib/vocab";
 import { GAME, STORAGE_KEYS } from "@/lib/constants";
 import {
+  EMPTY_STREAK,
+  StreakState,
+  getDisplayStreak,
+  normalizeStreak,
+  recordPlay,
+  toDateKey,
+} from "@/lib/streak";
+import {
   GameView,
   WordStat,
   Battle,
@@ -267,6 +275,10 @@ export default function Page() {
   );
   const [isPokemonBoxOpen, setIsPokemonBoxOpen] = useState<boolean>(false);
   const savedCollectionExistsRef = useRef<boolean>(false);
+
+  const [dailyStreak, setDailyStreak] = useState<StreakState>(() =>
+    normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)),
+  );
 
   const [approvedAnswers, setApprovedAnswers] = useState<Record<string, string[]>>(() => {
     try { return JSON.parse(localStorage.getItem(APPROVED_ANSWERS_KEY) ?? "{}"); } catch { return {}; }
@@ -1142,6 +1154,15 @@ export default function Page() {
     [],
   );
 
+  // プレイ開始時に「今日プレイした」ことを記録し、毎日ストリークを更新する。
+  const markDailyPlay = useCallback(() => {
+    setDailyStreak((prev) => {
+      const next = recordPlay(prev, toDateKey(new Date()));
+      if (next !== prev) storage.set(STORAGE_KEYS.STREAK, next);
+      return next;
+    });
+  }, []);
+
   const resetPlayState = useCallback(
     ({ keepHabitat = true, battle = null }: { keepHabitat?: boolean; battle?: Battle | null } = {}) => {
       resetSession();
@@ -1166,6 +1187,7 @@ export default function Page() {
     (battleId: string, progress: StoryProgress, collection: MonsterCollection) => {
       const battle = getBattleForProgress(battleId, progress);
       if (!battle) return;
+      markDailyPlay();
       const nextStory = startBattleSessionForPage(progress, battleId);
       setStoryProgress(nextStory);
       storyProgressRef.current = nextStory;
@@ -1178,7 +1200,7 @@ export default function Page() {
       persistProgress({ nextStory, nextCollection: collection });
       setActiveView("study");
     },
-    [persistProgress, resetPlayState],
+    [markDailyPlay, persistProgress, resetPlayState],
   );
 
   const startBattle = useCallback(
@@ -1267,22 +1289,24 @@ export default function Page() {
   ]);
 
   const startGame = useCallback(() => {
+    markDailyPlay();
     setActiveBattle(null);
     activeBattleRef.current = null;
     setFlowPlayCount(1);
     resetPlayState({ keepHabitat: true, battle: null });
     setActiveView("study");
-  }, [resetPlayState]);
+  }, [markDailyPlay, resetPlayState]);
 
   const restart = useCallback(() => {
     if (completedBattleResult?.battle && completedBattleResult.lost) {
       startBattle(completedBattleResult.battle.id);
       return;
     }
+    markDailyPlay();
     setFlowPlayCount((count) => count + 1);
     resetPlayState({ keepHabitat: true, battle: null });
     setActiveView("study");
-  }, [completedBattleResult, resetPlayState, startBattle]);
+  }, [completedBattleResult, markDailyPlay, resetPlayState, startBattle]);
 
   const backToStart = useCallback(() => {
     setFlowPlayCount(1);
@@ -1442,6 +1466,7 @@ export default function Page() {
 
   if (activeView === "start") {
     const poolPct = Math.min(100, (unlockedPoolSize / VOCAB_ITEMS.length) * 100);
+    const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
     return (
       <>
         <div
@@ -1470,12 +1495,21 @@ export default function Page() {
                   <h1 className="font-display text-2xl font-bold text-white tracking-tight drop-shadow-[0_0_18px_rgba(255,255,255,0.35)]">
                     英単語クイズ
                   </h1>
-                  <div className="mt-1 flex items-center gap-1.5 text-black text-sm">
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-black text-sm">
                     <span>{currentHabitat?.name || "—"}</span>
                     <span>·</span>
                     <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold text-white">
                       {currentTier.label} ×{currentTier.multiplier}
                     </span>
+                    {displayStreak > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full bg-white/20 border border-white/30 px-2 py-0.5 text-xs font-bold text-white"
+                        title={`最長 ${dailyStreak.longest} 日連続`}
+                        aria-label={`${displayStreak}日連続プレイ中。最長${dailyStreak.longest}日連続`}
+                      >
+                        🔥 {displayStreak}日連続
+                      </span>
+                    )}
                   </div>
 
                   {/* プール進捗バー */}
