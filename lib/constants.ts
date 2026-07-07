@@ -23,6 +23,7 @@ export const STORAGE_KEYS = {
   MONSTER_LINE_ID: "monster-line-id",
   MONSTER_COLLECTION: "monster-collection",
   STORY_PROGRESS: "story-progress",
+  STREAK: "vocab-daily-streak",
 } as const;
 
 export const BUTTON_CLASSES = {
