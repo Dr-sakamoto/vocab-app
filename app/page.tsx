@@ -276,9 +276,9 @@ export default function Page() {
   const [isPokemonBoxOpen, setIsPokemonBoxOpen] = useState<boolean>(false);
   const savedCollectionExistsRef = useRef<boolean>(false);
 
-  const [dailyStreak, setDailyStreak] = useState<StreakState>(() =>
-    normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)),
-  );
+  // SSR とハイドレーションの不一致を避けるため、初期値は空で、実データは
+  // マウント後の localStorage 復元 useEffect で読み込む。
+  const [dailyStreak, setDailyStreak] = useState<StreakState>(EMPTY_STREAK);
 
   const [approvedAnswers, setApprovedAnswers] = useState<Record<string, string[]>>(() => {
     try { return JSON.parse(localStorage.getItem(APPROVED_ANSWERS_KEY) ?? "{}"); } catch { return {}; }
@@ -635,6 +635,9 @@ export default function Page() {
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
     try {
+      // 毎日ストリーク
+      setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
+
       // プールサイズ
       let loadedPoolSize = Math.min(GAME.INITIAL_POOL_SIZE, VOCAB_ITEMS.length);
       const savedPool = Number(storage.get(STORAGE_KEYS.POOL_SIZE, null));
