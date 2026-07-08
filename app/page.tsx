@@ -1508,15 +1508,17 @@ export default function Page() {
                   <h1 className="font-display text-2xl font-bold text-white tracking-tight drop-shadow-[0_0_18px_rgba(255,255,255,0.35)]">
                     英単語クイズ
                   </h1>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-black text-sm">
-                    <span>{currentHabitat?.name || "—"}</span>
+                  {/* マーブル背景は明滅するので、テキストは白+シャドウ、チップは暗色半透明で
+                      どの色局面でも読めるようにする */}
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-white text-sm [text-shadow:0_1px_6px_rgba(20,20,50,0.5)]">
+                    <span className="font-semibold">{currentHabitat?.name || "—"}</span>
                     <span>·</span>
-                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold text-white">
+                    <span className="rounded-full bg-black/30 border border-white/25 px-2 py-0.5 text-xs font-bold text-white [text-shadow:none]">
                       {currentTier.label} ×{currentTier.multiplier}
                     </span>
                     {displayStreak > 0 && (
                       <span
-                        className="inline-flex items-center gap-1 rounded-full bg-white/20 border border-white/30 px-2 py-0.5 text-xs font-bold text-white"
+                        className="inline-flex items-center gap-1 rounded-full bg-black/30 border border-white/25 px-2 py-0.5 text-xs font-bold text-white [text-shadow:none]"
                         title={`最長 ${dailyStreak.longest} 日連続`}
                         aria-label={`${displayStreak}日連続プレイ中。最長${dailyStreak.longest}日連続`}
                       >
@@ -1527,10 +1529,10 @@ export default function Page() {
 
                   {/* プール進捗バー */}
                   <div className="mt-4">
-                    <div className="flex items-baseline justify-between mb-1.5">
-                      <span className="text-xs text-black">出題プール</span>
+                    <div className="flex items-baseline justify-between mb-1.5 [text-shadow:0_1px_6px_rgba(20,20,50,0.5)]">
+                      <span className="text-xs text-white/90">出題プール</span>
                       <span className="text-xs font-semibold text-white tabular-nums">
-                        {unlockedPoolSize} <span className="text-black font-normal">/ {VOCAB_ITEMS.length}</span>
+                        {unlockedPoolSize} <span className="text-white/75 font-normal">/ {VOCAB_ITEMS.length}</span>
                       </span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-white/20">
@@ -1549,16 +1551,16 @@ export default function Page() {
                       {storyProgress.badges.map((badge) => (
                         <span
                           key={badge}
-                          className="rounded-full bg-white/20 border border-white/30 px-2.5 py-0.5 text-xs font-semibold text-white"
+                          className="rounded-full bg-black/30 border border-white/25 px-2.5 py-0.5 text-xs font-semibold text-white"
                         >
-                          {badge}
+                          {badge}バッジ
                         </span>
                       ))}
                     </div>
                   )}
 
                   {canUseMasterBall(storyProgress) && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
+                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/30 px-2.5 py-1 text-xs font-semibold text-white">
                       ◎ マスターボール所持
                     </div>
                   )}
@@ -1770,7 +1772,7 @@ export default function Page() {
                   <div className="text-xs font-semibold uppercase tracking-widest text-black">
                     {getPartOfSpeech(q)}
                   </div>
-                  <div className="font-display mt-3 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
+                  <div className="mt-3 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
                     {q.target}
                   </div>
                 </div>
