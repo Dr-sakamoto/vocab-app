@@ -57,6 +57,23 @@ textarea {
   -webkit-user-select: text;
 }
 
+/* クイズ画面のシェル（モバイルのみ）。
+   通常フロー + sticky だとキーボード表示時に視覚ビューポートだけが
+   縮小・パンして上部のトレーナーバーが画面外に消えるため、
+   useVisualViewportVars が :root に反映する --vvh / --vvt を使って
+   画面全体を視覚ビューポートにピン留めする。
+   キーボード表示中もトレーナーバーと回答ボタンが常に画面内に残る。 */
+@media (width < 40rem) {
+  .quiz-shell {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: var(--vvt, 0px);
+    height: var(--vvh, 100dvh);
+    min-height: 0;
+  }
+}
+
 /* タップハイライトの削除（アクティブ状態は別で定義） */
 button,
 input,

@@ -89,8 +89,11 @@ export default function ResultScreen({
   const handlePrimary = isBattle && won ? onBackToStart : onRestart;
 
   return (
+    // shrink-0: body は高さ固定の flex コラムなので、これがないとコンテンツが
+    // 長いときにビューポート高さまで潰され、中央寄せ + overflow-hidden で
+    // 上下が見切れてスクロールもできなくなる（特にモバイルのバトル結果画面）
     <div
-      className="relative overflow-hidden text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6"
+      className="relative shrink-0 overflow-hidden text-zinc-900 flex flex-col items-center justify-center min-h-svh sm:min-h-screen p-4 sm:p-6"
       style={{ backgroundImage: tierTheme.pageGradient }}
       onClick={autoContinueEnabled ? onRestart : undefined}
     >
@@ -118,11 +121,11 @@ export default function ResultScreen({
               } text-white`}
             >
               {battleResult.trainerSprite ? (
-                <div className="flex w-32 shrink-0 items-center justify-center bg-black/10 p-3">
+                <div className="flex w-20 shrink-0 items-center justify-center bg-black/10 p-2 sm:w-32 sm:p-3">
                   <img
                     src={battleResult.trainerSprite}
                     alt=""
-                    className="h-24 w-auto object-contain"
+                    className="h-16 w-auto object-contain sm:h-24"
                     style={{ imageRendering: "pixelated" }}
                   />
                 </div>
@@ -144,7 +147,7 @@ export default function ResultScreen({
                 </p>
               </div>
               {battleResult.opponentSprite ? (
-                <div className="flex w-24 shrink-0 items-center justify-center bg-black/10 p-3">
+                <div className="hidden w-24 shrink-0 items-center justify-center bg-black/10 p-3 sm:flex">
                   <img
                     src={battleResult.opponentSprite}
                     alt=""
