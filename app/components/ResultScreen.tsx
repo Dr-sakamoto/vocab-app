@@ -6,11 +6,11 @@ import AuroraBackground from "./AuroraBackground";
 import { getTierTheme } from "@/lib/tierTheme";
 
 const PRIMARY_BUTTON_CLASS =
-  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-lg shadow-black/30 hover:shadow-black/40 disabled:opacity-40 transition-shadow";
+  "btn-3d [--btn-edge:#52525b] inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white disabled:opacity-40";
 const SECONDARY_BUTTON_CLASS =
-  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-black hover:bg-zinc-50 disabled:opacity-40 transition-colors";
+  "btn-3d [--btn-edge:rgba(63,63,70,0.18)] inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-black hover:bg-zinc-50 disabled:opacity-40";
 const BATTLE_WIN_BUTTON_CLASS =
-  "inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 text-sm font-bold text-white shadow-lg shadow-rose-200 hover:from-rose-500 hover:to-red-500 disabled:opacity-40 transition";
+  "btn-3d btn-shine [--btn-edge:#881337] inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 text-sm font-bold text-white disabled:opacity-40";
 
 const AUTO_CONTINUE_SECONDS = 10;
 
@@ -289,16 +289,14 @@ export default function ResultScreen({
 
         {(canMasterBallCatch || showWildMasterBall) &&
           onUseMasterBall && (
-            <motion.button
+            <button
               type="button"
               onClick={onUseMasterBall}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-400 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-violet-200 hover:from-violet-500 hover:to-purple-500 transition"
+              className="btn-3d btn-shine [--btn-edge:#4c1d95] flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-400 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-3 text-sm font-bold text-white hover:from-violet-500 hover:to-purple-500"
             >
               <span className="text-lg">◎</span>
               マスターボールを使って捕獲する
-            </motion.button>
+            </button>
           )}
 
         {unlockedThisRun > 0 && (
@@ -312,11 +310,9 @@ export default function ResultScreen({
         )}
 
         {(isBattle || !autoContinueEnabled) && (
-          <motion.button
+          <button
             type="button"
             onClick={handlePrimary}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
             className={
               isBattle && !won && battleResult?.battle?.boss
                 ? `${BATTLE_WIN_BUTTON_CLASS} w-full text-base`
@@ -324,7 +320,7 @@ export default function ResultScreen({
             }
           >
             {primaryLabel}
-          </motion.button>
+          </button>
         )}
 
         {autoContinueEnabled && (

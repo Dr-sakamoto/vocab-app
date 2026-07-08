@@ -395,6 +395,97 @@ a {
   }
 }
 
+/* ── ゲーム風の押し込みボタン（3D） ──────────────────────────────────────
+   下辺に「厚み」を持たせ、押すと physically 沈む。ゲーム機のボタンの触感を
+   CSSだけで再現する。--btn-edge で厚み部分の色をボタンごとに調整できる */
+.btn-3d {
+  --btn-edge: rgba(0, 0, 0, 0.3);
+  transform: translateY(0);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease,
+    filter 0.15s ease;
+  box-shadow:
+    0 4px 0 var(--btn-edge),
+    0 12px 20px -8px rgba(0, 0, 0, 0.28);
+}
+.btn-3d:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.btn-3d:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 var(--btn-edge),
+    0 4px 8px -4px rgba(0, 0, 0, 0.2);
+}
+.btn-3d:disabled {
+  box-shadow: none;
+}
+
+/* CTAボタンの表面をときどき光が走る（常時ではなく、間を置いて1回ずつ） */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 60%
+  );
+  transform: translateX(-120%);
+  animation: btn-shine-sweep 3.8s ease-in-out infinite;
+}
+@keyframes btn-shine-sweep {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  85%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* ── 背景の奥行きレイヤー ────────────────────────────────────────────────
+   画面中央に向かって薄いドットグリッドが浮かぶ＋外周をほんのり落とす。
+   オーロラブロブと重ねることで「空間の中にUIが浮いている」感を出す */
+.scene-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    rgba(30, 41, 59, 0.14) 1px,
+    transparent 1.5px
+  );
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 90% 70% at 50% 38%,
+    black 20%,
+    transparent 78%
+  );
+  mask-image: radial-gradient(
+    ellipse 90% 70% at 50% 38%,
+    black 20%,
+    transparent 78%
+  );
+}
+.scene-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    transparent 55%,
+    rgba(49, 46, 129, 0.09) 100%
+  );
+}
+
 /* ネオン風グロー（枠の外側にぼんやり光を落とす） */
 .neon-glow {
   box-shadow:
@@ -428,7 +519,8 @@ a {
   .field-marble::before,
   .field-marble::after,
   .field-dots-1,
-  .field-dots-2 {
+  .field-dots-2,
+  .btn-shine::after {
     animation: none;
   }
 }
