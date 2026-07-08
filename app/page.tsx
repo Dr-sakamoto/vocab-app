@@ -14,6 +14,7 @@ import ResultScreen from "./components/ResultScreen";
 import ToastQueue from "./components/ToastQueue";
 import TrainerChallengeAlert from "./components/TrainerChallengeAlert";
 import SyncButton from "./components/SyncButton";
+import TiltCard from "./components/quiz/TiltCard";
 import {
   useGameSession,
 } from "./hooks/useGameSession";
@@ -23,6 +24,7 @@ import {
 import {
   useKeyboardShortcuts,
 } from "./hooks/useKeyboardShortcuts";
+import { useClickSound } from "./hooks/useClickSound";
 import {
   useVisualViewportVars,
 } from "./hooks/useVisualViewport";
@@ -1382,6 +1384,9 @@ export default function Page() {
     restart,
   });
 
+  // 全ボタン共通の「カチャ」というクリック音
+  useClickSound();
+
   // モバイルのキーボード表示に合わせてクイズ画面を視覚ビューポートに収める
   useVisualViewportVars();
 
@@ -1483,6 +1488,8 @@ export default function Page() {
           style={{ backgroundImage: tierTheme.pageGradient }}
         >
           <AuroraBackground vivid colors={tierTheme.auroraColors} />
+          <div className="scene-grid" aria-hidden />
+          <div className="scene-vignette" aria-hidden />
           <div className="relative z-10 w-full max-w-md space-y-3">
             {/* メインカード */}
             <motion.div
@@ -1493,10 +1500,13 @@ export default function Page() {
             >
               {/* グラデーションヘッダー（渦を巻く液体クロームの背景+ゆっくり明滅する光の粒。
                   フィールドごとの配色は lib/fieldPalette.ts で手動設定する。未設定の間は
-                  フォールバック配色になる） */}
+                  ティア（出題プールの進捗）に連動したパレットになり、ステージが進むほど
+                  ヘッダーの雰囲気が変わる */}
               <div
                 className="field-marble relative overflow-hidden px-6 pt-6 pb-6"
-                style={fieldPaletteToCssVars(getFieldPalette(undefined))}
+                style={fieldPaletteToCssVars(
+                  getFieldPalette(currentHabitat?.id, tierTheme.marble),
+                )}
               >
                 <div className="field-dots field-dots-1" />
                 <div className="field-dots field-dots-2" />
@@ -1504,15 +1514,17 @@ export default function Page() {
                   <h1 className="font-display text-2xl font-bold text-white tracking-tight drop-shadow-[0_0_18px_rgba(255,255,255,0.35)]">
                     英単語クイズ
                   </h1>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-black text-sm">
-                    <span>{currentHabitat?.name || "—"}</span>
+                  {/* マーブル背景は明滅するので、テキストは白+シャドウ、チップは暗色半透明で
+                      どの色局面でも読めるようにする */}
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-white text-sm [text-shadow:0_1px_6px_rgba(20,20,50,0.5)]">
+                    <span className="font-semibold">{currentHabitat?.name || "—"}</span>
                     <span>·</span>
-                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold text-white">
+                    <span className="rounded-full bg-black/30 border border-white/25 px-2 py-0.5 text-xs font-bold text-white [text-shadow:none]">
                       {currentTier.label} ×{currentTier.multiplier}
                     </span>
                     {displayStreak > 0 && (
                       <span
-                        className="inline-flex items-center gap-1 rounded-full bg-white/20 border border-white/30 px-2 py-0.5 text-xs font-bold text-white"
+                        className="inline-flex items-center gap-1 rounded-full bg-black/30 border border-white/25 px-2 py-0.5 text-xs font-bold text-white [text-shadow:none]"
                         title={`最長 ${dailyStreak.longest} 日連続`}
                         aria-label={`${displayStreak}日連続プレイ中。最長${dailyStreak.longest}日連続`}
                       >
@@ -1523,10 +1535,10 @@ export default function Page() {
 
                   {/* プール進捗バー */}
                   <div className="mt-4">
-                    <div className="flex items-baseline justify-between mb-1.5">
-                      <span className="text-xs text-black">出題プール</span>
+                    <div className="flex items-baseline justify-between mb-1.5 [text-shadow:0_1px_6px_rgba(20,20,50,0.5)]">
+                      <span className="text-xs text-white/90">出題プール</span>
                       <span className="text-xs font-semibold text-white tabular-nums">
-                        {unlockedPoolSize} <span className="text-black font-normal">/ {VOCAB_ITEMS.length}</span>
+                        {unlockedPoolSize} <span className="text-white/75 font-normal">/ {VOCAB_ITEMS.length}</span>
                       </span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-white/20">
@@ -1545,16 +1557,16 @@ export default function Page() {
                       {storyProgress.badges.map((badge) => (
                         <span
                           key={badge}
-                          className="rounded-full bg-white/20 border border-white/30 px-2.5 py-0.5 text-xs font-semibold text-white"
+                          className="rounded-full bg-black/30 border border-white/25 px-2.5 py-0.5 text-xs font-semibold text-white"
                         >
-                          {badge}
+                          {badge}バッジ
                         </span>
                       ))}
                     </div>
                   )}
 
                   {canUseMasterBall(storyProgress) && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
+                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/30 px-2.5 py-1 text-xs font-semibold text-white">
                       ◎ マスターボール所持
                     </div>
                   )}
@@ -1564,30 +1576,26 @@ export default function Page() {
               {/* ボタンエリア */}
               <div className="bg-white px-5 py-5 space-y-2.5">
                 {startScreenBattle && (
-                  <motion.button
+                  <button
                     type="button"
                     onClick={() => startBattle(startScreenBattle.id)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 text-sm font-bold text-white shadow-md shadow-rose-200 hover:shadow-rose-300 transition-shadow"
+                    className="btn-3d btn-shine [--btn-edge:#9f1239] w-full h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 text-sm font-bold text-white"
                   >
                     ⚔ {startScreenBattle.name}とたたかう！
-                  </motion.button>
+                  </button>
                 )}
-                <motion.button
+                <button
                   type="button"
                   onClick={startGame}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full h-12 rounded-2xl bg-black text-sm font-semibold text-white shadow-lg shadow-black/30 hover:shadow-black/40 transition-shadow"
+                  className="btn-3d btn-shine [--btn-edge:#52525b] w-full h-12 rounded-2xl bg-black text-sm font-semibold text-white"
                 >
                   1プレイ開始（10問）
-                </motion.button>
+                </button>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => openDashboard("start")}
-                    className="flex-1 h-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-black hover:bg-zinc-50 transition-colors"
+                    className="btn-3d [--btn-edge:rgba(63,63,70,0.18)] flex-1 h-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-black hover:bg-zinc-50 transition-colors"
                   >
                     進捗
                   </button>
@@ -1595,7 +1603,7 @@ export default function Page() {
                     type="button"
                     onClick={() => setIsPokemonBoxOpen(true)}
                     aria-expanded={isPokemonBoxOpen}
-                    className="flex-1 h-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-black hover:bg-zinc-50 transition-colors"
+                    className="btn-3d [--btn-edge:rgba(63,63,70,0.18)] flex-1 h-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-black hover:bg-zinc-50 transition-colors"
                   >
                     ポケモン
                   </button>
@@ -1670,6 +1678,8 @@ export default function Page() {
         style={{ backgroundImage: tierTheme.quizGradient }}
       >
         <AuroraBackground vivid colors={tierTheme.auroraColors} />
+        <div className="scene-grid hidden sm:block" aria-hidden />
+        <div className="scene-vignette hidden sm:block" aria-hidden />
         {activeBattle && (
           <div className="relative z-40 shrink-0 sm:hidden">
             <CompactBattleBar
@@ -1753,21 +1763,28 @@ export default function Page() {
               </div>
             </div>
 
-            {/* 問題カード：問題が変わるたびスライドイン（ティアに応じて配色が変わる） */}
+            {/* 問題カード：問題が変わるたびスライドイン（ティアに応じて配色が変わる）。
+                マウスに追従して3D傾斜＋グレアが動く（TiltCard） */}
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              style={{ backgroundImage: tierTheme.accentGradient }}
-              className="gradient-cta relative mx-4 mt-4 overflow-hidden rounded-2xl px-5 py-8 text-center shadow-xl shadow-indigo-300/40 sm:mx-6 sm:py-10"
+              className="mx-4 mt-4 sm:mx-6"
             >
-              <div className="text-xs font-semibold uppercase tracking-widest text-black">
-                {getPartOfSpeech(q)}
-              </div>
-              <div className="mt-3 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
-                {q.target}
-              </div>
+              <TiltCard
+                style={{ backgroundImage: tierTheme.accentGradient }}
+                className="gradient-cta relative overflow-hidden rounded-2xl px-5 py-8 text-center shadow-xl shadow-indigo-300/40 sm:py-10"
+              >
+                <div className="relative z-20">
+                  <div className="text-xs font-semibold uppercase tracking-widest text-black">
+                    {getPartOfSpeech(q)}
+                  </div>
+                  <div className="mt-3 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
+                    {q.target}
+                  </div>
+                </div>
+              </TiltCard>
             </motion.div>
 
             {/* 入力フィールド */}
@@ -1857,20 +1874,19 @@ export default function Page() {
 
           {/* ボタン：モバイルでは最下部に固定 */}
           <div className="shrink-0 px-4 pb-5 pt-2 bg-white sm:px-6 sm:pb-6">
-            <motion.button
+            <button
               type="button"
               onClick={checked ? next : checkAnswer}
               disabled={isCheckingAnswer}
-              whileTap={{ scale: 0.98 }}
               style={checked ? undefined : { backgroundImage: tierTheme.accentGradient }}
-              className={`w-full h-14 text-base font-bold rounded-2xl transition-all flex items-center justify-center ${
+              className={`btn-3d w-full h-14 text-base font-bold rounded-2xl flex items-center justify-center ${
                 checked
-                  ? "bg-gradient-to-r from-indigo-50 to-violet-100 text-indigo-700 border-2 border-indigo-200 hover:from-indigo-100 hover:to-violet-200"
-                  : "gradient-cta text-white shadow-lg shadow-indigo-300/50 hover:shadow-indigo-400/60"
+                  ? "[--btn-edge:#c7d2fe] bg-gradient-to-r from-indigo-50 to-violet-100 text-indigo-700 border-2 border-indigo-200 hover:from-indigo-100 hover:to-violet-200"
+                  : "btn-shine [--btn-edge:rgba(49,46,129,0.55)] gradient-cta text-white"
               } disabled:opacity-40`}
             >
               {isCheckingAnswer ? "判定中…" : checked ? "次へ →" : "答え合わせ"}
-            </motion.button>
+            </button>
           </div>
         </div>
       </div>

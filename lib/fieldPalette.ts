@@ -48,11 +48,15 @@ export const FIELD_PALETTES: Record<string, FieldPalette> = {
   mechanicalCity: { base: "", sub: "", dark: "", accent: "", highlight: "" },
 };
 
-/** fieldKeyのパレットが未設定（baseが空）ならFALLBACKを返す */
-export function getFieldPalette(fieldKey: string | undefined): FieldPalette {
-  if (!fieldKey) return FALLBACK;
+/** fieldKeyのパレットが未設定（baseが空）ならfallback（省略時はFALLBACK）を返す。
+    fallbackにはティア連動のmarbleパレット（lib/tierTheme.ts）などを渡せる */
+export function getFieldPalette(
+  fieldKey: string | undefined,
+  fallback: FieldPalette = FALLBACK,
+): FieldPalette {
+  if (!fieldKey) return fallback;
   const palette = FIELD_PALETTES[fieldKey];
-  if (!palette || !palette.base) return FALLBACK;
+  if (!palette || !palette.base) return fallback;
   return palette;
 }
 
