@@ -23,6 +23,9 @@ import {
 import {
   useKeyboardShortcuts,
 } from "./hooks/useKeyboardShortcuts";
+import {
+  useVisualViewportVars,
+} from "./hooks/useVisualViewport";
 
 import {
   applyCaptureResultToCollection,
@@ -1379,6 +1382,9 @@ export default function Page() {
     restart,
   });
 
+  // モバイルのキーボード表示に合わせてクイズ画面を視覚ビューポートに収める
+  useVisualViewportVars();
+
   const currentTier = getPoolTier(unlockedPoolSize);
   const tierTheme = getTierTheme(currentTier.label);
 
@@ -1653,17 +1659,19 @@ export default function Page() {
   }
 
   // ── クイズ画面 ──────────────────────────────────────────────────────────
-  // モバイル: 全画面フレックスコラム（キーボード出現時も下にボタンが残る）
+  // モバイル: .quiz-shell（globals.css）で視覚ビューポートにピン留めした
+  //   全画面フレックスコラム。キーボード表示中も上のトレーナーバーと
+  //   下の回答ボタンが画面内に残る（中身は内部スクロール）
   // PC: 中央寄せカード
   return (
     <>
       <div
-        className="relative overflow-hidden flex flex-col min-h-dvh text-zinc-900 sm:min-h-screen sm:items-center sm:justify-center sm:p-6"
+        className="quiz-shell relative overflow-hidden flex flex-col min-h-dvh text-zinc-900 sm:min-h-screen sm:items-center sm:justify-center sm:p-6"
         style={{ backgroundImage: tierTheme.quizGradient }}
       >
         <AuroraBackground vivid colors={tierTheme.auroraColors} />
         {activeBattle && (
-          <div className="sticky top-0 z-40 shrink-0 sm:hidden">
+          <div className="relative z-40 shrink-0 sm:hidden">
             <CompactBattleBar
               battle={activeBattle}
               questionNumber={total}
