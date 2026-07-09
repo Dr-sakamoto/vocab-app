@@ -1,15 +1,45 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// 認証なしの公開エンドポイントなので、乱用によるGemini API課金の
+// 急増を防ぐための最低限の入力上限とレート制限。
+const MAX_INPUT_LENGTH = 200;
+const MAX_TARGET_LENGTH = 100;
+const RATE_LIMIT = { limit: 10, windowMs: 60_000 };
+
+function getClientIp(req) {
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  if (forwardedFor) return forwardedFor.split(",")[0].trim();
+  return req.headers.get("x-real-ip") ?? "unknown";
+}
+
 export async function POST(req) {
   try {
+    const ip = getClientIp(req);
+    const { allowed, retryAfterMs } = checkRateLimit(`ai-review:${ip}`, RATE_LIMIT);
+    if (!allowed) {
+      return Response.json(
+        { approved: false, score: 0, feedback: "リクエストが多すぎます。少し待ってから再試行してください" },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } },
+      );
+    }
+
     const { input, target } = await req.json();
 
-    if (!input || !target) {
+    if (
+      typeof input !== "string" ||
+      typeof target !== "string" ||
+      !input.trim() ||
+      !target.trim()
+    ) {
       return Response.json({ approved: false, score: 0, feedback: "入力が不正です" }, { status: 400 });
+    }
+    if (input.length > MAX_INPUT_LENGTH || target.length > MAX_TARGET_LENGTH) {
+      return Response.json({ approved: false, score: 0, feedback: "入力が長すぎます" }, { status: 400 });
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
