@@ -2,9 +2,6 @@ import { createMonsterInstance, getMonsterLine, getSpecies, normalizeMonsterColl
 import { awardRivalStarterSeed, resolveBattleForProgress, RIVAL_STARTER_MARKER } from "./starters";
 import { StoryProgress, MonsterCollection, Battle, WordStat } from "./types";
 
-const SPRITE_ROOT =
-  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-ii/crystal/animated";
-
 const TRAINER_SPRITE_ROOT = "https://play.pokemonshowdown.com/sprites/trainers";
 
 export const TRAINER_SPRITE_BY_BATTLE_ID: Record<string, string> = {
