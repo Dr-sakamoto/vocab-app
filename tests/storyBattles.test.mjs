@@ -7,7 +7,6 @@ import {
   DEFAULT_STORY_PROGRESS,
   getBattlePlayLimit,
   getBattleProgressAccuracy,
-  getOpponentPokemonIndex,
   getPoolUnlockBlocker,
   getStartScreenBattle,
   getTrainerSprite,
@@ -20,17 +19,6 @@ import {
   startBattleSession,
   syncRetroactiveBattles,
 } from "../lib/storyBattles.js";
-
-function makeBattle(party, tier = "normal") {
-  return {
-    id: "test-battle",
-    name: "テスト",
-    location: "テスト場所",
-    tier,
-    minPool: 0,
-    party,
-  };
-}
 
 test("battle progress accuracy is based on play limit", () => {
   assert.equal(getBattleProgressAccuracy(0, 10), 0);

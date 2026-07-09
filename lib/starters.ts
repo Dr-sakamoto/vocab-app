@@ -132,7 +132,7 @@ export function migrateStarterState(
 ): { collection: MonsterCollection; progress: StoryProgress } {
   const normalized = normalizeMonsterCollection(collection);
   let nextProgress = { ...progress };
-  let nextCollection = normalized;
+  const nextCollection = normalized;
 
   if (nextProgress.chosenStarterLineId && isStarterLineId(nextProgress.chosenStarterLineId)) {
     if (!nextProgress.rivalStarterLineId) {

@@ -5,7 +5,6 @@ import { DEFAULT_STORY_PROGRESS, resolveBattleVictory } from "../lib/storyBattle
 import {
   applyStarterChoice,
   awardMissingProfessorStarters,
-  awardRivalStarterSeed,
   collectionHasLineId,
   migrateStarterState,
   resolveBattleForProgress,
@@ -14,7 +13,6 @@ import {
 } from "../lib/starters.js";
 import { getBattleById } from "../lib/storyBattles.js";
 import {
-  createMonsterInstance,
   DEFAULT_MONSTER_COLLECTION,
   normalizeMonsterCollection,
 } from "../lib/monster.js";
