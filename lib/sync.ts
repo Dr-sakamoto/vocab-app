@@ -110,22 +110,34 @@ interface UploadProgressProps {
   monsterCollection: MonsterCollection;
 }
 
+// 未挑戦の単語（correct/wrongともに0）はDB側で行が存在しないのと同義
+// （downloadAndMergeが欠損行を {correct:0, wrong:0} として扱う）ため、
+// アップロード対象から除外して行数を抑える。
+export function buildWordStatsRows(
+  userId: string,
+  stats: WordStat[],
+): { user_id: string; word_id: string; correct: number; wrong: number }[] {
+  return VOCAB_IDS.flatMap((id, i) => {
+    const correct = stats[i]?.correct ?? 0;
+    const wrong = stats[i]?.wrong ?? 0;
+    if (correct === 0 && wrong === 0) return [];
+    return [{ user_id: userId, word_id: id, correct, wrong }];
+  });
+}
+
 export async function uploadProgress({ stats, unlockedPoolSize, monsterCollection }: UploadProgressProps): Promise<void> {
   const user = await requireSignedInUser();
   const normalizedCollection = normalizeMonsterCollection(monsterCollection);
   const activeMonster = getActiveMonster(normalizedCollection);
 
-  const rows = VOCAB_IDS.map((id, i) => ({
-    user_id: user.id,
-    word_id: id,
-    correct: stats[i]?.correct ?? 0,
-    wrong: stats[i]?.wrong ?? 0,
-  }));
+  const rows = buildWordStatsRows(user.id, stats);
 
-  const { error: wordsError } = await supabase
-    .from("word_stats")
-    .upsert(rows, { onConflict: "user_id,word_id" });
-  if (wordsError) throw wordsError;
+  if (rows.length > 0) {
+    const { error: wordsError } = await supabase
+      .from("word_stats")
+      .upsert(rows, { onConflict: "user_id,word_id" });
+    if (wordsError) throw wordsError;
+  }
 
   const { error: metaError } = await supabase
     .from("user_meta")
