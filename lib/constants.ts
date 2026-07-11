@@ -24,6 +24,7 @@ export const STORAGE_KEYS = {
   MONSTER_COLLECTION: "monster-collection",
   STORY_PROGRESS: "story-progress",
   STREAK: "vocab-daily-streak",
+  WILD_ENCOUNTER: "wild-encounter",
 } as const;
 
 export const BUTTON_CLASSES = {

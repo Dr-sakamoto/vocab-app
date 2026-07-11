@@ -3,59 +3,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import AuroraBackground from "./components/AuroraBackground";
-import BattleBanner from "./components/BattleBanner";
-import CompactBattleBar from "./components/CompactBattleBar";
+import EtymonDock from "./components/EtymonDock";
 import FossilChoiceModal from "./components/FossilChoiceModal";
-import StarterChoiceModal from "./components/StarterChoiceModal";
+import InlineResult from "./components/InlineResult";
 import PokemonBox from "./components/PokemonBox";
-import PokemonParty from "./components/PokemonParty";
 import ProgressDashboard from "./components/ProgressDashboard";
-import ResultScreen from "./components/ResultScreen";
-import ToastQueue from "./components/ToastQueue";
-import TrainerChallengeAlert from "./components/TrainerChallengeAlert";
+import StarterChoiceModal from "./components/StarterChoiceModal";
 import SyncButton from "./components/SyncButton";
 import TiltCard from "./components/quiz/TiltCard";
-import {
-  useGameSession,
-} from "./hooks/useGameSession";
-import {
-  useVocabPool,
-} from "./hooks/useVocabPool";
-import {
-  useKeyboardShortcuts,
-} from "./hooks/useKeyboardShortcuts";
+import ToastQueue from "./components/ToastQueue";
+import WorldWindow from "./components/WorldWindow";
+import { useGameSession } from "./hooks/useGameSession";
+import { useVocabPool } from "./hooks/useVocabPool";
 import { useClickSound } from "./hooks/useClickSound";
-import {
-  useVisualViewportVars,
-} from "./hooks/useVisualViewport";
+import { useVisualViewportVars } from "./hooks/useVisualViewport";
 
 import {
   applyCaptureResultToCollection,
   getHabitatMinPoolMap,
-  pickHabitat,
-  rollCaptureEncounter,
+  getUnlockedHabitats,
 } from "@/lib/capture";
-import {
-  applyMasterBallCapture,
-  getPoolUnlockStepWithBossGate,
-  getSessionPlayLimit,
-  processBattleEnd,
-  processNormalPlayBattleTriggers,
-} from "@/lib/battleSession";
 import { evaluatePlay } from "@/lib/playEvaluation";
 import {
-  canUseMasterBall,
   DEFAULT_STORY_PROGRESS,
-  getBattleForProgress,
-  getBattleProgressAccuracy,
-  getBattleResultMessage,
-  getOpponentPokemon,
-  getResumeBattle,
-  getStartScreenBattle,
-  getTrainerSprite,
   markMewWordSeen,
   normalizeStoryProgress,
-  startBattleSession,
   syncRetroactiveBattles,
 } from "@/lib/storyBattles";
 import { normalizeAnswer } from "@/lib/answerNormalization";
@@ -77,7 +49,6 @@ import {
   getPendingFossilGift,
   getPoolTier,
   getMonsterDisplayState,
-  getMonsterLine,
   getSpecies,
   levelFromTotalXP,
   normalizeMonsterCollection,
@@ -90,8 +61,21 @@ import {
   updatePartyXP,
   getLevelUpGrowth,
 } from "@/lib/monster";
+import {
+  applyAnswerToMissions,
+  isNewWordStat,
+  isWeakWordStat,
+} from "@/lib/missions";
+import {
+  WildEncounterState,
+  applyDamageToEncounter,
+  getBattleParty,
+  getPartyAttackPower,
+  normalizeWildEncounter,
+  spawnWildEncounter,
+  tryCaptureEncounter,
+} from "@/lib/wildEncounter";
 import { getTierTheme } from "@/lib/tierTheme";
-import { getFieldPalette, fieldPaletteToCssVars } from "@/lib/fieldPalette";
 import { QUESTIONS } from "@/lib/vocab";
 import { GAME, STORAGE_KEYS } from "@/lib/constants";
 import {
@@ -103,16 +87,12 @@ import {
   toDateKey,
 } from "@/lib/streak";
 import {
-  GameView,
   WordStat,
-  Battle,
   MonsterCollection,
   PlayEvaluation,
-  SessionAnswer,
   StoryProgress,
   ActiveToast,
   ToastItem,
-  TrainerChallenge,
   VocabItem,
 } from "@/lib/types";
 import storage from "@/lib/storage";
@@ -126,42 +106,6 @@ const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q, i) => ({
   id: `w${i}`,
 }));
 
-type HabitatSummary = {
-  id: string;
-  name: string;
-  minPool?: number;
-};
-
-type CaptureResult = {
-  caught?: boolean;
-  captureRate?: number | null;
-  captureRoll?: number | null;
-  habitat?: HabitatSummary;
-  lineId?: string;
-  encounterWeight?: number;
-  level?: number;
-  speciesId?: number;
-  monsterId?: string;
-  reason?: string;
-  masterBall?: boolean;
-  itemPickup?: unknown;
-};
-
-type ResultEvaluation = PlayEvaluation & {
-  captureFailed?: boolean;
-  capturePreview?: CaptureResult | null;
-};
-
-type CompletedBattleResult = {
-  battle: Battle;
-  won: boolean;
-  lost: boolean;
-  capture?: CaptureResult | null;
-  trainerSprite?: string;
-  opponentSprite?: string;
-  resultMessage: string;
-};
-
 type GiftGroup = {
   id?: string;
   title?: string;
@@ -170,18 +114,6 @@ type GiftGroup = {
 
 type BoxSortMode = "dex" | "level";
 
-type BattleEndResult = {
-  evaluation: ResultEvaluation;
-  progress: StoryProgress;
-  collection: MonsterCollection;
-  capture: CaptureResult | null;
-  won: boolean;
-  lost: boolean;
-  toasts: ToastItem[];
-  alerts: TrainerChallenge[];
-  relocatedHabitatId?: string | null;
-};
-
 const normalizeStoryProgressForPage = normalizeStoryProgress as (
   progress: unknown,
 ) => StoryProgress;
@@ -189,41 +121,6 @@ const syncRetroactiveBattlesForPage = syncRetroactiveBattles as (
   progress: StoryProgress,
   options: { unlockedPoolSize: number },
 ) => StoryProgress;
-const startBattleSessionForPage = startBattleSession as (
-  progress: StoryProgress,
-  battleId: string,
-) => StoryProgress;
-const processBattleEndForPage = processBattleEnd as unknown as (
-  args: Record<string, unknown>,
-) => BattleEndResult;
-const processNormalPlayBattleTriggersForPage = processNormalPlayBattleTriggers as (
-  progress: StoryProgress,
-  options: { unlockedPoolSize: number; habitatId: string | null },
-) => { progress: StoryProgress; alert?: TrainerChallenge | null };
-const getBattleResultMessageForPage = getBattleResultMessage as (
-  battle: Battle,
-  won: boolean,
-  capture?: CaptureResult | null,
-) => string;
-const pickHabitatForPage = pickHabitat as unknown as (
-  args: Record<string, unknown>,
-) => HabitatSummary | null;
-const rollCaptureEncounterForPage = rollCaptureEncounter as unknown as (
-  args: Record<string, unknown>,
-) => CaptureResult | null;
-const applyCaptureResultToCollectionForPage = applyCaptureResultToCollection as (
-  collection: MonsterCollection,
-  result: CaptureResult | null,
-) => MonsterCollection;
-const applyMasterBallCaptureForPage = applyMasterBallCapture as (
-  progress: StoryProgress,
-  collection: MonsterCollection,
-  preview: CaptureResult,
-) => {
-  progress: StoryProgress;
-  collection: MonsterCollection;
-  capture: CaptureResult | null;
-};
 const applyStarterChoiceForPage = applyStarterChoice as (
   collection: MonsterCollection,
   progress: StoryProgress,
@@ -239,31 +136,39 @@ function getPartOfSpeech(q: VocabItem | undefined): string {
   return q?.partOfSpeech ?? "word";
 }
 
+/**
+ * 単一画面・3ブロック構成のメインページ。
+ *
+ * 1. ワールドウィンドウ（25%）: 出現エティモン・ミッション・現在地
+ * 2. 問題ウィンドウ（55%）: 出題。10問区切りで中身だけリザルトに入れ替わる
+ * 3. エティモンウィンドウ（20%）: 手持ち4体と編成ドロワーの取っ手
+ *
+ * 画面遷移は存在しない。スタート画面・リザルト画面・ポケモン画面への
+ * 移動が学習フローを切っていたため、すべてこの1画面に統合した。
+ */
 export default function Page() {
-  const [activeView, setActiveView] = useState<GameView>("start");
+  /** 問題ウィンドウの中身。ページ遷移ではなくブロック内の入れ替え */
+  const [phase, setPhase] = useState<"quiz" | "result">("quiz");
   const [stats, setStats] = useState<WordStat[]>(() =>
     VOCAB_ITEMS.map(() => ({ correct: 0, wrong: 0 })),
   );
 
   const didLoadFromStorageRef = useRef<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
-  const [sessionAnswers, setSessionAnswers] = useState<SessionAnswer[]>([]);
-  const [resultEvaluation, setResultEvaluation] = useState<ResultEvaluation | null>(null);
-  const [captureResult, setCaptureResult] = useState<CaptureResult | null>(null);
-  const [currentHabitat, setCurrentHabitat] = useState<HabitatSummary | null>(null);
+  const [resultEvaluation, setResultEvaluation] = useState<PlayEvaluation | null>(null);
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
   const [activeToasts, setActiveToastsState] = useState<ActiveToast[]>([]);
   const [fossilChoice, setFossilChoice] = useState<GiftGroup | null>(null);
   const [storyProgress, setStoryProgress] = useState<StoryProgress>(() =>
     normalizeStoryProgressForPage(DEFAULT_STORY_PROGRESS),
   );
-  const [activeBattle, setActiveBattle] = useState<Battle | null>(null);
-  const [trainerChallenge, setTrainerChallenge] = useState<TrainerChallenge | null>(null);
-  const [pendingStarterBattleId, setPendingStarterBattleId] = useState<string | null>(null);
-  const [battleOutcome, setBattleOutcome] = useState<"won" | "lost" | null>(null);
-  const [completedBattleResult, setCompletedBattleResult] =
-    useState<CompletedBattleResult | null>(null);
-  const [useMasterBallThisBattle, setUseMasterBallThisBattle] = useState<boolean>(false);
+  const [monsterCollection, setMonsterCollection] = useState<MonsterCollection>(() =>
+    normalizeMonsterCollection(DEFAULT_MONSTER_COLLECTION),
+  );
+  const [encounter, setEncounter] = useState<WildEncounterState | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [isProgressOpen, setIsProgressOpen] = useState<boolean>(false);
 
   const [index, setIndex] = useState<number>(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -273,13 +178,8 @@ export default function Page() {
   }
 
   const [isComposing, setIsComposing] = useState<boolean>(false);
-  const [dashboardReturnView, setDashboardReturnView] = useState<GameView>("study");
-
-  const [monsterCollection, setMonsterCollection] = useState<MonsterCollection>(() =>
-    normalizeMonsterCollection(DEFAULT_MONSTER_COLLECTION),
-  );
-  const [isPokemonBoxOpen, setIsPokemonBoxOpen] = useState<boolean>(false);
-  const savedCollectionExistsRef = useRef<boolean>(false);
+  // 初期値 true: 復元が終わるまでスターター選択モーダルを出さない
+  const [savedCollectionExists, setSavedCollectionExists] = useState<boolean>(true);
 
   // SSR とハイドレーションの不一致を避けるため、初期値は空で、実データは
   // マウント後の localStorage 復元 useEffect で読み込む。
@@ -299,8 +199,7 @@ export default function Page() {
   const evolutionSoundRef = useRef<HTMLAudioElement | null>(null);
   const monsterCollectionRef = useRef<MonsterCollection>(monsterCollection);
   const storyProgressRef = useRef<StoryProgress>(storyProgress);
-  const activeBattleRef = useRef<Battle | null>(activeBattle);
-  const currentHabitatRef = useRef<HabitatSummary | null>(null);
+  const encounterRef = useRef<WildEncounterState | null>(null);
 
   const {
     unlockedPoolSize,
@@ -310,8 +209,6 @@ export default function Page() {
     pickNextQuestionIndex,
   } = useVocabPool({ stats, vocabItemsLength: VOCAB_ITEMS.length });
 
-  const sessionPlayLimit = getSessionPlayLimit(activeBattle, GAME.PLAY_LIMIT);
-  const activeMonster = getActiveMonster(monsterCollection);
   const boxCount = getBoxCount(monsterCollection);
   const isBoxOverLimit = boxCount > BOX_LIMIT;
   const habitatMinPools = useMemo(() => getHabitatMinPoolMap(), []);
@@ -330,7 +227,6 @@ export default function Page() {
     input,
     setInput,
     checked,
-    setChecked,
     isCorrect,
     setIsCorrect,
     answerStatus,
@@ -341,13 +237,16 @@ export default function Page() {
     prepareNextQuestion,
     normalizedAnswers,
     posViolation,
-    setPosViolation,
-  } = useGameSession({ q, index, activeView, stats, setStats, approvedAnswers });
+  } = useGameSession({
+    q,
+    index,
+    activeView: phase === "result" ? "result" : "study",
+    stats,
+    setStats,
+    approvedAnswers,
+  });
 
-  const answeredCount = checked ? total : total - 1;
-  const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
-  const currentBattleAccuracy = getBattleProgressAccuracy(score, sessionPlayLimit);
-
+  // ── トースト通知 ──────────────────────────────────────────────────────────
   // 通知は1段目に来たら最低でもMIN_FRONT_TOAST_MSだけ留まってから、
   // 後続の通知に押し出される（新しいものが来ても即座には奪わせない）
   const activeToastsRef = useRef<ActiveToast[]>([]);
@@ -355,9 +254,6 @@ export default function Page() {
   const pendingToastQueueRef = useRef<ToastItem[]>([]);
   const toastPromoteTimerRef = useRef<number | null>(null);
 
-  // activeToastsRef が現在値の正本。setState の更新関数はレンダー時に遅延実行される
-  // ため、直後に同期的な判定（enqueueToastの秒数計算など）で参照すると古い値を
-  // 掴んでしまう。そのためここでは ref を直接同期更新してから setState へ渡す。
   const promoteToast = useCallback((toast: ToastItem) => {
     const instanceId = `${Date.now()}-${Math.random()}`;
     const next = [{ ...toast, instanceId }, ...activeToastsRef.current].slice(0, 3);
@@ -524,33 +420,6 @@ export default function Page() {
     [enqueueGiftToasts, habitatMinPools],
   );
 
-  const playEvaluation = useMemo(
-    () =>
-      evaluatePlay({
-        answers: gameSessionAnswers,
-        score,
-        playLimit: GAME.PLAY_LIMIT,
-        bestStreak,
-        unlockedPoolSize,
-        playCount: flowPlayCount,
-      }),
-    [bestStreak, flowPlayCount, score, gameSessionAnswers, unlockedPoolSize],
-  );
-
-  const selectNextHabitat = useCallback(
-    (poolSize = unlockedPoolSize, collection = monsterCollectionRef.current) => {
-      const habitat = pickHabitatForPage({
-        unlockedPoolSize: poolSize,
-        habitatVisits: collection?.habitatVisits ?? {},
-        rng: Math.random,
-      });
-      currentHabitatRef.current = habitat;
-      setCurrentHabitat(habitat);
-      return habitat;
-    },
-    [unlockedPoolSize],
-  );
-
   // ── 音声 ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -588,8 +457,8 @@ export default function Page() {
   }, [storyProgress]);
 
   useEffect(() => {
-    activeBattleRef.current = activeBattle;
-  }, [activeBattle]);
+    encounterRef.current = encounter;
+  }, [encounter]);
 
   const persistProgress = useCallback(
     ({
@@ -605,7 +474,7 @@ export default function Page() {
           ...normalizeMonsterCollection(nextCollection),
           storyProgress: normalizeStoryProgressForPage(nextStory),
         };
-        
+
         storage.set(
           STORAGE_KEYS.PROGRESS,
           VOCAB_ITEMS.map((v, i) => ({
@@ -627,23 +496,51 @@ export default function Page() {
     [stats, unlockedPoolSize],
   );
 
-  const startScreenBattle = useMemo(
-    () => getStartScreenBattle(storyProgress),
-    [storyProgress],
+  const persistEncounter = useCallback((next: WildEncounterState | null) => {
+    if (!didLoadFromStorageRef.current) return;
+    try {
+      storage.set(STORAGE_KEYS.WILD_ENCOUNTER, next);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  /** 新しい野生エティモンを出現させる */
+  const spawnEncounter = useCallback(
+    (poolSize: number, collection: MonsterCollection) => {
+      const spawned = spawnWildEncounter({
+        unlockedPoolSize: poolSize,
+        habitatVisits: collection?.habitatVisits ?? {},
+        seed: `${Date.now()}-${Math.random()}`,
+        collection,
+      });
+      encounterRef.current = spawned;
+      setEncounter(spawned);
+      persistEncounter(spawned);
+      return spawned;
+    },
+    [persistEncounter],
   );
 
+  // プレイ開始時に「今日プレイした」ことを記録し、毎日ストリークを更新する。
+  const markDailyPlay = useCallback(() => {
+    setDailyStreak((prev) => {
+      const next = recordPlay(prev, toDateKey(new Date()));
+      if (next !== prev) storage.set(STORAGE_KEYS.STREAK, next);
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
-    if (activeView !== "study" || isCheckingAnswer) return;
+    if (phase !== "quiz" || isCheckingAnswer) return;
     inputRef.current?.focus();
-  }, [activeView, checked, index, isCheckingAnswer]);
+  }, [phase, checked, index, isCheckingAnswer]);
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
     try {
-      // 毎日ストリーク
       setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
 
-      // プールサイズ
       let loadedPoolSize = Math.min(GAME.INITIAL_POOL_SIZE, VOCAB_ITEMS.length);
       const savedPool = Number(storage.get(STORAGE_KEYS.POOL_SIZE, null));
       if (Number.isFinite(savedPool) && savedPool > 0) {
@@ -654,11 +551,10 @@ export default function Page() {
         setUnlockedPoolSize(loadedPoolSize);
       }
 
-      // モンスター XP
       const savedXP = clampMonsterXP(storage.get(STORAGE_KEYS.MONSTER_XP, null));
       const savedMonsterLineId = storage.getString(STORAGE_KEYS.MONSTER_LINE_ID, "");
       const rawCollection = storage.get(STORAGE_KEYS.MONSTER_COLLECTION, null);
-      savedCollectionExistsRef.current = rawCollection !== null;
+      setSavedCollectionExists(rawCollection !== null);
       const normalizedCollection = normalizeMonsterCollection(rawCollection, {
         lineId: normalizeMonsterLineId(savedMonsterLineId),
         totalXP: savedXP,
@@ -682,57 +578,71 @@ export default function Page() {
       storyProgressRef.current = retroStory;
       setStoryProgress(retroStory);
 
-      const resumeBattle = getResumeBattle(retroStory);
-      if (resumeBattle) {
-        setActiveBattle(resumeBattle);
-        activeBattleRef.current = resumeBattle;
+      // 出現エティモンの復元。進行中のものがなければ新しく出現させる
+      const restoredEncounter = normalizeWildEncounter(
+        storage.get(STORAGE_KEYS.WILD_ENCOUNTER, null),
+      );
+      if (restoredEncounter) {
+        encounterRef.current = restoredEncounter;
+        setEncounter(restoredEncounter);
+      } else {
+        const spawned = spawnWildEncounter({
+          unlockedPoolSize: loadedPoolSize,
+          habitatVisits: migratedStarters.collection.habitatVisits,
+          seed: `${Date.now()}-${Math.random()}`,
+          collection: migratedStarters.collection,
+        });
+        encounterRef.current = spawned;
+        setEncounter(spawned);
       }
-      const loadedHabitat = pickHabitatForPage({
-        unlockedPoolSize: loadedPoolSize,
-        habitatVisits: syncedGifts.collection.habitatVisits,
-        rng: Math.random,
-      });
-      currentHabitatRef.current = loadedHabitat;
-      setCurrentHabitat(loadedHabitat);
 
       // 単語進捗
       const parsed = storage.get<any[] | null>(STORAGE_KEYS.PROGRESS, null);
-      if (!parsed || !Array.isArray(parsed)) {
-        didLoadFromStorageRef.current = true;
-        return;
-      }
-
-      const map = new Map();
-      for (const item of parsed) {
-        if (!item || typeof item !== "object") continue;
-        const correct = Number(item.correct);
-        const wrong = Number(item.wrong);
-        const safe = {
-          correct: Number.isFinite(correct) && correct >= 0 ? correct : 0,
-          wrong: Number.isFinite(wrong) && wrong >= 0 ? wrong : 0,
-        };
-        if (typeof item.id === "string") {
-          map.set(item.id, safe);
-          continue;
+      if (parsed && Array.isArray(parsed)) {
+        const map = new Map();
+        for (const item of parsed) {
+          if (!item || typeof item !== "object") continue;
+          const correct = Number(item.correct);
+          const wrong = Number(item.wrong);
+          const safe = {
+            correct: Number.isFinite(correct) && correct >= 0 ? correct : 0,
+            wrong: Number.isFinite(wrong) && wrong >= 0 ? wrong : 0,
+          };
+          if (typeof item.id === "string") {
+            map.set(item.id, safe);
+            continue;
+          }
+          const idx = VOCAB_ITEMS.findIndex((v) => v.target === item.target);
+          if (idx >= 0) map.set(VOCAB_ITEMS[idx].id, safe);
         }
-        const idx = VOCAB_ITEMS.findIndex((v) => v.target === item.target);
-        if (idx >= 0) map.set(VOCAB_ITEMS[idx].id, safe);
-      }
 
-      setStats((prev) =>
-        VOCAB_ITEMS.map((v, i) => {
-          const saved = map.get(v.id);
-          return saved
-            ? { correct: saved.correct, wrong: saved.wrong }
-            : prev[i] ?? { correct: 0, wrong: 0 };
-        }),
-      );
+        setStats((prev) =>
+          VOCAB_ITEMS.map((v, i) => {
+            const saved = map.get(v.id);
+            return saved
+              ? { correct: saved.correct, wrong: saved.wrong }
+              : prev[i] ?? { correct: 0, wrong: 0 };
+          }),
+        );
+      }
     } catch {
       /* ignore */
     } finally {
       didLoadFromStorageRef.current = true;
+      setIsLoaded(true);
     }
   }, [syncGiftProgress, setUnlockedPoolSize]);
+
+  // 復元完了後に最初の問題を選ぶ（復元された stats・プールを反映した抽選にする）
+  const didInitQuestionRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (!isLoaded || didInitQuestionRef.current) return;
+    didInitQuestionRef.current = true;
+    const newIndex = pickNextQuestionIndex(null, new Set(), 1.0, null) ?? 0;
+    setIndex(newIndex);
+    seenInPlayRef.current = new Set([newIndex]);
+    markDailyPlay();
+  }, [isLoaded, pickNextQuestionIndex, markDailyPlay]);
 
   // ── localStorage 保存 ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -761,324 +671,249 @@ export default function Page() {
     });
   }, [monsterCollection, persistProgress, storyProgress]);
 
-  useEffect(() => {
-    if (!didLoadFromStorageRef.current) return;
-    if (pendingStarterBattleId || activeBattle) return;
-    if (savedCollectionExistsRef.current) return;
-    const normalized = normalizeMonsterCollection(monsterCollection);
-    if (
-      normalized.monsters.length === 0 &&
-      needsStarterChoice(storyProgress)
-    ) {
-      setPendingStarterBattleId("rival-1");
-    }
-  }, [storyProgress, activeBattle, pendingStarterBattleId, monsterCollection]);
+  // 手持ちがいない新規プレイヤーには最初のエティモンを選ばせる
+  const showStarterChoice =
+    isLoaded &&
+    !savedCollectionExists &&
+    normalizeMonsterCollection(monsterCollection).monsters.length === 0 &&
+    needsStarterChoice(storyProgress);
 
-  // ── 出題 ──────────────────────────────────────────────────────────────────
-  const progress = `${total} / ${sessionPlayLimit}`;
-  const progressPct = Math.max(
-    0,
-    Math.min(100, (total / sessionPlayLimit) * 100),
+  const handleStarterSelect = useCallback(
+    (lineId: string) => {
+      const { collection, progress } = applyStarterChoiceForPage(
+        monsterCollectionRef.current,
+        storyProgressRef.current,
+        lineId,
+      );
+      monsterCollectionRef.current = collection;
+      setMonsterCollection(collection);
+      storyProgressRef.current = progress;
+      setStoryProgress(progress);
+      setSavedCollectionExists(true);
+      persistProgress({ nextCollection: collection, nextStory: progress });
+    },
+    [persistProgress],
   );
 
+  // ── ミュウ単語トラッキング（既存データ互換のため維持） ─────────────────────
   useEffect(() => {
-    if (activeView !== "study" || !q) return;
+    if (phase !== "quiz" || !q) return;
     setStoryProgress((prev) => {
       const next = markMewWordSeenForPage(prev, index, VOCAB_ITEMS.length);
       storyProgressRef.current = next;
       return next;
     });
-  }, [activeView, index, q]);
+  }, [phase, index, q]);
 
-  // ── プレイ終了処理（プール解放 + XP 付与）────────────────────────────────
-  const applyEndOfPlay = useCallback(
-    (
-      finalScore: number,
-      finalBestStreak: number,
-      currentPoolSize: number,
-      finalAnswers: SessionAnswer[],
-      finalHabitat: HabitatSummary | null,
-      playCount: number,
-    ) => {
-      if (resultUnlockAppliedRef.current) return;
-      resultUnlockAppliedRef.current = true;
+  // ── 回答 → ミッション進行・HPダメージ・捕獲/逃走 ─────────────────────────
+  // useGameSession の回答記録（previousCorrect/previousWrong 付き）を正本に、
+  // 新しく増えた回答だけを1件ずつ処理する。
+  const processedAnswerCountRef = useRef<number>(0);
+  useEffect(() => {
+    if (gameSessionAnswers.length <= processedAnswerCountRef.current) {
+      processedAnswerCountRef.current = gameSessionAnswers.length;
+      return;
+    }
+    processedAnswerCountRef.current = gameSessionAnswers.length;
 
-      const battle = activeBattleRef.current;
-      const playLimit = getSessionPlayLimit(battle, GAME.PLAY_LIMIT);
-      const currentCollection = monsterCollectionRef.current;
-      let nextStory = storyProgressRef.current;
-      let nextCollection = currentCollection;
-      let capture: CaptureResult | null = null;
-      let finalEvaluation: ResultEvaluation;
+    const latest = gameSessionAnswers[gameSessionAnswers.length - 1];
+    const current = encounterRef.current;
+    if (!latest || !current || current.status !== "active") return;
 
-      if (battle) {
-        const battleResult = processBattleEndForPage({
-          progress: nextStory,
-          collection: currentCollection,
-          battle,
-          score: finalScore,
-          playLimit,
-          answers: finalAnswers,
-          unlockedPoolSize: currentPoolSize,
-          playCount,
-          habitat: finalHabitat,
-          habitatMinPools,
-          useMasterBall: useMasterBallThisBattle,
+    const collection = monsterCollectionRef.current;
+    const party = getBattleParty(collection);
+    const partyLineIds = party.map((monster) => monster.lineId);
+    const partyMaxLevel = party.reduce(
+      (max, monster) => Math.max(max, getMonsterDisplayState(monster).level),
+      0,
+    );
+
+    const previousStat = {
+      correct: latest.previousCorrect,
+      wrong: latest.previousWrong,
+    };
+    const { missions, completedNow } = applyAnswerToMissions(current.missions, {
+      correct: latest.correct,
+      wasWeakWord: isWeakWordStat(previousStat),
+      wasNewWord: isNewWordStat(previousStat),
+      streak,
+      partyLineIds,
+      partyMaxLevel,
+    });
+    let nextEncounter: WildEncounterState = { ...current, missions };
+
+    completedNow.forEach((mission) =>
+      enqueueToast({
+        title: "ミッション達成！",
+        message: mission.label,
+        duration: 1500,
+      }),
+    );
+
+    // 全ミッション達成 → HPが残っているうちに捕獲成立
+    const captureAttempt = tryCaptureEncounter(nextEncounter);
+    if (captureAttempt.capture) {
+      const capturedCollection = applyCaptureResultToCollection(
+        collection,
+        captureAttempt.capture,
+      );
+      monsterCollectionRef.current = capturedCollection;
+      setMonsterCollection(capturedCollection);
+      enqueueToast({
+        title: "エティモン捕獲！",
+        message: `${nextEncounter.name}を捕まえた！`,
+        image: nextEncounter.sprite,
+      });
+      persistProgress({ nextCollection: capturedCollection });
+      spawnEncounter(unlockedPoolSize, capturedCollection);
+      return;
+    }
+
+    // 正解ダメージ。HPが尽きたら倒してしまい、逃げられる
+    if (latest.correct) {
+      const damage = getPartyAttackPower(collection);
+      const { encounter: damaged, escaped } = applyDamageToEncounter(
+        nextEncounter,
+        damage,
+      );
+      nextEncounter = damaged;
+      if (escaped) {
+        enqueueToast({
+          title: "倒してしまった…",
+          message: `${nextEncounter.name}は力尽きて逃げていった`,
+          image: nextEncounter.sprite,
         });
-        finalEvaluation = battleResult.evaluation;
-        nextStory = battleResult.progress;
-        nextCollection = battleResult.collection;
-        capture = battleResult.capture;
-        setBattleOutcome(battleResult.won ? "won" : "lost");
-        setCompletedBattleResult({
-          battle,
-          won: battleResult.won,
-          lost: battleResult.lost,
-          capture: battleResult.capture,
-          trainerSprite: getTrainerSprite(battle) ?? undefined,
-          opponentSprite: getOpponentPokemon(battle, playLimit, playLimit)
-            .sprite,
-          resultMessage: getBattleResultMessageForPage(
-            battle,
-            battleResult.won,
-            battleResult.capture,
-          ),
-        });
-        setUseMasterBallThisBattle(false);
-        setActiveBattle(null);
-        activeBattleRef.current = null;
-
-        battleResult.toasts.forEach((toast: any) => enqueueToast(toast));
-        if (battleResult.alerts[0]) setTrainerChallenge(battleResult.alerts[0]);
-
-        if (battleResult.relocatedHabitatId) {
-          const relocated = {
-            id: battleResult.relocatedHabitatId,
-            name: battleResult.relocatedHabitatId,
-          };
-          currentHabitatRef.current = relocated;
-          setCurrentHabitat(relocated);
-        }
-
-        setResultEvaluation(finalEvaluation);
-        setLastUnlockCount(0);
-        setCaptureResult(capture);
-
-        const gained = finalEvaluation.xp ?? 0;
-        const leveledCollection = updatePartyXP(nextCollection, gained);
-        nextCollection = leveledCollection;
-        monsterCollectionRef.current = nextCollection;
-        setMonsterCollection(nextCollection);
-        setStoryProgress(nextStory);
-        storyProgressRef.current = nextStory;
-
-        const partyToasts = buildPartyChangeToasts(
-          currentCollection,
-          nextCollection,
-        );
-        enqueueToasts(partyToasts);
-
-        if (capture?.caught) {
-          const capturedLine = getMonsterLine(capture.lineId);
-          if (capturedLine) {
-            enqueueToast({
-              title: "ポケモン捕獲！",
-              message: `${capturedLine.name}を捕まえた！`,
-              image: getSpecies(capture.level ?? 1, capturedLine.id).sprite,
-            });
-          }
-        }
-
-        persistProgress({
-          nextCollection,
-          nextStory,
-          nextPoolSize: currentPoolSize,
-        });
+        spawnEncounter(unlockedPoolSize, collection);
         return;
       }
+    }
 
-      finalEvaluation = evaluatePlay({
-        answers: finalAnswers,
-        score: finalScore,
-        playLimit,
-        bestStreak: finalBestStreak,
-        unlockedPoolSize: currentPoolSize,
-        playCount,
-      });
-      setResultEvaluation(finalEvaluation);
-      setBattleOutcome(null);
-      setCompletedBattleResult(null);
+    encounterRef.current = nextEncounter;
+    setEncounter(nextEncounter);
+    persistEncounter(nextEncounter);
+  }, [
+    gameSessionAnswers,
+    streak,
+    enqueueToast,
+    persistEncounter,
+    persistProgress,
+    spawnEncounter,
+    unlockedPoolSize,
+  ]);
 
-      const step = getPoolUnlockStepWithBossGate(
-        finalScore,
-        playLimit,
-        nextStory,
-        currentPoolSize,
-        {
-          perfectStep: GAME.PERFECT_UNLOCK_STEP,
-          unlockStep: GAME.UNLOCK_STEP,
-          unlockAccuracy: GAME.UNLOCK_ACCURACY,
-        },
+  // ── 10問区切りの締め（プール解放 + XP 付与）───────────────────────────────
+  const finishSet = useCallback(() => {
+    if (resultUnlockAppliedRef.current) return;
+    resultUnlockAppliedRef.current = true;
+
+    const currentCollection = monsterCollectionRef.current;
+    const finalEvaluation = evaluatePlay({
+      answers: gameSessionAnswers,
+      score,
+      playLimit: GAME.PLAY_LIMIT,
+      bestStreak,
+      unlockedPoolSize,
+      playCount: flowPlayCount,
+    });
+    setResultEvaluation(finalEvaluation);
+
+    // プール解放。バトル画面を廃止したため、ボスゲートは通さない
+    const accuracy = score / GAME.PLAY_LIMIT;
+    let step = 0;
+    if (accuracy >= 1) step = GAME.PERFECT_UNLOCK_STEP;
+    else if (accuracy >= GAME.UNLOCK_ACCURACY) step = GAME.UNLOCK_STEP;
+    const nextPoolSize =
+      step > 0
+        ? Math.min(unlockedPoolSize + step, VOCAB_ITEMS.length)
+        : unlockedPoolSize;
+    if (step > 0) {
+      setUnlockedPoolSize(nextPoolSize);
+      setLastUnlockCount(nextPoolSize - unlockedPoolSize);
+    } else {
+      setLastUnlockCount(0);
+    }
+
+    // XP をパーティへ付与。レベルアップ/進化はトーストと効果音で通知
+    const gained = finalEvaluation.xp ?? 0;
+    const activeMonster = getActiveMonster(currentCollection);
+    let didLevelUp = false;
+    let didEvolve = false;
+    if (activeMonster) {
+      const previousLevel = levelFromTotalXP(activeMonster.totalXP);
+      const nextLevel = levelFromTotalXP(
+        clampMonsterXP(activeMonster.totalXP + gained),
       );
-      const nextPoolSize =
-        step > 0
-          ? Math.min(currentPoolSize + step, VOCAB_ITEMS.length)
-          : currentPoolSize;
-      if (step > 0) {
-        setUnlockedPoolSize((prev) => {
-          const next = Math.min(prev + step, VOCAB_ITEMS.length);
-          setLastUnlockCount(next - prev);
-          return next;
-        });
-      } else {
-        setLastUnlockCount(0);
-      }
+      didLevelUp = nextLevel > previousLevel;
+      didEvolve =
+        getSpecies(previousLevel, activeMonster.lineId).id !==
+        getSpecies(nextLevel, activeMonster.lineId).id;
+    }
+    let nextCollection = updatePartyXP(currentCollection, gained);
 
-      const gained = finalEvaluation.xp ?? 0;
-      const currentMonster = getActiveMonster(currentCollection);
-      let didLevelUp = false;
-      let didEvolve = false;
-      let leveledCollection = currentCollection;
-      if (currentMonster) {
-        const previousXP = currentMonster.totalXP;
-        const previousLevel = levelFromTotalXP(previousXP);
-        const nextLevel = levelFromTotalXP(
-          clampMonsterXP(previousXP + gained),
-        );
-        didLevelUp = nextLevel > previousLevel;
-        didEvolve =
-          getSpecies(previousLevel, currentMonster.lineId).id !==
-          getSpecies(nextLevel, currentMonster.lineId).id;
-        leveledCollection = updatePartyXP(currentCollection, gained);
-      }
+    const giftSync = syncGiftProgress(nextCollection, nextPoolSize, {
+      showToasts: false,
+    });
+    nextCollection = giftSync.collection;
 
-      capture = rollCaptureEncounterForPage({
-        grade: finalEvaluation.grade,
-        unlockedPoolSize: currentPoolSize,
-        habitatVisits: leveledCollection.habitatVisits,
-        seed: `${Date.now()}-${Math.random()}`,
-        habitat: finalHabitat,
-        monsterCollection: leveledCollection,
+    const partyToasts = buildPartyChangeToasts(currentCollection, nextCollection);
+    monsterCollectionRef.current = nextCollection;
+    setMonsterCollection(nextCollection);
+    enqueueToasts(partyToasts);
+    enqueueGiftToasts(giftSync.awarded);
+
+    if (didEvolve && evolutionSoundRef.current) {
+      evolutionSoundRef.current.currentTime = 0;
+      evolutionSoundRef.current.play()?.catch?.((error) => {
+        console.debug("Evolution sound play error (ignoring):", error);
       });
-      if (capture?.lineId && !capture.caught) {
-        finalEvaluation = {
-          ...finalEvaluation,
-          captureFailed: true,
-          capturePreview: capture,
-        };
-        setResultEvaluation(finalEvaluation);
-      }
-      nextCollection = applyCaptureResultToCollectionForPage(
-        leveledCollection,
-        capture,
-      );
-      const giftSync = syncGiftProgress(nextCollection, nextPoolSize, {
-        showToasts: false,
+    } else if (didLevelUp && levelUpSoundRef.current) {
+      levelUpSoundRef.current.currentTime = 0;
+      levelUpSoundRef.current.play()?.catch?.((error) => {
+        console.debug("Level up sound play error (ignoring):", error);
       });
-      nextCollection = giftSync.collection;
-      setCaptureResult(capture);
-      monsterCollectionRef.current = nextCollection;
-      setMonsterCollection(nextCollection);
+    }
 
-      const trigger = processNormalPlayBattleTriggersForPage(nextStory, {
-        unlockedPoolSize: nextPoolSize,
-        habitatId: finalHabitat?.id ?? null,
-      });
-      nextStory = trigger.progress;
-      setStoryProgress(nextStory);
-      storyProgressRef.current = nextStory;
-      if (trigger.alert) setTrainerChallenge(trigger.alert);
-
-      if (capture?.caught) {
-        const capturedLine = getMonsterLine(capture.lineId);
-        if (capturedLine) {
-          enqueueToast({
-            title: "ポケモン捕獲！",
-            message: `${capturedLine.name}を捕まえた！`,
-            image: getSpecies(capture.level ?? 1, capturedLine.id).sprite,
-          });
-        }
-      }
-
-      const partyToasts = buildPartyChangeToasts(
-        currentCollection,
-        nextCollection,
-      );
-      enqueueToasts(partyToasts);
-      enqueueGiftToasts(giftSync.awarded);
-
-      if (didEvolve && evolutionSoundRef.current) {
-        evolutionSoundRef.current.currentTime = 0;
-        const playPromise = evolutionSoundRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            console.debug("Evolution sound play error (ignoring):", error);
-          });
-        }
-      } else if (didLevelUp && levelUpSoundRef.current) {
-        levelUpSoundRef.current.currentTime = 0;
-        const playPromise = levelUpSoundRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            console.debug("Level up sound play error (ignoring):", error);
-          });
-        }
-      }
-
-      persistProgress({
-        nextCollection,
-        nextStory,
-        nextPoolSize,
-      });
-    },
-    [
-      enqueueGiftToasts,
-      enqueueToasts,
-      habitatMinPools,
-      persistProgress,
-      syncGiftProgress,
-      useMasterBallThisBattle,
-      setUnlockedPoolSize,
-      setLastUnlockCount,
-    ],
-  );
+    persistProgress({
+      nextCollection,
+      nextPoolSize,
+    });
+    setPhase("result");
+  }, [
+    bestStreak,
+    enqueueGiftToasts,
+    enqueueToasts,
+    flowPlayCount,
+    gameSessionAnswers,
+    persistProgress,
+    score,
+    setLastUnlockCount,
+    setUnlockedPoolSize,
+    syncGiftProgress,
+    unlockedPoolSize,
+  ]);
 
   // ── 次へ ───────────────────────────────────────────────────────────────────
   const next = () => {
-    if (!checked || activeView === "result") return;
+    if (!checked || phase === "result") return;
 
-    if (total >= sessionPlayLimit) {
-      applyEndOfPlay(
-        score,
-        bestStreak,
-        unlockedPoolSize,
-        sessionAnswers,
-        currentHabitatRef.current,
-        flowPlayCount,
-      );
-      setActiveView("result");
+    if (total >= GAME.PLAY_LIMIT) {
+      finishSet();
       return;
     }
 
     setTotal((t) => t + 1);
     const seenInPlay = seenInPlayRef.current ?? new Set<number>([index]);
     seenInPlayRef.current = seenInPlay;
+    const answeredCount = checked ? total : total - 1;
+    const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
     const nextIndex = pickNextQuestionIndex(
       index,
       seenInPlay,
       currentSessionAccuracy,
-      activeBattleRef.current,
+      null,
     );
     if (nextIndex === null) {
-      applyEndOfPlay(
-        score,
-        bestStreak,
-        unlockedPoolSize,
-        sessionAnswers,
-        currentHabitatRef.current,
-        flowPlayCount,
-      );
-      setActiveView("result");
+      finishSet();
       return;
     }
     seenInPlay.add(nextIndex);
@@ -1087,10 +922,31 @@ export default function Page() {
     setReviewResult(null);
   };
 
-  const openDashboard = useCallback((returnView: GameView = "study") => {
-    setDashboardReturnView(returnView);
-    setActiveView("dashboard");
-  }, []);
+  /** リザルトから次の10問セットへ。画面はそのまま、中身だけ入れ替える */
+  const continueToNextSet = useCallback(() => {
+    markDailyPlay();
+    setFlowPlayCount((count) => count + 1);
+    resetSession();
+    setResultEvaluation(null);
+    setReviewResult(null);
+    const newIndex = pickNextQuestionIndex(null, new Set(), 1.0, null) ?? 0;
+    setIndex(newIndex);
+    seenInPlayRef.current = new Set([newIndex]);
+    setLastUnlockCount(0);
+    resultUnlockAppliedRef.current = false;
+    processedAnswerCountRef.current = 0;
+    if (!encounterRef.current || encounterRef.current.status !== "active") {
+      spawnEncounter(unlockedPoolSize, monsterCollectionRef.current);
+    }
+    setPhase("quiz");
+  }, [
+    markDailyPlay,
+    pickNextQuestionIndex,
+    resetSession,
+    setLastUnlockCount,
+    spawnEncounter,
+    unlockedPoolSize,
+  ]);
 
   const addApprovedAnswer = useCallback((wordId: string, normalizedAnswer: string) => {
     setApprovedAnswers((prev) => {
@@ -1159,168 +1015,8 @@ export default function Page() {
         setStoryProgress(normalizedStory);
       }
     },
-    [],
+    [setUnlockedPoolSize],
   );
-
-  // プレイ開始時に「今日プレイした」ことを記録し、毎日ストリークを更新する。
-  const markDailyPlay = useCallback(() => {
-    setDailyStreak((prev) => {
-      const next = recordPlay(prev, toDateKey(new Date()));
-      if (next !== prev) storage.set(STORAGE_KEYS.STREAK, next);
-      return next;
-    });
-  }, []);
-
-  const resetPlayState = useCallback(
-    ({ keepHabitat = true, battle = null }: { keepHabitat?: boolean; battle?: Battle | null } = {}) => {
-      resetSession();
-      setSessionAnswers([]);
-      setResultEvaluation(null);
-      setCaptureResult(null);
-      setBattleOutcome(null);
-      setCompletedBattleResult(null);
-      setUseMasterBallThisBattle(false);
-      if (!keepHabitat || !currentHabitatRef.current) selectNextHabitat();
-      const newIndex =
-        pickNextQuestionIndex(null, new Set(), 1.0, battle) ?? 0;
-      setIndex(newIndex);
-      seenInPlayRef.current = new Set([newIndex]);
-      setLastUnlockCount(0);
-      resultUnlockAppliedRef.current = false;
-    },
-    [pickNextQuestionIndex, selectNextHabitat, resetSession],
-  );
-
-  const beginBattleSession = useCallback(
-    (battleId: string, progress: StoryProgress, collection: MonsterCollection) => {
-      const battle = getBattleForProgress(battleId, progress);
-      if (!battle) return;
-      markDailyPlay();
-      const nextStory = startBattleSessionForPage(progress, battleId);
-      setStoryProgress(nextStory);
-      storyProgressRef.current = nextStory;
-      setActiveBattle(battle);
-      activeBattleRef.current = battle;
-      setCompletedBattleResult(null);
-      setUseMasterBallThisBattle(false);
-      setFlowPlayCount(1);
-      resetPlayState({ keepHabitat: true, battle });
-      persistProgress({ nextStory, nextCollection: collection });
-      setActiveView("study");
-    },
-    [markDailyPlay, persistProgress, resetPlayState],
-  );
-
-  const startBattle = useCallback(
-    (battleId: string) => {
-      if (
-        needsStarterChoice(storyProgressRef.current, battleId) &&
-        !savedCollectionExistsRef.current
-      ) {
-        setPendingStarterBattleId(battleId);
-        return;
-      }
-      beginBattleSession(
-        battleId,
-        storyProgressRef.current,
-        monsterCollectionRef.current,
-      );
-    },
-    [beginBattleSession],
-  );
-
-  const handleStarterSelect = useCallback(
-    (lineId: string) => {
-      const { collection, progress } = applyStarterChoiceForPage(
-        monsterCollectionRef.current,
-        storyProgressRef.current,
-        lineId,
-      );
-      monsterCollectionRef.current = collection;
-      setMonsterCollection(collection);
-      storyProgressRef.current = progress;
-      setStoryProgress(progress);
-      const battleId = pendingStarterBattleId ?? "rival-1";
-      setPendingStarterBattleId(null);
-      beginBattleSession(battleId, progress, collection);
-    },
-    [beginBattleSession, pendingStarterBattleId],
-  );
-
-  const handleUseMasterBall = useCallback(() => {
-    const preview =
-      completedBattleResult?.capture ??
-      resultEvaluation?.capturePreview ??
-      captureResult;
-    if (!preview?.lineId || !canUseMasterBall(storyProgressRef.current)) return;
-
-    const applied = applyMasterBallCaptureForPage(
-      storyProgressRef.current,
-      monsterCollectionRef.current,
-      preview,
-    );
-    if (!applied.capture) return;
-
-    const nextCollection = applied.collection;
-    const nextStory = applied.progress;
-    monsterCollectionRef.current = nextCollection;
-    setMonsterCollection(nextCollection);
-    setStoryProgress(nextStory);
-    storyProgressRef.current = nextStory;
-    setCaptureResult(applied.capture);
-
-    if (completedBattleResult) {
-      setCompletedBattleResult({
-        ...completedBattleResult,
-        capture: applied.capture,
-        resultMessage: getBattleResultMessageForPage(
-          completedBattleResult.battle,
-          true,
-          applied.capture,
-        ),
-      });
-    }
-
-    const capturedLine = getMonsterLine(applied.capture.lineId);
-    enqueueToast({
-      title: "マスターボール！",
-      message: `${capturedLine?.name ?? "ポケモン"}を捕まえた！`,
-      image: capturedLine ? getSpecies(applied.capture.level ?? 1, capturedLine.id).sprite : undefined,
-    });
-    persistProgress({ nextCollection, nextStory });
-  }, [
-    captureResult,
-    completedBattleResult,
-    enqueueToast,
-    persistProgress,
-    resultEvaluation,
-  ]);
-
-  const startGame = useCallback(() => {
-    markDailyPlay();
-    setActiveBattle(null);
-    activeBattleRef.current = null;
-    setFlowPlayCount(1);
-    resetPlayState({ keepHabitat: true, battle: null });
-    setActiveView("study");
-  }, [markDailyPlay, resetPlayState]);
-
-  const restart = useCallback(() => {
-    if (completedBattleResult?.battle && completedBattleResult.lost) {
-      startBattle(completedBattleResult.battle.id);
-      return;
-    }
-    markDailyPlay();
-    setFlowPlayCount((count) => count + 1);
-    resetPlayState({ keepHabitat: true, battle: null });
-    setActiveView("study");
-  }, [completedBattleResult, markDailyPlay, resetPlayState, startBattle]);
-
-  const backToStart = useCallback(() => {
-    setFlowPlayCount(1);
-    resetPlayState({ keepHabitat: false });
-    setActiveView("start");
-  }, [resetPlayState]);
 
   const handleSendToProfessor = useCallback(
     (monsterIds: string[]) => {
@@ -1372,40 +1068,24 @@ export default function Page() {
     ],
   );
 
-  // Hook game session answers to page state answers
-  useEffect(() => {
-    setSessionAnswers(gameSessionAnswers);
-  }, [gameSessionAnswers]);
-
-  // Keyboard triggers using custom hook
-  useKeyboardShortcuts({
-    activeView,
-    startGame,
-    restart,
-  });
-
   // 全ボタン共通の「カチャ」というクリック音
   useClickSound();
 
-  // モバイルのキーボード表示に合わせてクイズ画面を視覚ビューポートに収める
+  // モバイルのキーボード表示に合わせて画面を視覚ビューポートに収める
   useVisualViewportVars();
 
   const currentTier = getPoolTier(unlockedPoolSize);
   const tierTheme = getTierTheme(currentTier.label);
-
-  useEffect(() => {
-    if (currentHabitatRef.current) return;
-    selectNextHabitat();
-  }, [selectNextHabitat]);
-
-  const shouldShowPokemonBox = isPokemonBoxOpen || isBoxOverLimit;
-
-  const fossilChoiceModal = (
-    <FossilChoiceModal group={fossilChoice} onSelect={handleFossilChoice} />
+  const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
+  const fallbackHabitatName = useMemo(
+    () => getUnlockedHabitats(unlockedPoolSize).at(-1)?.name ?? "",
+    [unlockedPoolSize],
   );
-  const starterChoiceModal = pendingStarterBattleId ? (
-    <StarterChoiceModal onSelect={handleStarterSelect} />
-  ) : null;
+
+  const progressLabel = `${total} / ${GAME.PLAY_LIMIT}`;
+  const progressPct = Math.max(0, Math.min(100, (total / GAME.PLAY_LIMIT) * 100));
+
+  const shouldOpenDrawer = isDrawerOpen || isBoxOverLimit;
 
   if (!q) {
     return (
@@ -1417,487 +1097,285 @@ export default function Page() {
           </div>
         </div>
         <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
-        <TrainerChallengeAlert
-          alert={trainerChallenge}
-          onDismiss={() => setTrainerChallenge(null)}
-        />
-        {fossilChoiceModal}
-        {starterChoiceModal}
       </>
     );
   }
 
-  if (activeView === "dashboard") {
-    return (
-      <>
-        <ProgressDashboard
-          stats={stats}
-          totalWords={VOCAB_ITEMS.length}
-          onBack={() => setActiveView(dashboardReturnView)}
-        />
-        <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
-        <TrainerChallengeAlert
-          alert={trainerChallenge}
-          onDismiss={() => setTrainerChallenge(null)}
-        />
-        {fossilChoiceModal}
-        {starterChoiceModal}
-      </>
-    );
-  }
-
-  if (activeView === "result") {
-    return (
-      <>
-        <ResultScreen
-          score={score}
-          bestStreak={bestStreak}
-          playLimit={
-            completedBattleResult
-              ? getSessionPlayLimit(completedBattleResult.battle, GAME.PLAY_LIMIT)
-              : sessionPlayLimit
-          }
-          unlockedPoolSize={unlockedPoolSize}
-          totalWords={VOCAB_ITEMS.length}
-          unlockedThisRun={lastUnlockCount}
-          evaluation={resultEvaluation ?? playEvaluation}
-          battleResult={completedBattleResult}
-          masterBallAvailable={canUseMasterBall(storyProgress)}
-          onUseMasterBall={handleUseMasterBall}
-          onRestart={restart}
-          onBackToStart={backToStart}
-        />
-        <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
-        <TrainerChallengeAlert
-          alert={trainerChallenge}
-          onDismiss={() => setTrainerChallenge(null)}
-        />
-        {fossilChoiceModal}
-        {starterChoiceModal}
-      </>
-    );
-  }
-
-  if (activeView === "start") {
-    const poolPct = Math.min(100, (unlockedPoolSize / VOCAB_ITEMS.length) * 100);
-    const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
-    return (
-      <>
-        <div
-          className="relative overflow-hidden min-h-screen text-zinc-900 flex items-center justify-center p-4 sm:p-6"
-          style={{ backgroundImage: tierTheme.pageGradient }}
-        >
-          <AuroraBackground vivid colors={tierTheme.auroraColors} />
-          <div className="scene-grid" aria-hidden />
-          <div className="scene-vignette" aria-hidden />
-          <div className="relative z-10 w-full max-w-md space-y-3">
-            {/* メインカード */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-3xl overflow-hidden shadow-2xl shadow-indigo-300/40 border border-indigo-100/50"
-            >
-              {/* グラデーションヘッダー（渦を巻く液体クロームの背景+ゆっくり明滅する光の粒。
-                  フィールドごとの配色は lib/fieldPalette.ts で手動設定する。未設定の間は
-                  ティア（出題プールの進捗）に連動したパレットになり、ステージが進むほど
-                  ヘッダーの雰囲気が変わる */}
-              <div
-                className="field-marble relative overflow-hidden px-6 pt-6 pb-6"
-                style={fieldPaletteToCssVars(
-                  getFieldPalette(currentHabitat?.id, tierTheme.marble),
-                )}
-              >
-                <div className="field-dots field-dots-1" />
-                <div className="field-dots field-dots-2" />
-                <div className="relative z-10">
-                  <h1 className="font-display text-2xl font-bold text-white tracking-tight drop-shadow-[0_0_18px_rgba(255,255,255,0.35)]">
-                    英単語クイズ
-                  </h1>
-                  {/* マーブル背景は明滅するので、テキストは白+シャドウ、チップは暗色半透明で
-                      どの色局面でも読めるようにする */}
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-white text-sm [text-shadow:0_1px_6px_rgba(20,20,50,0.5)]">
-                    <span className="font-semibold">{currentHabitat?.name || "—"}</span>
-                    <span>·</span>
-                    <span className="rounded-full bg-black/30 border border-white/25 px-2 py-0.5 text-xs font-bold text-white [text-shadow:none]">
-                      {currentTier.label} ×{currentTier.multiplier}
-                    </span>
-                    {displayStreak > 0 && (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full bg-black/30 border border-white/25 px-2 py-0.5 text-xs font-bold text-white [text-shadow:none]"
-                        title={`最長 ${dailyStreak.longest} 日連続`}
-                        aria-label={`${displayStreak}日連続プレイ中。最長${dailyStreak.longest}日連続`}
-                      >
-                        🔥 {displayStreak}日連続
-                      </span>
-                    )}
-                  </div>
-
-                  {/* プール進捗バー */}
-                  <div className="mt-4">
-                    <div className="flex items-baseline justify-between mb-1.5 [text-shadow:0_1px_6px_rgba(20,20,50,0.5)]">
-                      <span className="text-xs text-white/90">出題プール</span>
-                      <span className="text-xs font-semibold text-white tabular-nums">
-                        {unlockedPoolSize} <span className="text-white/75 font-normal">/ {VOCAB_ITEMS.length}</span>
-                      </span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-white/20">
-                      <motion.div
-                        className="h-full rounded-full bg-white"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${poolPct}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* バッジ */}
-                  {storyProgress.badges.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {storyProgress.badges.map((badge) => (
-                        <span
-                          key={badge}
-                          className="rounded-full bg-black/30 border border-white/25 px-2.5 py-0.5 text-xs font-semibold text-white"
-                        >
-                          {badge}バッジ
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {canUseMasterBall(storyProgress) && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/30 px-2.5 py-1 text-xs font-semibold text-white">
-                      ◎ マスターボール所持
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ボタンエリア */}
-              <div className="bg-white px-5 py-5 space-y-2.5">
-                {startScreenBattle && (
-                  <button
-                    type="button"
-                    onClick={() => startBattle(startScreenBattle.id)}
-                    className="btn-3d btn-shine [--btn-edge:#9f1239] w-full h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 text-sm font-bold text-white"
-                  >
-                    ⚔ {startScreenBattle.name}とたたかう！
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={startGame}
-                  className="btn-3d btn-shine [--btn-edge:#52525b] w-full h-12 rounded-2xl bg-black text-sm font-semibold text-white"
-                >
-                  1プレイ開始（10問）
-                </button>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openDashboard("start")}
-                    className="btn-3d [--btn-edge:rgba(63,63,70,0.18)] flex-1 h-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-black hover:bg-zinc-50 transition-colors"
-                  >
-                    進捗
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsPokemonBoxOpen(true)}
-                    aria-expanded={isPokemonBoxOpen}
-                    className="btn-3d [--btn-edge:rgba(63,63,70,0.18)] flex-1 h-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-black hover:bg-zinc-50 transition-colors"
-                  >
-                    ポケモン
-                  </button>
-                </div>
-
-                <div className="pt-1 border-t border-zinc-100">
-                  <SyncButton
-                    stats={stats}
-                    unlockedPoolSize={unlockedPoolSize}
-                    monsterCollection={monsterCollection}
-                    approvedAnswers={approvedAnswers}
-                    onMerged={handleSyncMerged}
-                  />
-                </div>
-              </div>
-            </motion.div>
-
-            {/* モンスター */}
-            {shouldShowPokemonBox && (
-              <PokemonBox
-                collection={monsterCollection}
-                limit={BOX_LIMIT}
-                forceManage={isBoxOverLimit}
-                onClose={() => setIsPokemonBoxOpen(false)}
-                onSwap={(first, second) =>
-                  setMonsterCollection((prev) =>
-                    swapMonsterLocations(prev, first, second),
-                  )
-                }
-                onRemove={(partyIndex: number) =>
-                  setMonsterCollection((prev) =>
-                    sendPartySlotToBox(prev, partyIndex),
-                  )
-                }
-                onSendToProfessor={handleSendToProfessor}
-                onSortBox={(mode: BoxSortMode) =>
-                  setMonsterCollection((prev) => sortBoxMonsters(prev, mode))
-                }
-              />
-            )}
-
-            <PokemonParty
-              collection={monsterCollection}
-              onSelect={(monsterId: string) =>
-                setMonsterCollection((prev) =>
-                  setActiveMonster(prev, monsterId),
-                )
-              }
-            />
-          </div>
-        </div>
-        <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
-        <TrainerChallengeAlert
-          alert={trainerChallenge}
-          onDismiss={() => setTrainerChallenge(null)}
-        />
-        {fossilChoiceModal}
-        {starterChoiceModal}
-      </>
-    );
-  }
-
-  // ── クイズ画面 ──────────────────────────────────────────────────────────
-  // モバイル: .quiz-shell（globals.css）で視覚ビューポートにピン留めした
-  //   全画面フレックスコラム。キーボード表示中も上のトレーナーバーと
-  //   下の回答ボタンが画面内に残る（中身は内部スクロール）
-  // PC: 中央寄せカード
   return (
     <>
       <div
-        className="quiz-shell relative overflow-hidden flex flex-col min-h-dvh text-zinc-900 sm:min-h-screen sm:items-center sm:justify-center sm:p-6"
+        className="quiz-shell relative h-dvh overflow-hidden text-zinc-900 sm:h-screen"
         style={{ backgroundImage: tierTheme.quizGradient }}
       >
+        {/* 既存の進捗同期アニメーション背景を流用（ティアで配色が変わる） */}
         <AuroraBackground vivid colors={tierTheme.auroraColors} />
-        <div className="scene-grid hidden sm:block" aria-hidden />
-        <div className="scene-vignette hidden sm:block" aria-hidden />
-        {activeBattle && (
-          <div className="relative z-40 shrink-0 sm:hidden">
-            <CompactBattleBar
-              battle={activeBattle}
-              questionNumber={total}
-              playLimit={sessionPlayLimit}
-              currentAccuracy={currentBattleAccuracy}
-              masterBallAvailable={canUseMasterBall(storyProgress)}
-              useMasterBall={useMasterBallThisBattle}
-              onToggleMasterBall={() =>
-                setUseMasterBallThisBattle((prev) => !prev)
-              }
+        <div className="scene-vignette" aria-hidden />
+
+        <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col">
+          {/* ── 1. ワールドウィンドウ（25%） ── */}
+          <header className="h-[25%] min-h-0 shrink-0">
+            <WorldWindow
+              encounter={encounter?.status === "active" ? encounter : null}
+              fallbackHabitatName={fallbackHabitatName}
+              tier={currentTier}
+              unlockedPoolSize={unlockedPoolSize}
+              totalWords={VOCAB_ITEMS.length}
+              streakDays={displayStreak}
+              onOpenProgress={() => setIsProgressOpen(true)}
             />
-          </div>
-        )}
+          </header>
 
-        {/* カード */}
-        <div className="relative z-10 flex flex-1 flex-col bg-white w-full sm:flex-initial sm:max-w-lg sm:rounded-3xl sm:border sm:border-indigo-100/60 sm:shadow-xl sm:shadow-indigo-100/40 sm:overflow-hidden">
-
-          {/* スクロール可能なコンテンツ領域 */}
-          <div className="flex-1 overflow-y-auto sm:overflow-visible">
-            {activeBattle && (
-              <div className="hidden sm:block px-5 pt-5">
-                <BattleBanner
-                  battle={activeBattle}
-                  questionNumber={total}
-                  playLimit={sessionPlayLimit}
-                  currentAccuracy={currentBattleAccuracy}
-                  won={battleOutcome === "won"}
-                  lost={battleOutcome === "lost"}
-                  masterBallAvailable={canUseMasterBall(storyProgress)}
-                  useMasterBall={useMasterBallThisBattle}
-                  onToggleMasterBall={() =>
-                    setUseMasterBallThisBattle((prev) => !prev)
-                  }
+          {/* ── 2. 問題ウィンドウ（55%） ── */}
+          <main className="h-[55%] min-h-0 shrink-0 px-1.5 sm:px-2">
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-indigo-100/60 bg-white shadow-xl shadow-indigo-200/40">
+              {phase === "result" ? (
+                <InlineResult
+                  evaluation={resultEvaluation}
+                  score={score}
+                  playLimit={GAME.PLAY_LIMIT}
+                  unlockedThisRun={lastUnlockCount}
+                  onContinue={continueToNextSet}
                 />
-              </div>
-            )}
-
-            {/* プログレス行 */}
-            <div className="px-4 pt-4 sm:px-6 sm:pt-6">
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex-1 h-1.5 overflow-hidden rounded-full bg-indigo-100"
-                  role="progressbar"
-                  aria-valuenow={total}
-                  aria-valuemin={1}
-                  aria-valuemax={sessionPlayLimit}
-                >
-                  <motion.div
-                    className="gradient-cta h-full rounded-full"
-                    style={{ backgroundImage: tierTheme.accentGradient }}
-                    animate={{ width: `${progressPct}%` }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                  />
-                </div>
-                <div className="text-xs text-indigo-400 shrink-0 font-medium">{progress}</div>
-              </div>
-              <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
-                <span>{score} 正解</span>
-                <AnimatePresence>
-                  {bestStreak > 1 && (
-                    <motion.span
-                      key={bestStreak}
-                      initial={{ scale: 0.7, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="text-amber-500 font-semibold drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]"
-                    >
-                      🔥 {bestStreak}連続
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-                {!activeBattle && (
-                  <span
-                    className="ml-auto rounded-full px-2 py-0.5 text-xs font-bold text-white"
-                    style={{ backgroundColor: currentTier.color }}
-                  >
-                    ×{currentTier.multiplier}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* 問題カード：問題が変わるたびスライドイン（ティアに応じて配色が変わる）。
-                マウスに追従して3D傾斜＋グレアが動く（TiltCard） */}
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="mx-4 mt-4 sm:mx-6"
-            >
-              <TiltCard
-                style={{ backgroundImage: tierTheme.accentGradient }}
-                className="gradient-cta relative overflow-hidden rounded-2xl px-5 py-8 text-center shadow-xl shadow-indigo-300/40 sm:py-10"
-              >
-                <div className="relative z-20">
-                  <div className="text-xs font-semibold uppercase tracking-widest text-black">
-                    {getPartOfSpeech(q)}
-                  </div>
-                  <div className="mt-3 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
-                    {q.target}
-                  </div>
-                </div>
-              </TiltCard>
-            </motion.div>
-
-            {/* 入力フィールド */}
-            <div className="px-4 mt-4 pb-2 sm:px-6">
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onCompositionStart={() => setIsComposing(true)}
-                onCompositionEnd={() => setIsComposing(false)}
-                placeholder="日本語訳を入力..."
-                aria-label="日本語訳を入力してください"
-                className="w-full rounded-xl border-2 border-indigo-100 bg-indigo-50/50 px-4 py-3 text-base outline-none transition-all focus:border-indigo-400 focus:bg-white focus:shadow-lg focus:shadow-indigo-200/50 disabled:opacity-50"
-                onKeyDown={(e) => {
-                  if (isComposing) return;
-                  if (e.key !== "Enter") return;
-                  if (checked) next();
-                  else checkAnswer();
-                }}
-                disabled={isCheckingAnswer}
-              />
-
-              <AnimatePresence mode="wait">
-                {checked && (
-                  <motion.div
-                    key={isCorrect ? "correct" : "wrong"}
-                    initial={{ opacity: 0, scale: 0.95, y: 4 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="mt-2"
-                  >
-                    {isCorrect ? (
-                      <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-                        <div className="text-sm font-bold text-emerald-700">
-                          {answerStatus === "ai_approved" ? "〇（AI承認）" : answerStatus === "alternative" ? "◯ 正解（別解）" : "◯ 正解"}
+              ) : (
+                <>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    {/* プログレス行 */}
+                    <div className="px-4 pt-3 sm:px-6">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="flex-1 h-1.5 overflow-hidden rounded-full bg-indigo-100"
+                          role="progressbar"
+                          aria-valuenow={total}
+                          aria-valuemin={1}
+                          aria-valuemax={GAME.PLAY_LIMIT}
+                        >
+                          <motion.div
+                            className="gradient-cta h-full rounded-full"
+                            style={{ backgroundImage: tierTheme.accentGradient }}
+                            animate={{ width: `${progressPct}%` }}
+                            transition={{ duration: 0.4, ease: "easeOut" }}
+                          />
+                        </div>
+                        <div className="text-xs text-indigo-400 shrink-0 font-medium">
+                          {progressLabel}
                         </div>
                       </div>
-                    ) : (
-                      <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3">
-                        <div className="text-xs font-semibold text-rose-400 mb-0.5">不正解</div>
-                        <div className="text-sm font-bold text-rose-900">{normalizedAnswers.join(" / ")}</div>
-                        {posViolation && (
-                          <div className="mt-1 text-xs text-rose-700 opacity-80">{posViolation}</div>
-                        )}
-                        {!reviewResult && (
-                          <div className="mt-2 flex flex-col gap-1">
-                            <button
-                              type="button"
-                              onClick={requestAiReview}
-                              disabled={isRequestingReview}
-                              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-100 px-3 py-2 text-xs font-medium text-indigo-800 hover:from-indigo-100 hover:to-violet-200 disabled:opacity-50 transition text-left"
+                      <div className="mt-1.5 flex items-center gap-3 text-xs text-zinc-400">
+                        <span>{score} 正解</span>
+                        <AnimatePresence>
+                          {bestStreak > 1 && (
+                            <motion.span
+                              key={bestStreak}
+                              initial={{ scale: 0.7, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className="text-amber-500 font-semibold drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]"
                             >
-                              {isRequestingReview && (
-                                <span className="ios-spinner" aria-hidden="true">
-                                  {Array.from({ length: 12 }).map((_, i) => (
-                                    <span
-                                      key={i}
-                                      className="ios-spinner-bar"
-                                      style={{
-                                        transform: `rotate(${i * 30}deg)`,
-                                        animationDelay: `${-((12 - i) % 12) / 12}s`,
-                                      }}
-                                    />
-                                  ))}
-                                </span>
-                              )}
-                              {isRequestingReview ? "AIが審議中..." : "AIに審議してもらう"}
-                            </button>
-                            {isRequestingReview && (
-                              <p className="text-xs text-zinc-400 px-1">AIの審議には少し時間がかかります。そのままお待ちください。</p>
-                            )}
-                          </div>
-                        )}
-                        {reviewResult && !reviewResult.approved && (
-                          <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-                            AI審議: 不承認（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
-                          </div>
-                        )}
+                              🔥 {bestStreak}連続
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                        <span
+                          className="ml-auto rounded-full px-2 py-0.5 text-xs font-bold text-white"
+                          style={{ backgroundColor: currentTier.color }}
+                        >
+                          ×{currentTier.multiplier}
+                        </span>
                       </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+                    </div>
 
-          {/* ボタン：モバイルでは最下部に固定 */}
-          <div className="shrink-0 px-4 pb-5 pt-2 bg-white sm:px-6 sm:pb-6">
-            <button
-              type="button"
-              onClick={checked ? next : checkAnswer}
-              disabled={isCheckingAnswer}
-              style={checked ? undefined : { backgroundImage: tierTheme.accentGradient }}
-              className={`btn-3d w-full h-14 text-base font-bold rounded-2xl flex items-center justify-center ${
-                checked
-                  ? "[--btn-edge:#c7d2fe] bg-gradient-to-r from-indigo-50 to-violet-100 text-indigo-700 border-2 border-indigo-200 hover:from-indigo-100 hover:to-violet-200"
-                  : "btn-shine [--btn-edge:rgba(49,46,129,0.55)] gradient-cta text-white"
-              } disabled:opacity-40`}
-            >
-              {isCheckingAnswer ? "判定中…" : checked ? "次へ →" : "答え合わせ"}
-            </button>
-          </div>
+                    {/* 問題カード：問題が変わるたびスライドイン（ティアに応じて配色が変わる）。
+                        マウスに追従して3D傾斜＋グレアが動く（TiltCard） */}
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                      className="mx-4 mt-3 sm:mx-6"
+                    >
+                      <TiltCard
+                        style={{ backgroundImage: tierTheme.accentGradient }}
+                        className="gradient-cta relative overflow-hidden rounded-2xl px-5 py-5 text-center shadow-xl shadow-indigo-300/40 sm:py-7"
+                      >
+                        <div className="relative z-20">
+                          <div className="text-xs font-semibold uppercase tracking-widest text-black">
+                            {getPartOfSpeech(q)}
+                          </div>
+                          <div className="mt-2 break-words text-3xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-4xl">
+                            {q.target}
+                          </div>
+                        </div>
+                      </TiltCard>
+                    </motion.div>
+
+                    {/* 入力フィールド */}
+                    <div className="px-4 mt-3 pb-2 sm:px-6">
+                      <input
+                        ref={inputRef}
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onCompositionStart={() => setIsComposing(true)}
+                        onCompositionEnd={() => setIsComposing(false)}
+                        placeholder="日本語訳を入力..."
+                        aria-label="日本語訳を入力してください"
+                        className="w-full rounded-xl border-2 border-indigo-100 bg-indigo-50/50 px-4 py-3 text-base outline-none transition-all focus:border-indigo-400 focus:bg-white focus:shadow-lg focus:shadow-indigo-200/50 disabled:opacity-50"
+                        onKeyDown={(e) => {
+                          if (isComposing) return;
+                          if (e.key !== "Enter") return;
+                          if (checked) next();
+                          else checkAnswer();
+                        }}
+                        disabled={isCheckingAnswer}
+                      />
+
+                      <AnimatePresence mode="wait">
+                        {checked && (
+                          <motion.div
+                            key={isCorrect ? "correct" : "wrong"}
+                            initial={{ opacity: 0, scale: 0.95, y: 4 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className="mt-2"
+                          >
+                            {isCorrect ? (
+                              <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
+                                <div className="text-sm font-bold text-emerald-700">
+                                  {answerStatus === "ai_approved" ? "〇（AI承認）" : answerStatus === "alternative" ? "◯ 正解（別解）" : "◯ 正解"}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3">
+                                <div className="text-xs font-semibold text-rose-400 mb-0.5">不正解</div>
+                                <div className="text-sm font-bold text-rose-900">{normalizedAnswers.join(" / ")}</div>
+                                {posViolation && (
+                                  <div className="mt-1 text-xs text-rose-700 opacity-80">{posViolation}</div>
+                                )}
+                                {!reviewResult && (
+                                  <div className="mt-2 flex flex-col gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={requestAiReview}
+                                      disabled={isRequestingReview}
+                                      className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-100 px-3 py-2 text-xs font-medium text-indigo-800 hover:from-indigo-100 hover:to-violet-200 disabled:opacity-50 transition text-left"
+                                    >
+                                      {isRequestingReview && (
+                                        <span className="ios-spinner" aria-hidden="true">
+                                          {Array.from({ length: 12 }).map((_, i) => (
+                                            <span
+                                              key={i}
+                                              className="ios-spinner-bar"
+                                              style={{
+                                                transform: `rotate(${i * 30}deg)`,
+                                                animationDelay: `${-((12 - i) % 12) / 12}s`,
+                                              }}
+                                            />
+                                          ))}
+                                        </span>
+                                      )}
+                                      {isRequestingReview ? "AIが審議中..." : "AIに審議してもらう"}
+                                    </button>
+                                    {isRequestingReview && (
+                                      <p className="text-xs text-zinc-400 px-1">AIの審議には少し時間がかかります。そのままお待ちください。</p>
+                                    )}
+                                  </div>
+                                )}
+                                {reviewResult && !reviewResult.approved && (
+                                  <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                                    AI審議: 不承認（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  {/* ボタン：問題ウィンドウ最下部に固定 */}
+                  <div className="shrink-0 px-4 pb-3 pt-1.5 bg-white sm:px-6">
+                    <button
+                      type="button"
+                      onClick={checked ? next : checkAnswer}
+                      disabled={isCheckingAnswer}
+                      style={checked ? undefined : { backgroundImage: tierTheme.accentGradient }}
+                      className={`btn-3d w-full h-12 text-base font-bold rounded-2xl flex items-center justify-center ${
+                        checked
+                          ? "[--btn-edge:#c7d2fe] bg-gradient-to-r from-indigo-50 to-violet-100 text-indigo-700 border-2 border-indigo-200 hover:from-indigo-100 hover:to-violet-200"
+                          : "btn-shine [--btn-edge:rgba(49,46,129,0.55)] gradient-cta text-white"
+                      } disabled:opacity-40`}
+                    >
+                      {isCheckingAnswer ? "判定中…" : checked ? "次へ →" : "答え合わせ"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </main>
+
+          {/* ── 3. エティモンウィンドウ（20%） ── */}
+          <footer className="relative z-20 h-[20%] min-h-0 shrink-0 pt-2">
+            <EtymonDock
+              collection={monsterCollection}
+              onSelect={(monsterId: string) =>
+                setMonsterCollection((prev) => setActiveMonster(prev, monsterId))
+              }
+              onOpenDrawer={() => setIsDrawerOpen(true)}
+            />
+          </footer>
         </div>
       </div>
 
+      {/* 手持ち編成（取っ手から開く。PokemonBox 自体がモーダルとして出る） */}
+      {shouldOpenDrawer && (
+        <PokemonBox
+          collection={monsterCollection}
+          limit={BOX_LIMIT}
+          forceManage={isBoxOverLimit}
+          onClose={() => setIsDrawerOpen(false)}
+          onSwap={(first, second) =>
+            setMonsterCollection((prev) =>
+              swapMonsterLocations(prev, first, second),
+            )
+          }
+          onRemove={(partyIndex: number) =>
+            setMonsterCollection((prev) =>
+              sendPartySlotToBox(prev, partyIndex),
+            )
+          }
+          onSendToProfessor={handleSendToProfessor}
+          onSortBox={(mode: BoxSortMode) =>
+            setMonsterCollection((prev) => sortBoxMonsters(prev, mode))
+          }
+        />
+      )}
+
+      {/* 学習進捗オーバーレイ（マップをタップで開く。ページ遷移はしない）
+          クラウド同期もここに置く（プレイ中の導線から一段奥のユーティリティ） */}
+      {isProgressOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
+          <ProgressDashboard
+            stats={stats}
+            totalWords={VOCAB_ITEMS.length}
+            onBack={() => setIsProgressOpen(false)}
+          />
+          <div className="mx-auto max-w-2xl px-4 pb-8">
+            <div className="rounded-xl border border-zinc-200 bg-white p-3">
+              <SyncButton
+                stats={stats}
+                unlockedPoolSize={unlockedPoolSize}
+                monsterCollection={monsterCollection}
+                approvedAnswers={approvedAnswers}
+                onMerged={handleSyncMerged}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <ToastQueue toasts={activeToasts} onDismiss={dismissToast} />
-      <TrainerChallengeAlert
-        alert={trainerChallenge}
-        onDismiss={() => setTrainerChallenge(null)}
-      />
-      {fossilChoiceModal}
-      {starterChoiceModal}
+      <FossilChoiceModal group={fossilChoice} onSelect={handleFossilChoice} />
+      {showStarterChoice && <StarterChoiceModal onSelect={handleStarterSelect} />}
     </>
   );
 }
