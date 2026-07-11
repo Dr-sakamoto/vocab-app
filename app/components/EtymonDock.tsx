@@ -58,7 +58,7 @@ export default function EtymonDock({
         </motion.button>
       </div>
 
-      <div className="glass-panel mx-1.5 mb-1.5 flex h-[calc(100%-0.375rem)] min-h-0 items-stretch gap-1.5 rounded-2xl px-2 pb-1.5 pt-3 sm:mx-2 sm:mb-2 sm:gap-2 sm:px-3">
+      <div className="glass-panel flex h-full min-h-0 items-stretch gap-1.5 rounded-2xl px-2 pb-1.5 pt-3 sm:gap-2 sm:px-3">
         {slots.map((monster, index) => {
           if (!monster) {
             return (

@@ -41,7 +41,7 @@ export default function WorldWindow({
   const poolPct = Math.min(100, (unlockedPoolSize / Math.max(1, totalWords)) * 100);
 
   return (
-    <div className="flex h-full min-h-0 gap-1.5 p-1.5 sm:gap-2 sm:p-2">
+    <div className="flex h-full min-h-0 gap-2 sm:gap-2.5">
       {/* 出現エティモン */}
       <div className="glass-panel relative flex w-[30%] min-w-0 flex-col items-center justify-center overflow-hidden rounded-2xl px-2 py-1.5">
         <AnimatePresence mode="wait">

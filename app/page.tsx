@@ -1112,9 +1112,11 @@ export default function Page() {
         <AuroraBackground vivid colors={tierTheme.auroraColors} />
         <div className="scene-vignette" aria-hidden />
 
-        <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col">
-          {/* ── 1. ワールドウィンドウ（28%） ── */}
-          <header className="h-[28%] min-h-0 shrink-0">
+        {/* ブロックの高さは flex 比率(33/45/22)で配分し、gap で間隔を確保する。
+            %指定だと gap ぶんが溢れるため grow で残り空間を分け合う */}
+        <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col gap-2 p-2 sm:gap-3 sm:p-3">
+          {/* ── 1. ワールドウィンドウ ── */}
+          <header className="min-h-0 basis-0 grow-[33]">
             <WorldWindow
               encounter={encounter?.status === "active" ? encounter : null}
               fallbackHabitatName={fallbackHabitatName}
@@ -1126,8 +1128,8 @@ export default function Page() {
             />
           </header>
 
-          {/* ── 2. 問題ウィンドウ（52%） ── */}
-          <main className="h-[52%] min-h-0 shrink-0 px-1.5 sm:px-2">
+          {/* ── 2. 問題ウィンドウ ── */}
+          <main className="min-h-0 basis-0 grow-[45]">
             <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-indigo-100/60 bg-white shadow-xl shadow-indigo-200/40">
               {phase === "result" ? (
                 <InlineResult
@@ -1139,7 +1141,10 @@ export default function Page() {
                 />
               ) : (
                 <>
-                  <div className="min-h-0 flex-1 overflow-y-auto">
+                  {/* my-auto: 中身が短いときは上下中央に置き、余白を偏らせない。
+                      あふれたときは auto マージンが 0 になり通常通りスクロールする */}
+                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                    <div className="my-auto w-full">
                     {/* プログレス行 */}
                     <div className="px-4 pt-3 sm:px-6">
                       <div className="flex items-center gap-3">
@@ -1355,15 +1360,15 @@ export default function Page() {
                         )}
                       </AnimatePresence>
                     </div>
+                    </div>
                   </div>
-
                 </>
               )}
             </div>
           </main>
 
-          {/* ── 3. エティモンウィンドウ（20%） ── */}
-          <footer className="relative z-20 h-[20%] min-h-0 shrink-0 pt-2">
+          {/* ── 3. エティモンウィンドウ ── */}
+          <footer className="relative z-20 min-h-0 basis-0 grow-[22]">
             <EtymonDock
               collection={monsterCollection}
               onSelect={(monsterId: string) =>
