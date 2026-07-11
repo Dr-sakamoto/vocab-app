@@ -139,8 +139,9 @@ function getPartOfSpeech(q: VocabItem | undefined): string {
 /**
  * 単一画面・3ブロック構成のメインページ。
  *
- * 1. ワールドウィンドウ（25%）: 出現エティモン・ミッション・現在地
- * 2. 問題ウィンドウ（55%）: 出題。10問区切りで中身だけリザルトに入れ替わる
+ * 1. ワールドウィンドウ（28%）: 出現エティモン・ミッション・現在地
+ * 2. 問題ウィンドウ（52%）: 出題。答え合わせは入力欄内の⏎アイコンに統合。
+ *    10問区切りで中身だけリザルトに入れ替わる
  * 3. エティモンウィンドウ（20%）: 手持ち4体と編成ドロワーの取っ手
  *
  * 画面遷移は存在しない。スタート画面・リザルト画面・ポケモン画面への
@@ -1111,9 +1112,11 @@ export default function Page() {
         <AuroraBackground vivid colors={tierTheme.auroraColors} />
         <div className="scene-vignette" aria-hidden />
 
-        <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col">
-          {/* ── 1. ワールドウィンドウ（25%） ── */}
-          <header className="h-[25%] min-h-0 shrink-0">
+        {/* ブロックの高さは flex 比率(33/45/22)で配分し、gap で間隔を確保する。
+            %指定だと gap ぶんが溢れるため grow で残り空間を分け合う */}
+        <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col gap-2 p-2 sm:gap-3 sm:p-3">
+          {/* ── 1. ワールドウィンドウ ── */}
+          <header className="min-h-0 basis-0 grow-[33]">
             <WorldWindow
               encounter={encounter?.status === "active" ? encounter : null}
               fallbackHabitatName={fallbackHabitatName}
@@ -1125,8 +1128,8 @@ export default function Page() {
             />
           </header>
 
-          {/* ── 2. 問題ウィンドウ（55%） ── */}
-          <main className="h-[55%] min-h-0 shrink-0 px-1.5 sm:px-2">
+          {/* ── 2. 問題ウィンドウ ── */}
+          <main className="min-h-0 basis-0 grow-[45]">
             <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-indigo-100/60 bg-white shadow-xl shadow-indigo-200/40">
               {phase === "result" ? (
                 <InlineResult
@@ -1138,7 +1141,10 @@ export default function Page() {
                 />
               ) : (
                 <>
-                  <div className="min-h-0 flex-1 overflow-y-auto">
+                  {/* my-auto: 中身が短いときは上下中央に置き、余白を偏らせない。
+                      あふれたときは auto マージンが 0 になり通常通りスクロールする */}
+                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                    <div className="my-auto w-full">
                     {/* プログレス行 */}
                     <div className="px-4 pt-3 sm:px-6">
                       <div className="flex items-center gap-3">
@@ -1194,38 +1200,102 @@ export default function Page() {
                     >
                       <TiltCard
                         style={{ backgroundImage: tierTheme.accentGradient }}
-                        className="gradient-cta relative overflow-hidden rounded-2xl px-5 py-5 text-center shadow-xl shadow-indigo-300/40 sm:py-7"
+                        className="gradient-cta relative overflow-hidden rounded-2xl px-5 py-7 text-center shadow-xl shadow-indigo-300/40 sm:py-9"
                       >
                         <div className="relative z-20">
                           <div className="text-xs font-semibold uppercase tracking-widest text-black">
                             {getPartOfSpeech(q)}
                           </div>
-                          <div className="mt-2 break-words text-3xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-4xl">
+                          <div className="mt-2 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
                             {q.target}
                           </div>
                         </div>
                       </TiltCard>
                     </motion.div>
 
-                    {/* 入力フィールド */}
-                    <div className="px-4 mt-3 pb-2 sm:px-6">
-                      <input
-                        ref={inputRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onCompositionStart={() => setIsComposing(true)}
-                        onCompositionEnd={() => setIsComposing(false)}
-                        placeholder="日本語訳を入力..."
-                        aria-label="日本語訳を入力してください"
-                        className="w-full rounded-xl border-2 border-indigo-100 bg-indigo-50/50 px-4 py-3 text-base outline-none transition-all focus:border-indigo-400 focus:bg-white focus:shadow-lg focus:shadow-indigo-200/50 disabled:opacity-50"
-                        onKeyDown={(e) => {
-                          if (isComposing) return;
-                          if (e.key !== "Enter") return;
-                          if (checked) next();
-                          else checkAnswer();
-                        }}
-                        disabled={isCheckingAnswer}
-                      />
+                    {/* 入力フィールド。答え合わせ/次への操作はスケッチ通り
+                        入力欄の右端に⏎アイコンとして織り込む（独立ボタン行は持たない） */}
+                    <div className="px-4 mt-3 pb-3 sm:px-6">
+                      <div className="relative">
+                        <input
+                          ref={inputRef}
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          onCompositionStart={() => setIsComposing(true)}
+                          onCompositionEnd={() => setIsComposing(false)}
+                          placeholder="日本語訳を入力..."
+                          aria-label="日本語訳を入力してください"
+                          className="w-full rounded-xl border-2 border-indigo-100 bg-indigo-50/50 py-3.5 pl-4 pr-16 text-base outline-none transition-all focus:border-indigo-400 focus:bg-white focus:shadow-lg focus:shadow-indigo-200/50 disabled:opacity-50"
+                          onKeyDown={(e) => {
+                            if (isComposing) return;
+                            if (e.key !== "Enter") return;
+                            if (checked) next();
+                            else checkAnswer();
+                          }}
+                          disabled={isCheckingAnswer}
+                        />
+                        <button
+                          type="button"
+                          onClick={checked ? next : checkAnswer}
+                          disabled={isCheckingAnswer}
+                          aria-label={checked ? "次の問題へ" : "答え合わせ"}
+                          style={
+                            checked
+                              ? undefined
+                              : { backgroundImage: tierTheme.accentGradient }
+                          }
+                          className={`absolute inset-y-1.5 right-1.5 flex w-12 items-center justify-center rounded-lg transition-all disabled:opacity-40 ${
+                            checked
+                              ? "border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-100 text-indigo-700 hover:from-indigo-100 hover:to-violet-200"
+                              : "gradient-cta text-white shadow-md shadow-indigo-300/50"
+                          }`}
+                        >
+                          {isCheckingAnswer ? (
+                            <span className="ios-spinner" aria-hidden="true">
+                              {Array.from({ length: 12 }).map((_, i) => (
+                                <span
+                                  key={i}
+                                  className="ios-spinner-bar"
+                                  style={{
+                                    transform: `rotate(${i * 30}deg)`,
+                                    animationDelay: `${-((12 - i) % 12) / 12}s`,
+                                  }}
+                                />
+                              ))}
+                            </span>
+                          ) : checked ? (
+                            /* 次へ: → */
+                            <svg
+                              viewBox="0 0 24 24"
+                              className="h-6 w-6"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden
+                            >
+                              <path d="M4 12h15" />
+                              <path d="m13 6 6 6-6 6" />
+                            </svg>
+                          ) : (
+                            /* 答え合わせ: ⏎（リターンキー） */
+                            <svg
+                              viewBox="0 0 24 24"
+                              className="h-6 w-6"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden
+                            >
+                              <path d="M20 5v6a3 3 0 0 1-3 3H5" />
+                              <path d="m9 9-5 5 5 5" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
 
                       <AnimatePresence mode="wait">
                         {checked && (
@@ -1290,31 +1360,15 @@ export default function Page() {
                         )}
                       </AnimatePresence>
                     </div>
-                  </div>
-
-                  {/* ボタン：問題ウィンドウ最下部に固定 */}
-                  <div className="shrink-0 px-4 pb-3 pt-1.5 bg-white sm:px-6">
-                    <button
-                      type="button"
-                      onClick={checked ? next : checkAnswer}
-                      disabled={isCheckingAnswer}
-                      style={checked ? undefined : { backgroundImage: tierTheme.accentGradient }}
-                      className={`btn-3d w-full h-12 text-base font-bold rounded-2xl flex items-center justify-center ${
-                        checked
-                          ? "[--btn-edge:#c7d2fe] bg-gradient-to-r from-indigo-50 to-violet-100 text-indigo-700 border-2 border-indigo-200 hover:from-indigo-100 hover:to-violet-200"
-                          : "btn-shine [--btn-edge:rgba(49,46,129,0.55)] gradient-cta text-white"
-                      } disabled:opacity-40`}
-                    >
-                      {isCheckingAnswer ? "判定中…" : checked ? "次へ →" : "答え合わせ"}
-                    </button>
+                    </div>
                   </div>
                 </>
               )}
             </div>
           </main>
 
-          {/* ── 3. エティモンウィンドウ（20%） ── */}
-          <footer className="relative z-20 h-[20%] min-h-0 shrink-0 pt-2">
+          {/* ── 3. エティモンウィンドウ ── */}
+          <footer className="relative z-20 min-h-0 basis-0 grow-[22]">
             <EtymonDock
               collection={monsterCollection}
               onSelect={(monsterId: string) =>
