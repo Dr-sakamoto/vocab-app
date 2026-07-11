@@ -67,23 +67,32 @@ export default function SyncButton({
         }
       });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (event === "SIGNED_IN") {
-        window.setTimeout(() => {
-          syncProgress();
-        }, 0);
-      }
-      if (event === "SIGNED_OUT") {
-        setMessage("ログアウトしました。");
-      }
-    });
+    // Supabase未設定（環境変数なし）の環境でも、マウント時の throw で
+    // アプリ全体を巻き込んで落とさない。同期ボタンだけエラー表示になる。
+    let subscription: { unsubscribe: () => void } | null = null;
+    try {
+      ({
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        setUser(session?.user ?? null);
+        if (event === "SIGNED_IN") {
+          window.setTimeout(() => {
+            syncProgress();
+          }, 0);
+        }
+        if (event === "SIGNED_OUT") {
+          setMessage("ログアウトしました。");
+        }
+      }));
+    } catch (err: any) {
+      console.error("Supabase init error:", err);
+      setStatus("error");
+      setMessage(err?.message ?? "同期機能を初期化できませんでした。");
+    }
 
     return () => {
       disposed = true;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [syncProgress]);
 
