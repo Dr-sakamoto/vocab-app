@@ -54,7 +54,7 @@ export default function WorldWindow({
               transition={{ duration: 0.3 }}
               className="flex h-full w-full min-h-0 flex-col items-center justify-center"
             >
-              <div className="flex w-full items-baseline justify-center gap-1 text-[10px] font-bold text-indigo-950 sm:text-xs">
+              <div className="flex w-full items-baseline justify-center gap-1 text-xs font-bold text-indigo-950 sm:text-sm">
                 <span className="shrink-0 tabular-nums text-indigo-500">
                   Lv.{encounter.level}
                 </span>
@@ -74,7 +74,7 @@ export default function WorldWindow({
               />
               <div className="w-full">
                 <div
-                  className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200/80"
+                  className="h-2 w-full overflow-hidden rounded-full bg-zinc-200/80"
                   role="progressbar"
                   aria-label={`HP ${encounter.hp} / ${encounter.maxHP}`}
                   aria-valuenow={encounter.hp}
@@ -87,7 +87,7 @@ export default function WorldWindow({
                     transition={{ duration: 0.4, ease: "easeOut" }}
                   />
                 </div>
-                <div className="mt-0.5 text-center text-[9px] tabular-nums text-zinc-500">
+                <div className="mt-0.5 text-center text-[10px] tabular-nums text-zinc-500 sm:text-xs">
                   HP {encounter.hp} / {encounter.maxHP}
                 </div>
               </div>
@@ -114,15 +114,15 @@ export default function WorldWindow({
             <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-indigo-400">
               Mission
             </div>
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {encounter.missions.map((mission) => (
                 <li
                   key={mission.id}
-                  className="flex items-start gap-1.5 text-[10px] leading-tight sm:text-xs"
+                  className="flex items-start gap-1.5 text-[11px] leading-tight sm:text-sm"
                 >
                   <span
                     aria-hidden
-                    className={`mt-px flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border text-[9px] font-bold ${
+                    className={`mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${
                       mission.done
                         ? "border-emerald-400 bg-emerald-400 text-white"
                         : "border-zinc-300 bg-white/70 text-transparent"
@@ -169,12 +169,12 @@ export default function WorldWindow({
             <div className="text-[9px] font-bold uppercase tracking-widest opacity-80">
               Map
             </div>
-            <div className="truncate text-[11px] font-bold sm:text-sm">
+            <div className="truncate text-xs font-bold sm:text-base">
               {habitatName}
             </div>
           </div>
           <div>
-            <div className="flex items-center justify-between text-[9px]">
+            <div className="flex items-center justify-between text-[10px]">
               <span className="rounded-full bg-black/30 px-1.5 py-px font-bold [text-shadow:none]">
                 {tier.label} ×{tier.multiplier}
               </span>
@@ -182,13 +182,13 @@ export default function WorldWindow({
                 <span className="tabular-nums">🔥{streakDays}</span>
               )}
             </div>
-            <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-white/25">
+            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/25">
               <div
                 className="h-full rounded-full bg-white"
                 style={{ width: `${poolPct}%` }}
               />
             </div>
-            <div className="mt-0.5 text-right text-[9px] tabular-nums opacity-90">
+            <div className="mt-0.5 text-right text-[10px] tabular-nums opacity-90">
               {unlockedPoolSize} / {totalWords}
             </div>
           </div>

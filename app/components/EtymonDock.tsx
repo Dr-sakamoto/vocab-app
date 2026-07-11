@@ -100,10 +100,10 @@ export default function EtymonDock({
                 className="min-h-0 w-auto flex-1 object-contain"
                 style={{ imageRendering: "pixelated", maxHeight: "62%" }}
               />
-              <span className="max-w-full truncate text-[9px] font-medium text-zinc-700 sm:text-[11px]">
+              <span className="max-w-full truncate text-[10px] font-medium text-zinc-700 sm:text-xs">
                 {state.species.name}
               </span>
-              <span className="text-[8px] tabular-nums text-zinc-400 sm:text-[10px]">
+              <span className="text-[9px] tabular-nums text-zinc-400 sm:text-[11px]">
                 Lv.{state.level}
               </span>
             </motion.button>
@@ -115,10 +115,10 @@ export default function EtymonDock({
           className="flex w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-white/50 text-center sm:w-14"
           title="1正解ごとに出現エティモンへ与えるダメージ"
         >
-          <span className="text-[8px] font-bold uppercase tracking-wide text-indigo-400 sm:text-[9px]">
+          <span className="text-[9px] font-bold uppercase tracking-wide text-indigo-400 sm:text-[10px]">
             ATK
           </span>
-          <span className="text-sm font-bold tabular-nums text-indigo-950 sm:text-base">
+          <span className="text-base font-bold tabular-nums text-indigo-950 sm:text-lg">
             {attackPower}
           </span>
         </div>
