@@ -58,7 +58,7 @@ function ToastRow({
       animate={{ opacity: DEPTH_OPACITY[depth] ?? 0.55, x: 0, scale: DEPTH_SCALE[depth] ?? 0.96 }}
       exit={{ opacity: 0, x: -28, scale: 0.92 }}
       transition={{ type: "spring", stiffness: 340, damping: 30 }}
-      className="pointer-events-auto flex items-center gap-2.5 rounded-md border-2 border-[#3aa83a] bg-[#0e120b] py-1.5 pl-1.5 pr-3 font-mono shadow-[inset_0_0_0_1px_#000,0_0_10px_rgba(97,255,95,0.25)]"
+      className="font-dot pointer-events-auto flex items-center gap-2.5 rounded-md border-2 border-[#3aa83a] bg-[#0e120b] py-1.5 pl-1.5 pr-3 shadow-[inset_0_0_0_1px_#000,0_0_10px_rgba(97,255,95,0.25)]"
     >
       <div className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-sm border border-[#3aa83a]/40 bg-black">
         {toast.image ? (

@@ -562,11 +562,14 @@ a {
   --ega-line-amber: #b78a2a;
 }
 
-/* 画面全体：黒地＋ビットマップ風モノスペース */
-.fantasy-shell {
+/* 画面全体：黒地＋ドット（ビットマップ）フォント DotGothic16。
+   日本語・英字ともにドットで表示され、EGA/レトロPCの質感になる。 */
+.fantasy-shell,
+.font-dot {
   font-family:
-    "DejaVu Sans Mono", "Courier New", "MS Gothic", "Osaka-Mono",
-    ui-monospace, monospace;
+    "DotGothic16", "MS Gothic", "Osaka-Mono", ui-monospace, monospace;
+}
+.fantasy-shell {
   letter-spacing: 0.02em;
   color: var(--ega-fg);
   background-color: var(--ega-bg);
