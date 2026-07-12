@@ -61,6 +61,7 @@ import {
   updatePartyXP,
   getLevelUpGrowth,
 } from "@/lib/monster";
+import { buildChoiceOptions } from "@/lib/choiceQuiz";
 import {
   applyAnswerToMissions,
   isNewWordStat,
@@ -98,6 +99,7 @@ import {
 import storage from "@/lib/storage";
 
 const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
+const ANSWER_MODE_KEY = "vocab-answer-mode";
 const MIN_FRONT_TOAST_MS = 1000;
 
 /** 各問題に安定した ID */
@@ -181,6 +183,33 @@ export default function Page() {
   const [isComposing, setIsComposing] = useState<boolean>(false);
   // 初期値 true: 復元が終わるまでスターター選択モーダルを出さない
   const [savedCollectionExists, setSavedCollectionExists] = useState<boolean>(true);
+
+  // ── スマホ最適化 ────────────────────────────────────────────────────────
+  // スマホではソフトウェアキーボードがフローを切るため、デフォルトを
+  // 選択式（4択）にする。タイピング派向けに切替を用意し、選択は永続化。
+  // タイピング中は入力フォーカス（＝キーボード表示）で上下ブロックを畳む。
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [mobileAnswerMode, setMobileAnswerMode] = useState<"choice" | "typing">("choice");
+  const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsMobile(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  // PCは常にタイピング。選択式はスマホのみ
+  const answerMode: "choice" | "typing" = isMobile ? mobileAnswerMode : "typing";
+  const isKeyboardCollapsed =
+    isMobile && answerMode === "typing" && isInputFocused && phase === "quiz";
+
+  const setAnswerModePersistent = useCallback((mode: "choice" | "typing") => {
+    setMobileAnswerMode(mode);
+    storage.setString(ANSWER_MODE_KEY, mode);
+  }, []);
 
   // SSR とハイドレーションの不一致を避けるため、初期値は空で、実データは
   // マウント後の localStorage 復元 useEffect で読み込む。
@@ -533,14 +562,37 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
-    if (phase !== "quiz" || isCheckingAnswer) return;
+    if (phase !== "quiz" || isCheckingAnswer || answerMode !== "typing") return;
     inputRef.current?.focus();
-  }, [phase, checked, index, isCheckingAnswer]);
+  }, [phase, checked, index, isCheckingAnswer, answerMode]);
+
+  // 4択の選択肢。問題ごとに固定シードで生成し、再レンダーで並びが揺れない
+  const choiceOptions = useMemo(
+    () =>
+      answerMode === "choice"
+        ? buildChoiceOptions({
+            items: VOCAB_ITEMS,
+            index,
+            unlockedPoolSize,
+            seed: `choice:${index}:${total}:${flowPlayCount}`,
+          })
+        : [],
+    [answerMode, index, unlockedPoolSize, total, flowPlayCount],
+  );
+
+  useEffect(() => {
+    setSelectedChoice(null);
+  }, [index, total, flowPlayCount]);
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
     try {
       setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
+
+      // 回答モード（スマホのみ有効。デフォルトは選択式）
+      if (storage.getString(ANSWER_MODE_KEY, "choice") === "typing") {
+        setMobileAnswerMode("typing");
+      }
 
       let loadedPoolSize = Math.min(GAME.INITIAL_POOL_SIZE, VOCAB_ITEMS.length);
       const savedPool = Number(storage.get(STORAGE_KEYS.POOL_SIZE, null));
@@ -1116,7 +1168,14 @@ export default function Page() {
             %指定だと gap ぶんが溢れるため grow で残り空間を分け合う */}
         <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col gap-2 p-2 sm:gap-3 sm:p-3">
           {/* ── 1. ワールドウィンドウ ── */}
-          <header className="min-h-0 basis-0 grow-[33]">
+          {/* キーボード表示中(タイピング時)は1行スリム表示に畳む */}
+          <header
+            className={
+              isKeyboardCollapsed
+                ? "h-11 shrink-0 grow-0"
+                : "min-h-0 basis-0 grow-[33]"
+            }
+          >
             <WorldWindow
               encounter={encounter?.status === "active" ? encounter : null}
               fallbackHabitatName={fallbackHabitatName}
@@ -1125,6 +1184,7 @@ export default function Page() {
               totalWords={VOCAB_ITEMS.length}
               streakDays={displayStreak}
               onOpenProgress={() => setIsProgressOpen(true)}
+              compact={isKeyboardCollapsed}
             />
           </header>
 
@@ -1180,8 +1240,21 @@ export default function Page() {
                             </motion.span>
                           )}
                         </AnimatePresence>
+                        {isMobile && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAnswerModePersistent(
+                                mobileAnswerMode === "choice" ? "typing" : "choice",
+                              )
+                            }
+                            className="ml-auto rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600"
+                          >
+                            {mobileAnswerMode === "choice" ? "⌨ 入力式にする" : "☷ 4択にする"}
+                          </button>
+                        )}
                         <span
-                          className="ml-auto rounded-full px-2 py-0.5 text-xs font-bold text-white"
+                          className={`rounded-full px-2 py-0.5 text-xs font-bold text-white ${isMobile ? "" : "ml-auto"}`}
                           style={{ backgroundColor: currentTier.color }}
                         >
                           ×{currentTier.multiplier}
@@ -1200,21 +1273,73 @@ export default function Page() {
                     >
                       <TiltCard
                         style={{ backgroundImage: tierTheme.accentGradient }}
-                        className="gradient-cta relative overflow-hidden rounded-2xl px-5 py-7 text-center shadow-xl shadow-indigo-300/40 sm:py-9"
+                        className="gradient-cta relative overflow-hidden rounded-2xl px-5 py-5 text-center shadow-xl shadow-indigo-300/40 sm:py-9"
                       >
                         <div className="relative z-20">
                           <div className="text-xs font-semibold uppercase tracking-widest text-black">
                             {getPartOfSpeech(q)}
                           </div>
-                          <div className="mt-2 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
+                          <div className="mt-1.5 break-words text-3xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:mt-2 sm:text-5xl">
                             {q.target}
                           </div>
                         </div>
                       </TiltCard>
                     </motion.div>
 
-                    {/* 入力フィールド。答え合わせ/次への操作はスケッチ通り
-                        入力欄の右端に⏎アイコンとして織り込む（独立ボタン行は持たない） */}
+                    {answerMode === "choice" ? (
+                      /* スマホ既定: 選択式（4択）。キーボードを出さずにテンポよく回す */
+                      <div className="px-4 mt-3 pb-3 sm:px-6">
+                        <div className="grid grid-cols-2 gap-2" role="group" aria-label="選択肢">
+                          {choiceOptions.map((option) => {
+                            const showResult = checked;
+                            const isSelected = option.text === selectedChoice;
+                            const stateClass = !showResult
+                              ? "border-indigo-100 bg-indigo-50/60 text-zinc-800 active:scale-[0.98]"
+                              : option.correct
+                              ? "border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-200"
+                              : isSelected
+                              ? "border-rose-400 bg-rose-500 text-white"
+                              : "border-zinc-100 bg-zinc-50 text-zinc-400";
+                            return (
+                              <button
+                                key={option.text}
+                                type="button"
+                                disabled={isCheckingAnswer}
+                                onClick={() => {
+                                  if (checked) {
+                                    next();
+                                    return;
+                                  }
+                                  setSelectedChoice(option.text);
+                                  checkAnswer(option.text, { skipApi: true });
+                                }}
+                                className={`min-h-11 rounded-xl border-2 px-2 py-1.5 text-sm font-semibold leading-snug break-words transition-all disabled:opacity-50 ${stateClass}`}
+                              >
+                                {option.text}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <AnimatePresence>
+                          {checked && (
+                            <motion.button
+                              key="choice-next"
+                              type="button"
+                              initial={{ opacity: 0, y: 6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              onClick={next}
+                              className="mt-2 flex h-11 w-full items-center justify-center gap-1 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-100 text-sm font-bold text-indigo-700"
+                            >
+                              次へ →
+                            </motion.button>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    ) : (
+                    /* タイピング式。答え合わせ/次への操作はスケッチ通り
+                        入力欄の右端に⏎アイコンとして織り込む（独立ボタン行は持たない） */
                     <div className="px-4 mt-3 pb-3 sm:px-6">
                       <div className="relative">
                         <input
@@ -1223,6 +1348,8 @@ export default function Page() {
                           onChange={(e) => setInput(e.target.value)}
                           onCompositionStart={() => setIsComposing(true)}
                           onCompositionEnd={() => setIsComposing(false)}
+                          onFocus={() => setIsInputFocused(true)}
+                          onBlur={() => setIsInputFocused(false)}
                           placeholder="日本語訳を入力..."
                           aria-label="日本語訳を入力してください"
                           className="w-full rounded-xl border-2 border-indigo-100 bg-indigo-50/50 py-3.5 pl-4 pr-16 text-base outline-none transition-all focus:border-indigo-400 focus:bg-white focus:shadow-lg focus:shadow-indigo-200/50 disabled:opacity-50"
@@ -1360,6 +1487,7 @@ export default function Page() {
                         )}
                       </AnimatePresence>
                     </div>
+                    )}
                     </div>
                   </div>
                 </>
@@ -1368,7 +1496,13 @@ export default function Page() {
           </main>
 
           {/* ── 3. エティモンウィンドウ ── */}
-          <footer className="relative z-20 min-h-0 basis-0 grow-[22]">
+          <footer
+            className={
+              isKeyboardCollapsed
+                ? "hidden"
+                : "relative z-20 min-h-0 basis-0 grow-[22]"
+            }
+          >
             <EtymonDock
               collection={monsterCollection}
               onSelect={(monsterId: string) =>

@@ -14,6 +14,8 @@ interface WorldWindowProps {
   totalWords: number;
   streakDays: number;
   onOpenProgress?: () => void;
+  /** スマホでキーボード表示中: 1行のスリム表示にして問題に集中させる */
+  compact?: boolean;
 }
 
 function hpBarColor(ratio: number): string {
@@ -35,10 +37,64 @@ export default function WorldWindow({
   totalWords,
   streakDays,
   onOpenProgress,
+  compact = false,
 }: WorldWindowProps) {
   const hpRatio = encounter ? encounter.hp / encounter.maxHP : 0;
   const habitatName = encounter?.habitatName || fallbackHabitatName || "—";
   const poolPct = Math.min(100, (unlockedPoolSize / Math.max(1, totalWords)) * 100);
+
+  if (compact) {
+    const doneCount = encounter
+      ? encounter.missions.filter((mission) => mission.done).length
+      : 0;
+    return (
+      <div className="glass-panel flex h-full min-h-0 items-center gap-2 rounded-xl px-3">
+        {encounter ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={encounter.sprite}
+              alt=""
+              aria-hidden
+              onError={(e) => {
+                if (e.currentTarget.src !== encounter.fallbackSprite) {
+                  e.currentTarget.src = encounter.fallbackSprite;
+                }
+              }}
+              className="h-7 w-7 shrink-0 object-contain"
+              style={{ imageRendering: "pixelated" }}
+            />
+            <span className="shrink-0 text-[11px] font-bold text-indigo-950">
+              Lv.{encounter.level}
+            </span>
+            <span className="min-w-0 truncate text-[11px] font-bold text-indigo-950">
+              {encounter.name}
+            </span>
+            <div
+              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-200/80"
+              role="progressbar"
+              aria-label={`HP ${encounter.hp} / ${encounter.maxHP}`}
+              aria-valuenow={encounter.hp}
+              aria-valuemin={0}
+              aria-valuemax={encounter.maxHP}
+            >
+              <div
+                className={`h-full rounded-full ${hpBarColor(hpRatio)}`}
+                style={{ width: `${Math.max(0, hpRatio * 100)}%` }}
+              />
+            </div>
+            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-zinc-500">
+              ✓{doneCount}/{encounter.missions.length}
+            </span>
+          </>
+        ) : (
+          <span className="truncate text-[11px] text-zinc-400">
+            つぎのエティモンをさがしている…
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 gap-2 sm:gap-2.5">
