@@ -18,9 +18,9 @@ interface WorldWindowProps {
 }
 
 function hpBarColor(ratio: number): string {
-  if (ratio > 0.5) return "bg-emerald-600";
-  if (ratio > 0.25) return "bg-amber-500";
-  return "bg-red-700";
+  if (ratio > 0.5) return "bg-[#61ff5f]";
+  if (ratio > 0.25) return "bg-[#ffcf4a]";
+  return "bg-[#ff5a5a]";
 }
 
 /**
@@ -83,12 +83,12 @@ export default function WorldWindow({
                 style={{ width: `${Math.max(0, hpRatio * 100)}%` }}
               />
             </div>
-            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[#6d5228]">
+            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[#6f9268]">
               ✓{doneCount}/{encounter.missions.length}
             </span>
           </>
         ) : (
-          <span className="truncate text-[11px] text-[#6d5228]">
+          <span className="truncate text-[11px] text-[#6f9268]">
             つぎのエティモンをさがしている…
           </span>
         )}
@@ -111,7 +111,7 @@ export default function WorldWindow({
               className="flex h-full w-full min-h-0 flex-col items-center justify-center"
             >
               <div className="flex w-full items-baseline justify-center gap-1 text-[10px] font-bold sm:text-xs">
-                <span className="shrink-0 tabular-nums text-[#7a2a2a]">
+                <span className="shrink-0 tabular-nums text-[#ffcf4a]">
                   Lv.{encounter.level}
                 </span>
                 <span className="truncate">{encounter.name}</span>
@@ -143,7 +143,7 @@ export default function WorldWindow({
                     transition={{ duration: 0.4, ease: "easeOut" }}
                   />
                 </div>
-                <div className="mt-0.5 text-center text-[9px] tabular-nums text-[#6d5228] sm:text-[11px]">
+                <div className="mt-0.5 text-center text-[9px] tabular-nums text-[#6f9268] sm:text-[11px]">
                   {encounter.hp} / {encounter.maxHP}
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function WorldWindow({
               key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="px-1 text-center text-[10px] leading-relaxed text-[#6d5228]"
+              className="px-1 text-center text-[10px] leading-relaxed text-[#6f9268]"
             >
               つぎのエティモンを
               <br />
@@ -176,20 +176,20 @@ export default function WorldWindow({
                   aria-hidden
                   className={`mt-px flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[9px] font-bold sm:h-4 sm:w-4 ${
                     mission.done
-                      ? "border-[#3f5d3a] bg-[#3f5d3a] text-[#f4ebcb]"
-                      : "border-[#6d5228] bg-[#fdf8e6]/70 text-transparent"
+                      ? "border-[#61ff5f] bg-[#61ff5f] text-[#06120a]"
+                      : "border-[#3aa83a] bg-transparent text-transparent"
                   }`}
                 >
                   ✓
                 </span>
                 <span
                   className={
-                    mission.done ? "text-[#8a7a55] line-through" : "text-[#2b1d0e]"
+                    mission.done ? "text-[#6f9268] line-through" : "text-[#cfeecb]"
                   }
                 >
                   {mission.label}
                   {mission.goal > 1 && !mission.done && (
-                    <span className="ml-1 tabular-nums text-[#7a2a2a]">
+                    <span className="ml-1 tabular-nums text-[#ffcf4a]">
                       {mission.progress}/{mission.goal}
                     </span>
                   )}
@@ -198,7 +198,7 @@ export default function WorldWindow({
             ))}
           </ul>
         ) : (
-          <div className="flex h-full items-center justify-center text-[10px] text-[#8a7a55]">
+          <div className="flex h-full items-center justify-center text-[10px] text-[#6f9268]">
             —
           </div>
         )}
@@ -228,7 +228,7 @@ export default function WorldWindow({
             </div>
             <div className="gauge-track mt-0.5 h-1.5 w-full overflow-hidden rounded-full">
               <div
-                className="h-full rounded-full bg-[#b08d3c]"
+                className="h-full rounded-full bg-[#ffcf4a]"
                 style={{ width: `${poolPct}%` }}
               />
             </div>

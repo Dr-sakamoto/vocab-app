@@ -70,7 +70,7 @@ export default function TypingAnswerRow({
           onBlur={onBlur}
           placeholder="日本語訳を記す..."
           aria-label="日本語訳を入力してください"
-          className="w-full rounded-lg border-2 border-[#6d5228] bg-[#fdf8e6] py-3.5 pl-4 pr-16 text-base text-[#2b1d0e] outline-none transition-all placeholder:text-[#8a7a55] focus:border-[#b08d3c] focus:shadow-[0_0_12px_rgba(176,141,60,0.35)] disabled:opacity-50"
+          className="w-full rounded-lg border-2 border-[#3aa83a] bg-[#060803] py-3.5 pl-4 pr-16 text-base text-[#cfeecb] outline-none transition-all placeholder:text-[#6f9268] focus:border-[#61ff5f] focus:shadow-[0_0_12px_rgba(97,255,95,0.35)] disabled:opacity-50"
           onKeyDown={(e) => {
             if (isComposing) return;
             if (e.key !== "Enter") return;
@@ -144,17 +144,17 @@ export default function TypingAnswerRow({
             className="mt-2"
           >
             {isCorrect ? (
-              <div className="rounded-lg border border-[#3f5d3a] bg-[#e6ead4] px-4 py-3">
-                <div className="text-sm font-bold text-[#2c4327]">
+              <div className="rounded-lg border-2 border-[#61ff5f] bg-[#0c1f0c] px-4 py-3">
+                <div className="text-sm font-bold text-[#61ff5f]">
                   {answerStatus === "ai_approved" ? "〇（AI承認）" : answerStatus === "alternative" ? "◯ 正解（別解）" : "◯ 正解"}
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border border-[#7a2a2a] bg-[#f0dcd2] px-4 py-3">
-                <div className="mb-0.5 text-xs font-semibold text-[#a05252]">不正解</div>
-                <div className="text-sm font-bold text-[#5a1d1d]">{normalizedAnswers.join(" / ")}</div>
+              <div className="rounded-lg border-2 border-[#ff5a5a] bg-[#1f0a0a] px-4 py-3">
+                <div className="mb-0.5 text-xs font-semibold text-[#ff8a8a]">不正解</div>
+                <div className="text-sm font-bold text-[#ff5a5a]">{normalizedAnswers.join(" / ")}</div>
                 {posViolation && (
-                  <div className="mt-1 text-xs text-[#7a2a2a] opacity-90">{posViolation}</div>
+                  <div className="mt-1 text-xs text-[#ffaa7a] opacity-90">{posViolation}</div>
                 )}
                 {!reviewResult && (
                   <div className="mt-2 flex flex-col gap-1">
@@ -181,12 +181,12 @@ export default function TypingAnswerRow({
                       {isRequestingReview ? "賢者が審議中..." : "賢者（AI）に審議してもらう"}
                     </button>
                     {isRequestingReview && (
-                      <p className="px-1 text-xs text-[#8a7a55]">審議には少し時間がかかります。そのままお待ちください。</p>
+                      <p className="px-1 text-xs text-[#6f9268]">審議には少し時間がかかります。そのままお待ちください。</p>
                     )}
                   </div>
                 )}
                 {reviewResult && !reviewResult.approved && (
-                  <div className="mt-2 rounded-lg border border-[#6d5228]/40 bg-[#fdf8e6] px-3 py-2 text-xs text-[#5b4423]">
+                  <div className="mt-2 rounded-lg border border-[#3aa83a]/50 bg-[#060803] px-3 py-2 text-xs text-[#cfeecb]">
                     AI審議: 不承認（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
                   </div>
                 )}

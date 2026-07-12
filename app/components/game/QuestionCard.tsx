@@ -32,11 +32,11 @@ export default function QuestionCard({
         }`}
       >
         <div className="relative z-20">
-          <div className="fantasy-title text-xs font-semibold tracking-[0.2em] text-[#b08d3c]">
+          <div className="fantasy-title text-xs font-semibold tracking-[0.2em] text-[#ffcf4a]">
             {partOfSpeech}
           </div>
           <div
-            className={`mt-1.5 break-words font-bold tracking-tight text-[#f3e3b5] leading-tight drop-shadow-[0_0_18px_rgba(176,141,60,0.45)] ${
+            className={`mt-1.5 break-words font-bold tracking-tight text-[#61ff5f] leading-tight drop-shadow-[0_0_14px_rgba(97,255,95,0.5)] ${
               dense ? "text-3xl" : "text-3xl sm:text-5xl"
             }`}
           >

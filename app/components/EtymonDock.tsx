@@ -51,9 +51,9 @@ export default function EtymonDock({
         >
           <span
             aria-hidden
-            className="block h-3.5 w-14 rounded-b-full bg-black/35 shadow-[inset_0_2px_5px_rgba(0,0,0,0.55),inset_0_-1px_1px_rgba(212,177,101,0.4)]"
+            className="block h-3.5 w-14 rounded-b-full bg-black/50 shadow-[inset_0_2px_5px_rgba(0,0,0,0.7),inset_0_-1px_1px_rgba(97,255,95,0.3)]"
           >
-            <span className="mx-auto mt-1 block h-1 w-6 rounded-full bg-[#b08d3c]/70" />
+            <span className="mx-auto mt-1 block h-1 w-6 rounded-full bg-[#61ff5f]/70" />
           </span>
         </motion.button>
       </div>
@@ -64,7 +64,7 @@ export default function EtymonDock({
             return (
               <div
                 key={`empty-${index}`}
-                className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-md border border-dashed border-[#b08d3c]/40 bg-black/20 text-[#b08d3c]/50"
+                className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-md border border-dashed border-[#3aa83a]/40 bg-black/30 text-[#3aa83a]/50"
                 aria-label={`手持ちスロット${index + 1}（空き）`}
               >
                 <span className="text-lg leading-none">+</span>
@@ -82,8 +82,8 @@ export default function EtymonDock({
               whileTap={{ scale: 0.95 }}
               className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-md px-1 py-0.5 transition-all ${
                 isActive
-                  ? "parchment shadow-[0_0_10px_rgba(212,177,101,0.5)]"
-                  : "border border-[#b08d3c]/25 bg-black/20 hover:border-[#b08d3c]/60"
+                  ? "parchment shadow-[0_0_10px_rgba(97,255,95,0.5)]"
+                  : "border border-[#3aa83a]/25 bg-black/30 hover:border-[#61ff5f]/60"
               }`}
               aria-label={`${state.species.name} Lv.${state.level}${isActive ? "（せんとう）" : ""}`}
             >
@@ -102,14 +102,14 @@ export default function EtymonDock({
               />
               <span
                 className={`max-w-full truncate text-[10px] font-medium sm:text-xs ${
-                  isActive ? "text-[#2b1d0e]" : "text-[#e0d0a0]"
+                  isActive ? "text-[#61ff5f]" : "text-[#cfeecb]"
                 }`}
               >
                 {state.species.name}
               </span>
               <span
                 className={`text-[9px] tabular-nums sm:text-[11px] ${
-                  isActive ? "text-[#6d5228]" : "text-[#b08d3c]/80"
+                  isActive ? "text-[#6f9268]" : "text-[#6f9268]"
                 }`}
               >
                 Lv.{state.level}

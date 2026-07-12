@@ -59,8 +59,8 @@ export default function TileAnswerBoard({
   const slotStateClass = !checked
     ? "slot-box"
     : isCorrect
-    ? "border-[#3f5d3a] bg-[#e6ead4] text-[#2c4327]"
-    : "border-[#7a2a2a] bg-[#f0dcd2] text-[#5a1d1d]";
+    ? "border-[#61ff5f] bg-[#0c1f0c] text-[#61ff5f]"
+    : "border-[#ff5a5a] bg-[#1f0a0a] text-[#ff5a5a]";
 
   return (
     <div>
@@ -119,9 +119,9 @@ export default function TileAnswerBoard({
               transition={{ duration: 0.2 }}
             >
               {!isCorrect && (
-                <div className="mb-2 rounded-lg border border-[#7a2a2a] bg-[#f0dcd2] px-3 py-2 text-center">
-                  <span className="text-xs font-semibold text-[#a05252]">正解: </span>
-                  <span className="text-sm font-bold text-[#5a1d1d]">
+                <div className="mb-2 rounded-lg border-2 border-[#ff5a5a] bg-[#1f0a0a] px-3 py-2 text-center">
+                  <span className="text-xs font-semibold text-[#ff8a8a]">正解: </span>
+                  <span className="text-sm font-bold text-[#ff5a5a]">
                     {normalizedAnswers.join(" / ") || board.answer}
                   </span>
                 </div>

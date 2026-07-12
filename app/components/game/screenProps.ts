@@ -6,11 +6,11 @@ import { MonsterCollection, PlayEvaluation, PoolTier } from "@/lib/types";
  * page.tsx（状態の持ち主）が組み立て、各スクリーンはレイアウトに専念する。
  */
 
-/** ハイファンタジースキンの背景オーロラ（松明・森・血の残光） */
+/** EGAレトロRPGスキンの背景グロー（明緑・琥珀・血赤） */
 export const FANTASY_AURORA: [string, string, string] = [
-  "#b08d3c",
-  "#3f5d3a",
-  "#7a2a2a",
+  "#61ff5f",
+  "#ffcf4a",
+  "#ff5a5a",
 ];
 
 export interface WorldBlockProps {
