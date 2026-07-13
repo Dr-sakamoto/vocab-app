@@ -6,7 +6,6 @@ import InlineResult from "../InlineResult";
 import WorldWindow from "../WorldWindow";
 import QuestionCard from "./QuestionCard";
 import TileAnswerBoard, { TileAnswerBoardProps } from "./TileAnswerBoard";
-import TypingAnswerRow, { TypingAnswerRowProps } from "./TypingAnswerRow";
 import {
   DockBlockProps,
   FANTASY_AURORA,
@@ -19,31 +18,22 @@ export interface MobileGameScreenProps {
   world: WorldBlockProps;
   quiz: QuizBlockProps;
   result: ResultBlockProps;
-  typing: TypingAnswerRowProps;
   tiles: TileAnswerBoardProps;
   dock: DockBlockProps;
-  answerMode: "tiles" | "typing";
-  onToggleAnswerMode: () => void;
-  /** タイピング時にキーボードが出ている間、上下ブロックを畳む */
-  isKeyboardCollapsed: boolean;
 }
 
 /**
  * スマホ版スクリーン。
  * - 最上段はマップのマス（正方形）を基準にした固定高の帯。問題が画面中央に来る
- * - 回答は既定で文字盤（みんはや式）。キーボードは出さない
- * - タイピングに切り替えた場合、キーボード表示中は上下ブロックを畳む
+ * - 回答は文字盤（みんはや式・1文字ずつタップ）固定。キーボードは一切出さない
+ *   ので、タイピングやキーボード折りたたみの分岐は持たない
  */
 export default function MobileGameScreen({
   world,
   quiz,
   result,
-  typing,
   tiles,
   dock,
-  answerMode,
-  onToggleAnswerMode,
-  isKeyboardCollapsed,
 }: MobileGameScreenProps) {
   return (
     <div className="quiz-shell fantasy-shell relative h-dvh overflow-hidden">
@@ -52,8 +42,8 @@ export default function MobileGameScreen({
 
       <div className="relative z-10 flex h-full w-full flex-col gap-2 p-2">
         {/* ── 1. ワールドウィンドウ（マップのマス=正方形を基準にした高さ） ── */}
-        <header className={isKeyboardCollapsed ? "h-11 shrink-0" : "h-28 shrink-0"}>
-          <WorldWindow {...world} compact={isKeyboardCollapsed} />
+        <header className="h-28 shrink-0">
+          <WorldWindow {...world} />
         </header>
 
         {/* ── 2. 問題ウィンドウ（残り全部。問題が画面の真ん中に来る） ── */}
@@ -95,14 +85,7 @@ export default function MobileGameScreen({
                         🔥 {quiz.bestStreak}連続
                       </span>
                     )}
-                    <button
-                      type="button"
-                      onClick={onToggleAnswerMode}
-                      className="brass-btn ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                    >
-                      {answerMode === "tiles" ? "⌨ 入力式にする" : "◨ 文字盤にする"}
-                    </button>
-                    <span className="rounded-full border border-[#6d5228] px-2 py-0.5 text-[10px] font-bold text-[#6f9268]">
+                    <span className="ml-auto rounded-full border border-[#3aa83a] px-2 py-0.5 text-[10px] font-bold text-[#61ff5f]">
                       ×{quiz.tierMultiplier}
                     </span>
                   </div>
@@ -117,13 +100,9 @@ export default function MobileGameScreen({
                     />
                   </div>
 
-                  {/* 回答エリア */}
+                  {/* 回答（文字盤固定） */}
                   <div className="mt-2.5">
-                    {answerMode === "tiles" ? (
-                      <TileAnswerBoard {...tiles} />
-                    ) : (
-                      <TypingAnswerRow {...typing} />
-                    )}
+                    <TileAnswerBoard {...tiles} />
                   </div>
                 </div>
               </div>
@@ -132,15 +111,13 @@ export default function MobileGameScreen({
         </main>
 
         {/* ── 3. エティモンウィンドウ ── */}
-        {!isKeyboardCollapsed && (
-          <footer className="relative z-20 h-28 shrink-0">
-            <EtymonDock
-              collection={dock.collection}
-              onSelect={dock.onSelect}
-              onOpenDrawer={dock.onOpenDrawer}
-            />
-          </footer>
-        )}
+        <footer className="relative z-20 h-28 shrink-0">
+          <EtymonDock
+            collection={dock.collection}
+            onSelect={dock.onSelect}
+            onOpenDrawer={dock.onOpenDrawer}
+          />
+        </footer>
       </div>
     </div>
   );

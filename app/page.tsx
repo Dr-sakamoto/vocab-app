@@ -94,7 +94,6 @@ import {
 import storage from "@/lib/storage";
 
 const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
-const ANSWER_MODE_KEY = "vocab-answer-mode";
 const MIN_FRONT_TOAST_MS = 1000;
 
 /** 各問題に安定した ID */
@@ -180,13 +179,10 @@ export default function Page() {
   const [savedCollectionExists, setSavedCollectionExists] = useState<boolean>(true);
 
   // ── スマホ最適化 ────────────────────────────────────────────────────────
-  // スマホではソフトウェアキーボードがフローを切るため、デフォルトを
-  // 文字盤（みんはや式・1文字ずつタップ）にする。タイピング派向けに切替を
-  // 用意し、選択は永続化。タイピング中は入力フォーカス（＝キーボード表示）で
-  // 上下ブロックを畳む。PC/スマホでUI・仕様が異なるためスクリーンを分離する。
+  // PC/スマホでUI・仕様が異なるためスクリーンを分離する。
+  // スマホはソフトウェアキーボードがフローを切るため回答を文字盤
+  // （みんはや式・1文字ずつタップ）に固定。PCは物理キーボードでタイピング。
   const [isMobile, setIsMobile] = useState<boolean>(false);
-  const [mobileAnswerMode, setMobileAnswerMode] = useState<"tiles" | "typing">("tiles");
-  const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 639px)");
@@ -196,18 +192,7 @@ export default function Page() {
     return () => query.removeEventListener("change", update);
   }, []);
 
-  // PCは常にタイピング。文字盤はスマホのみ
-  const answerMode: "tiles" | "typing" = isMobile ? mobileAnswerMode : "typing";
-  const isKeyboardCollapsed =
-    isMobile && answerMode === "typing" && isInputFocused && phase === "quiz";
-
-  const toggleAnswerMode = useCallback(() => {
-    setMobileAnswerMode((prev) => {
-      const nextMode = prev === "tiles" ? "typing" : "tiles";
-      storage.setString(ANSWER_MODE_KEY, nextMode);
-      return nextMode;
-    });
-  }, []);
+  const answerMode: "tiles" | "typing" = isMobile ? "tiles" : "typing";
 
   // SSR とハイドレーションの不一致を避けるため、初期値は空で、実データは
   // マウント後の localStorage 復元 useEffect で読み込む。
@@ -582,11 +567,6 @@ export default function Page() {
   useEffect(() => {
     try {
       setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
-
-      // 回答モード（スマホのみ有効。デフォルトは文字盤）
-      if (storage.getString(ANSWER_MODE_KEY, "tiles") === "typing") {
-        setMobileAnswerMode("typing");
-      }
 
       let loadedPoolSize = Math.min(GAME.INITIAL_POOL_SIZE, VOCAB_ITEMS.length);
       const savedPool = Number(storage.get(STORAGE_KEYS.POOL_SIZE, null));
@@ -1167,8 +1147,8 @@ export default function Page() {
     onCompositionStart: () => setIsComposing(true),
     onCompositionEnd: () => setIsComposing(false),
     isComposing,
-    onFocus: () => setIsInputFocused(true),
-    onBlur: () => setIsInputFocused(false),
+    onFocus: () => {},
+    onBlur: () => {},
     checked,
     isCorrect,
     answerStatus,
@@ -1219,12 +1199,8 @@ export default function Page() {
           world={worldProps}
           quiz={quizProps}
           result={resultProps}
-          typing={typingProps}
           tiles={tileProps}
           dock={dockProps}
-          answerMode={answerMode}
-          onToggleAnswerMode={toggleAnswerMode}
-          isKeyboardCollapsed={isKeyboardCollapsed}
         />
       ) : (
         <DesktopGameScreen

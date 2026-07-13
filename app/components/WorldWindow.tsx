@@ -163,8 +163,15 @@ export default function WorldWindow({
         </AnimatePresence>
       </div>
 
-      {/* ミッションの巻物（ラベルなし。チェックリストだけを置く） */}
+      {/* ミッションの巻物（ラベルなし）。冒頭に連続プレイ日数（ストリーク）、
+          続けてエンカウントのチェックリスト */}
       <div className="parchment min-w-0 flex-1 overflow-y-auto rounded-lg px-2.5 py-1.5">
+        {streakDays > 0 && (
+          <div className="mb-1 flex items-center gap-1.5 border-b border-[#3aa83a]/30 pb-1 text-[10px] font-bold sm:text-sm">
+            <span aria-hidden>🔥</span>
+            <span className="text-[#ffcf4a]">{streakDays}日連続の冒険</span>
+          </div>
+        )}
         {encounter ? (
           <ul className="space-y-1 sm:space-y-1.5">
             {encounter.missions.map((mission) => (
@@ -216,11 +223,6 @@ export default function WorldWindow({
             <div className="truncate text-[11px] font-bold sm:text-sm">
               {habitatName}
             </div>
-            {streakDays > 0 && (
-              <div className="text-[9px] tabular-nums sm:text-[11px]">
-                🔥{streakDays}日
-              </div>
-            )}
           </div>
           <div>
             <div className="text-[9px] font-semibold sm:text-[10px]">

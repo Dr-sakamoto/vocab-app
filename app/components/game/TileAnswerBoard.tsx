@@ -80,23 +80,37 @@ export default function TileAnswerBoard({
         ))}
       </div>
 
-      {/* 文字タイル */}
-      <div className="mt-2.5 flex flex-wrap justify-center gap-1.5" role="group" aria-label="文字盤">
-        {board.tiles.map((tile) => {
-          const used = pickedIds.includes(tile.id);
-          return (
-            <button
-              key={tile.id}
-              type="button"
-              disabled={used || checked || isCheckingAnswer || pickedIds.length >= slotCount}
-              onClick={() => setPickedIds((prev) => [...prev, tile.id])}
-              className="tile-key h-11 w-11 rounded-md text-lg font-bold transition-transform"
-              aria-label={`文字 ${tile.char}`}
-            >
-              {tile.char}
-            </button>
-          );
-        })}
+      {/* 文字タイル。1枚だけ次段に溢れて見えないよう、各段の枚数を均等に割る
+          （例: 8枚→4+4、10枚→5+5、13枚→5+4+4）。1段の最大は6枚。 */}
+      <div className="mt-2.5 space-y-1.5" role="group" aria-label="文字盤">
+        {(() => {
+          const tiles = board.tiles;
+          const rowCount = Math.max(1, Math.ceil(tiles.length / 6));
+          const perRow = Math.ceil(tiles.length / rowCount);
+          const rows = [];
+          for (let i = 0; i < tiles.length; i += perRow) {
+            rows.push(tiles.slice(i, i + perRow));
+          }
+          return rows.map((row, ri) => (
+            <div key={ri} className="flex justify-center gap-1.5">
+              {row.map((tile) => {
+                const used = pickedIds.includes(tile.id);
+                return (
+                  <button
+                    key={tile.id}
+                    type="button"
+                    disabled={used || checked || isCheckingAnswer || pickedIds.length >= slotCount}
+                    onClick={() => setPickedIds((prev) => [...prev, tile.id])}
+                    className="tile-key h-11 w-11 rounded-md text-lg font-bold transition-transform"
+                    aria-label={`文字 ${tile.char}`}
+                  >
+                    {tile.char}
+                  </button>
+                );
+              })}
+            </div>
+          ));
+        })()}
       </div>
 
       {/* 操作列: 1文字戻す / 判定後は結果と次へ */}
