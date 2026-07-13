@@ -920,7 +920,10 @@ export default function Page() {
   ]);
 
   // ── 次へ ───────────────────────────────────────────────────────────────────
-  const next = () => {
+  // useCallback で参照を安定させる: モバイルの文字盤は checked のまま自動で
+  // 次へ進むタイマーを持つため、無関係な再レンダリングのたびに next の参照が
+  // 変わるとタイマーがリセットされ続けて自動送りが働かなくなってしまう。
+  const next = useCallback(() => {
     if (!checked || phase === "result") return;
 
     if (total >= GAME.PLAY_LIMIT) {
@@ -947,7 +950,17 @@ export default function Page() {
     setIndex(nextIndex);
     prepareNextQuestion();
     setReviewResult(null);
-  };
+  }, [
+    checked,
+    phase,
+    total,
+    finishSet,
+    setTotal,
+    index,
+    score,
+    pickNextQuestionIndex,
+    prepareNextQuestion,
+  ]);
 
   /** リザルトから次の10問セットへ。画面はそのまま、中身だけ入れ替える */
   const continueToNextSet = useCallback(() => {

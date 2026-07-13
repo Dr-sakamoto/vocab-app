@@ -24,7 +24,9 @@ export interface MobileGameScreenProps {
 
 /**
  * スマホ版スクリーン。
- * - 最上段はマップのマス（正方形）を基準にした固定高の帯。問題が画面中央に来る
+ * - 最上段はマップのマス（正方形）を基準にした固定高の帯
+ * - 問題ウィンドウは上詰め固定。判定後に選択肢が消えても問題カードの
+ *   位置がズレない（正解時の視覚的なジャンプを防ぐ）
  * - 回答は文字盤（みんはや式・1文字ずつタップ）固定。キーボードは一切出さない
  *   ので、タイピングやキーボード折りたたみの分岐は持たない
  */
@@ -46,7 +48,8 @@ export default function MobileGameScreen({
           <WorldWindow {...world} />
         </header>
 
-        {/* ── 2. 問題ウィンドウ（残り全部。問題が画面の真ん中に来る） ── */}
+        {/* ── 2. 問題ウィンドウ（残り全部。判定後に選択肢が消えても
+             問題カードの位置がズレないよう上詰めで固定する） ── */}
         <main className="min-h-0 flex-1">
           <div className="parchment flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
             {quiz.phase === "result" ? (
@@ -59,7 +62,7 @@ export default function MobileGameScreen({
               />
             ) : (
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-                <div className="my-auto w-full px-3 py-3">
+                <div className="w-full px-3 py-3">
                   {/* プログレス行 */}
                   <div className="flex items-center gap-2">
                     <div
