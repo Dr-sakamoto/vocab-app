@@ -15,6 +15,7 @@ export interface TileAnswerBoardProps {
   normalizedAnswers: string[];
   onSubmit: (text: string) => void;
   onNext: () => void;
+  onSkip: () => void;
 }
 
 /**
@@ -36,6 +37,7 @@ export default function TileAnswerBoard({
   normalizedAnswers,
   onSubmit,
   onNext,
+  onSkip,
 }: TileAnswerBoardProps) {
   const [picked, setPicked] = useState<string[]>([]);
   const submittedRef = useRef<boolean>(false);
@@ -129,14 +131,25 @@ export default function TileAnswerBoard({
       {/* 操作列: 1文字戻す / 判定後は結果（正解は即・不正解は3秒後に自動で次へ） */}
       <div className="mt-2.5 min-h-[3rem]">
         {!checked ? (
-          <button
-            type="button"
-            disabled={picked.length === 0 || isCheckingAnswer}
-            onClick={() => setPicked((prev) => prev.slice(0, -1))}
-            className="brass-btn mx-auto flex h-12 w-32 items-center justify-center gap-1 rounded-md text-base font-bold disabled:opacity-40"
-          >
-            ⌫ 戻す
-          </button>
+          <div className="flex justify-center gap-2">
+            <button
+              type="button"
+              disabled={picked.length === 0 || isCheckingAnswer}
+              onClick={() => setPicked((prev) => prev.slice(0, -1))}
+              className="brass-btn flex h-12 w-32 items-center justify-center gap-1 rounded-md text-base font-bold disabled:opacity-40"
+            >
+              ⌫ 戻す
+            </button>
+            <button
+              type="button"
+              disabled={isCheckingAnswer}
+              onClick={onSkip}
+              aria-label="この問題をとばす"
+              className="flex h-12 w-32 items-center justify-center gap-1 rounded-md border border-[#3aa83a]/50 text-sm font-bold text-[#6f9268] transition hover:border-[#61ff5f] hover:text-[#cfeecb] disabled:opacity-40"
+            >
+              とばす
+            </button>
+          </div>
         ) : (
           <AnimatePresence>
             <motion.div

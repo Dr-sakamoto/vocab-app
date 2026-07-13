@@ -923,9 +923,7 @@ export default function Page() {
   // useCallback で参照を安定させる: モバイルの文字盤は checked のまま自動で
   // 次へ進むタイマーを持つため、無関係な再レンダリングのたびに next の参照が
   // 変わるとタイマーがリセットされ続けて自動送りが働かなくなってしまう。
-  const next = useCallback(() => {
-    if (!checked || phase === "result") return;
-
+  const advanceQuestion = useCallback((answeredCount: number) => {
     if (total >= GAME.PLAY_LIMIT) {
       finishSet();
       return;
@@ -934,7 +932,6 @@ export default function Page() {
     setTotal((t) => t + 1);
     const seenInPlay = seenInPlayRef.current ?? new Set<number>([index]);
     seenInPlayRef.current = seenInPlay;
-    const answeredCount = checked ? total : total - 1;
     const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
     const nextIndex = pickNextQuestionIndex(
       index,
@@ -951,8 +948,6 @@ export default function Page() {
     prepareNextQuestion();
     setReviewResult(null);
   }, [
-    checked,
-    phase,
     total,
     finishSet,
     setTotal,
@@ -961,6 +956,20 @@ export default function Page() {
     pickNextQuestionIndex,
     prepareNextQuestion,
   ]);
+
+  const next = useCallback(() => {
+    if (!checked || phase === "result") return;
+    advanceQuestion(total);
+  }, [checked, phase, total, advanceQuestion]);
+
+  // ── とばす ─────────────────────────────────────────────────────────────────
+  // 未回答のまま次の問題へ。正誤どちらにもしないため score・streak・
+  // 単語ごとの正誤統計・バトルのダメージ/捕獲判定には一切触れない。
+  // セット区切り（10問）は next と同じく total を進めて維持する。
+  const skip = useCallback(() => {
+    if (checked || phase === "result") return;
+    advanceQuestion(total - 1);
+  }, [checked, phase, total, advanceQuestion]);
 
   /** リザルトから次の10問セットへ。画面はそのまま、中身だけ入れ替える */
   const continueToNextSet = useCallback(() => {
@@ -1173,6 +1182,7 @@ export default function Page() {
     onRequestAiReview: requestAiReview,
     onCheck: () => checkAnswer(),
     onNext: next,
+    onSkip: skip,
   };
   const tileProps = {
     board: tileBoard,
@@ -1183,6 +1193,7 @@ export default function Page() {
     normalizedAnswers,
     onSubmit: (text: string) => checkAnswer(text, { skipApi: true }),
     onNext: next,
+    onSkip: skip,
   };
   const dockProps = {
     collection: monsterCollection,

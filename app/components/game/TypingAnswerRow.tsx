@@ -30,6 +30,7 @@ export interface TypingAnswerRowProps {
   onRequestAiReview: () => void;
   onCheck: () => void;
   onNext: () => void;
+  onSkip: () => void;
 }
 
 /**
@@ -56,6 +57,7 @@ export default function TypingAnswerRow({
   onRequestAiReview,
   onCheck,
   onNext,
+  onSkip,
 }: TypingAnswerRowProps) {
   return (
     <>
@@ -132,6 +134,20 @@ export default function TypingAnswerRow({
           )}
         </button>
       </div>
+
+      {!checked && (
+        <div className="mt-1.5 flex justify-end">
+          <button
+            type="button"
+            onClick={onSkip}
+            disabled={isCheckingAnswer}
+            aria-label="この問題をとばす"
+            className="rounded px-1 text-xs font-medium text-[#6f9268] underline decoration-dotted underline-offset-2 transition hover:text-[#cfeecb] disabled:opacity-40"
+          >
+            わからない・とばす
+          </button>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {checked && (
