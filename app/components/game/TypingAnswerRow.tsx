@@ -141,10 +141,10 @@ export default function TypingAnswerRow({
             type="button"
             onClick={onSkip}
             disabled={isCheckingAnswer}
-            aria-label="この問題をとばす"
-            className="rounded px-1 text-xs font-medium text-[#6f9268] underline decoration-dotted underline-offset-2 transition hover:text-[#cfeecb] disabled:opacity-40"
+            aria-label="この問題をわからないとして次へ"
+            className="rounded px-1 text-xs font-medium text-[#ff5a5a] underline decoration-dotted underline-offset-2 transition hover:text-[#ff8a8a] disabled:opacity-40"
           >
-            わからない・とばす
+            わからない
           </button>
         </div>
       )}
