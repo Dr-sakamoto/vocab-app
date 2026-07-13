@@ -44,7 +44,7 @@ export default function MobileGameScreen({
 
       <div className="relative z-10 flex h-full w-full flex-col gap-2 p-2">
         {/* ── 1. ワールドウィンドウ（マップのマス=正方形を基準にした高さ） ── */}
-        <header className="h-28 shrink-0">
+        <header className="h-32 shrink-0">
           <WorldWindow {...world} />
         </header>
 

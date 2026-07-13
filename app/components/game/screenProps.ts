@@ -20,7 +20,6 @@ export interface WorldBlockProps {
   unlockedPoolSize: number;
   totalWords: number;
   streakDays: number;
-  onOpenProgress: () => void;
 }
 
 export interface QuizBlockProps {

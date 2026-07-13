@@ -226,6 +226,7 @@ interface PokemonBoxProps {
   onRemove?: (partyIndex: number) => void;
   onSendToProfessor?: (ids: string[]) => void;
   onSortBox?: (mode: SortMode) => void;
+  onOpenSync?: () => void;
 }
 
 export default function PokemonBox({
@@ -237,6 +238,7 @@ export default function PokemonBox({
   onRemove,
   onSendToProfessor,
   onSortBox,
+  onOpenSync,
 }: PokemonBoxProps) {
   const normalized = normalizeMonsterCollection(collection);
   const partySlots = getPartySlots(normalized);
@@ -338,6 +340,17 @@ export default function PokemonBox({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {onOpenSync && (
+              <button
+                type="button"
+                onClick={onOpenSync}
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 text-lg leading-none text-zinc-500 hover:bg-zinc-50"
+                aria-label="クラウド同期"
+                title="クラウド同期"
+              >
+                ⚙️
+              </button>
+            )}
             <button
               type="button"
               onClick={requestClose}

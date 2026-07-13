@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WildEncounterState } from "@/lib/wildEncounter";
 import { PoolTier } from "@/lib/types";
@@ -12,7 +13,6 @@ interface WorldWindowProps {
   unlockedPoolSize: number;
   totalWords: number;
   streakDays: number;
-  onOpenProgress?: () => void;
   /** スマホでキーボード表示中: 1行のスリム表示にして問題に集中させる */
   compact?: boolean;
 }
@@ -25,9 +25,9 @@ function hpBarColor(ratio: number): string {
 
 /**
  * ブロック1: ワールドウィンドウ（ハイファンタジースキン）。
- * 左から「出現エティモン（正方形の羊皮紙札）」「ミッションの巻物」
- * 「現在地の古地図（正方形マス）」。ラベル文字は置かず、素材感で伝える。
- * 両端は正方形を保ち、行の高さは親が決める（マスの一辺=行の高さ）。
+ * 左から「出現エティモン／進捗の正方形の羊皮紙札（タップで表示切替）」
+ * 「ミッションの巻物（横長）」。ラベル文字は置かず、素材感で伝える。
+ * 左端は正方形を保ち、行の高さは親が決める（マスの一辺=行の高さ）。
  */
 export default function WorldWindow({
   encounter,
@@ -36,9 +36,9 @@ export default function WorldWindow({
   unlockedPoolSize,
   totalWords,
   streakDays,
-  onOpenProgress,
   compact = false,
 }: WorldWindowProps) {
+  const [showProgress, setShowProgress] = useState(false);
   const hpRatio = encounter ? encounter.hp / encounter.maxHP : 0;
   const habitatName = encounter?.habitatName || fallbackHabitatName || "—";
   const poolPct = Math.min(100, (unlockedPoolSize / Math.max(1, totalWords)) * 100);
@@ -98,10 +98,48 @@ export default function WorldWindow({
 
   return (
     <div className="flex h-full min-h-0 gap-2 sm:gap-2.5">
-      {/* 出現エティモン（正方形の札） */}
-      <div className="parchment relative flex h-full aspect-square min-w-0 shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg px-1.5 py-1">
+      {/* 出現エティモン／進捗（正方形の札。タップで表示を切り替える） */}
+      <button
+        type="button"
+        onClick={() => setShowProgress((prev) => !prev)}
+        className="parchment relative flex h-full aspect-square min-w-0 shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg px-1.5 py-1 text-left"
+        aria-label={
+          showProgress
+            ? "タップでエティモン表示に戻す"
+            : "タップで学習の進捗を表示"
+        }
+      >
         <AnimatePresence mode="wait">
-          {encounter ? (
+          {showProgress ? (
+            <motion.div
+              key="progress"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 16 }}
+              transition={{ duration: 0.3 }}
+              className="flex h-full w-full flex-col justify-between"
+            >
+              <div className="min-w-0">
+                <div className="truncate text-[11px] font-bold sm:text-sm">
+                  {habitatName}
+                </div>
+              </div>
+              <div>
+                <div className="text-[9px] font-semibold sm:text-[10px]">
+                  {tier.label} ×{tier.multiplier}
+                </div>
+                <div className="gauge-track mt-0.5 h-1.5 w-full overflow-hidden rounded-full">
+                  <div
+                    className="h-full rounded-full bg-[#ffcf4a]"
+                    style={{ width: `${poolPct}%` }}
+                  />
+                </div>
+                <div className="mt-0.5 text-right text-[9px] tabular-nums sm:text-[10px]">
+                  {unlockedPoolSize} / {totalWords}
+                </div>
+              </div>
+            </motion.div>
+          ) : encounter ? (
             <motion.div
               key={encounter.id}
               initial={{ opacity: 0, x: -16 }}
@@ -153,17 +191,15 @@ export default function WorldWindow({
               key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="px-1 text-center text-[10px] leading-relaxed text-[#7d7d7d]"
+              className="text-lg font-bold text-[#7d7d7d]"
             >
-              つぎのエティモンを
-              <br />
-              さがしている…
+              空
             </motion.p>
           )}
         </AnimatePresence>
-      </div>
+      </button>
 
-      {/* ミッションの巻物（ラベルなし）。冒頭に連続プレイ日数（ストリーク）、
+      {/* ミッションの巻物（横長・ラベルなし）。冒頭に連続プレイ日数（ストリーク）、
           続けてエンカウントのチェックリスト */}
       <div className="parchment min-w-0 flex-1 overflow-y-auto rounded-lg px-2.5 py-1.5">
         {streakDays > 0 && (
@@ -210,36 +246,6 @@ export default function WorldWindow({
           </div>
         )}
       </div>
-
-      {/* 現在地の古地図（正方形マス。タップで学習の記録を開く） */}
-      <button
-        type="button"
-        onClick={onOpenProgress}
-        className="old-map relative h-full aspect-square min-w-0 shrink-0 overflow-hidden rounded-lg px-2 py-1.5 text-left"
-        aria-label={`現在地 ${habitatName}。タップで学習の記録を開く`}
-      >
-        <div className="flex h-full flex-col justify-between">
-          <div className="min-w-0">
-            <div className="truncate text-[11px] font-bold sm:text-sm">
-              {habitatName}
-            </div>
-          </div>
-          <div>
-            <div className="text-[9px] font-semibold sm:text-[10px]">
-              {tier.label} ×{tier.multiplier}
-            </div>
-            <div className="gauge-track mt-0.5 h-1.5 w-full overflow-hidden rounded-full">
-              <div
-                className="h-full rounded-full bg-[#ffcf4a]"
-                style={{ width: `${poolPct}%` }}
-              />
-            </div>
-            <div className="mt-0.5 text-right text-[9px] tabular-nums sm:text-[10px]">
-              {unlockedPoolSize} / {totalWords}
-            </div>
-          </div>
-        </div>
-      </button>
     </div>
   );
 }

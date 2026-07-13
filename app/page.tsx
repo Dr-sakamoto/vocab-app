@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FossilChoiceModal from "./components/FossilChoiceModal";
 import PokemonBox from "./components/PokemonBox";
-import ProgressDashboard from "./components/ProgressDashboard";
 import StarterChoiceModal from "./components/StarterChoiceModal";
 import SyncButton from "./components/SyncButton";
 import ToastQueue from "./components/ToastQueue";
@@ -166,7 +165,7 @@ export default function Page() {
   );
   const [encounter, setEncounter] = useState<WildEncounterState | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-  const [isProgressOpen, setIsProgressOpen] = useState<boolean>(false);
+  const [isSyncOpen, setIsSyncOpen] = useState<boolean>(false);
 
   const [index, setIndex] = useState<number>(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1141,7 +1140,6 @@ export default function Page() {
     unlockedPoolSize,
     totalWords: VOCAB_ITEMS.length,
     streakDays: displayStreak,
-    onOpenProgress: () => setIsProgressOpen(true),
   };
   const quizProps = {
     phase,
@@ -1257,28 +1255,32 @@ export default function Page() {
           onSortBox={(mode: BoxSortMode) =>
             setMonsterCollection((prev) => sortBoxMonsters(prev, mode))
           }
+          onOpenSync={() => setIsSyncOpen(true)}
         />
       )}
 
-      {/* 学習進捗オーバーレイ（マップをタップで開く。ページ遷移はしない）
-          クラウド同期もここに置く（プレイ中の導線から一段奥のユーティリティ） */}
-      {isProgressOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
-          <ProgressDashboard
-            stats={stats}
-            totalWords={VOCAB_ITEMS.length}
-            onBack={() => setIsProgressOpen(false)}
-          />
-          <div className="mx-auto max-w-2xl px-4 pb-8">
-            <div className="rounded-xl border border-zinc-200 bg-white p-3">
-              <SyncButton
-                stats={stats}
-                unlockedPoolSize={unlockedPoolSize}
-                monsterCollection={monsterCollection}
-                approvedAnswers={approvedAnswers}
-                onMerged={handleSyncMerged}
-              />
+      {/* クラウド同期モーダル（モンスター管理画面の⚙️から開く） */}
+      {isSyncOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/45 p-4">
+          <div className="w-full max-w-md rounded-2xl border bg-white p-4 shadow-xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-zinc-950">クラウド同期</h2>
+              <button
+                type="button"
+                onClick={() => setIsSyncOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 text-lg leading-none text-zinc-500 hover:bg-zinc-50"
+                aria-label="close"
+              >
+                ×
+              </button>
             </div>
+            <SyncButton
+              stats={stats}
+              unlockedPoolSize={unlockedPoolSize}
+              monsterCollection={monsterCollection}
+              approvedAnswers={approvedAnswers}
+              onMerged={handleSyncMerged}
+            />
           </div>
         </div>
       )}
