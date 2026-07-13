@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AnswerTileBoard } from "@/lib/tileQuiz";
+import { AnswerRoundsBoard } from "@/lib/tileQuiz";
 
 export interface TileAnswerBoardProps {
-  board: AnswerTileBoard | null;
+  board: AnswerRoundsBoard | null;
   /** 問題が変わったら盤面の選択状態をリセットするためのキー */
   resetKey: string;
   checked: boolean;
@@ -18,9 +18,9 @@ export interface TileAnswerBoardProps {
 }
 
 /**
- * みんはや式の文字盤回答（スマホ既定）。
- * 正答の文字＋ダミー文字のタイルを1文字ずつタップして答えを組み立てる。
- * 全スロットが埋まった瞬間に自動で判定する。キーボードは一切出さない。
+ * みんはや式の文字盤回答（スマホ固定）。
+ * 1文字選ぶごとに選択肢（8択）が入れ替わり、正答の文字数ぶん繰り返す。
+ * 総文字数（残りスロット数）は伏せる。全文字を選び終えると自動で判定する。
  */
 export default function TileAnswerBoard({
   board,
@@ -32,31 +32,29 @@ export default function TileAnswerBoard({
   onSubmit,
   onNext,
 }: TileAnswerBoardProps) {
-  const [pickedIds, setPickedIds] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>([]);
   const submittedRef = useRef<boolean>(false);
 
   useEffect(() => {
-    setPickedIds([]);
+    setPicked([]);
     submittedRef.current = false;
   }, [resetKey]);
 
-  const tileById = new Map(board?.tiles.map((tile) => [tile.id, tile]) ?? []);
-  const pickedChars = pickedIds.map((id) => tileById.get(id)?.char ?? "");
-  const slotCount = board?.answerChars.length ?? 0;
-
-  // 全スロットが埋まったら自動判定（1回だけ）
+  // 全文字を選び終えたら自動判定（1回だけ）
   useEffect(() => {
     if (!board || checked || isCheckingAnswer || submittedRef.current) return;
-    if (pickedIds.length !== board.answerChars.length) return;
+    if (picked.length !== board.answerChars.length) return;
     submittedRef.current = true;
-    onSubmit(pickedIds.map((id) => tileById.get(id)?.char ?? "").join(""));
-    // tileById は board から毎レンダー導出されるため依存に含めない
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickedIds, board, checked, isCheckingAnswer, onSubmit]);
+    onSubmit(picked.join(""));
+  }, [picked, board, checked, isCheckingAnswer, onSubmit]);
 
   if (!board) return null;
 
-  const slotStateClass = !checked
+  // 現在のラウンド（＝選んだ文字数の位置）の選択肢
+  const currentRound = board.rounds[picked.length] ?? [];
+  const rows = [currentRound.slice(0, 4), currentRound.slice(4)];
+
+  const answeredRowClass = !checked
     ? "slot-box"
     : isCorrect
     ? "border-[#61ff5f] bg-[#0c1f0c] text-[#61ff5f]"
@@ -64,62 +62,52 @@ export default function TileAnswerBoard({
 
   return (
     <div>
-      {/* 回答スロット */}
-      <div
-        className="flex flex-wrap justify-center gap-1"
-        aria-label="回答欄"
-        role="group"
-      >
-        {Array.from({ length: slotCount }, (_, i) => (
+      {/* 選んだ文字の並び（総文字数は出さない。判定前は末尾に入力位置を示す枠） */}
+      <div className="flex min-h-[2.5rem] flex-wrap items-center justify-center gap-1">
+        {picked.map((char, i) => (
           <span
             key={i}
-            className={`flex h-10 w-9 items-center justify-center rounded-md border text-lg font-bold ${slotStateClass}`}
+            className={`flex h-10 w-9 items-center justify-center rounded-md border text-lg font-bold ${answeredRowClass}`}
           >
-            {pickedChars[i] ?? ""}
+            {char}
           </span>
         ))}
+        {!checked && (
+          <span className="flex h-10 w-9 items-center justify-center rounded-md border border-dashed border-[#3aa83a]/60 text-lg text-[#3aa83a]">
+            <span className="animate-pulse">▍</span>
+          </span>
+        )}
       </div>
 
-      {/* 文字タイル。1枚だけ次段に溢れて見えないよう、各段の枚数を均等に割る
-          （例: 8枚→4+4、10枚→5+5、13枚→5+4+4）。1段の最大は6枚。 */}
-      <div className="mt-2.5 space-y-1.5" role="group" aria-label="文字盤">
-        {(() => {
-          const tiles = board.tiles;
-          const rowCount = Math.max(1, Math.ceil(tiles.length / 6));
-          const perRow = Math.ceil(tiles.length / rowCount);
-          const rows = [];
-          for (let i = 0; i < tiles.length; i += perRow) {
-            rows.push(tiles.slice(i, i + perRow));
-          }
-          return rows.map((row, ri) => (
+      {/* 現在ラウンドの選択肢（8択）。1文字選ぶと次ラウンドへ入れ替わる */}
+      {!checked && (
+        <div className="mt-2.5 space-y-1.5" role="group" aria-label="文字盤">
+          {rows.map((row, ri) => (
             <div key={ri} className="flex justify-center gap-1.5">
-              {row.map((tile) => {
-                const used = pickedIds.includes(tile.id);
-                return (
-                  <button
-                    key={tile.id}
-                    type="button"
-                    disabled={used || checked || isCheckingAnswer || pickedIds.length >= slotCount}
-                    onClick={() => setPickedIds((prev) => [...prev, tile.id])}
-                    className="tile-key h-11 w-11 rounded-md text-lg font-bold transition-transform"
-                    aria-label={`文字 ${tile.char}`}
-                  >
-                    {tile.char}
-                  </button>
-                );
-              })}
+              {row.map((tile) => (
+                <button
+                  key={tile.id}
+                  type="button"
+                  disabled={isCheckingAnswer}
+                  onClick={() => setPicked((prev) => [...prev, tile.char])}
+                  className="tile-key h-11 w-11 rounded-md text-lg font-bold transition-transform"
+                  aria-label={`文字 ${tile.char}`}
+                >
+                  {tile.char}
+                </button>
+              ))}
             </div>
-          ));
-        })()}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* 操作列: 1文字戻す / 判定後は結果と次へ */}
       <div className="mt-2.5">
         {!checked ? (
           <button
             type="button"
-            disabled={pickedIds.length === 0 || isCheckingAnswer}
-            onClick={() => setPickedIds((prev) => prev.slice(0, -1))}
+            disabled={picked.length === 0 || isCheckingAnswer}
+            onClick={() => setPicked((prev) => prev.slice(0, -1))}
             className="brass-btn mx-auto flex h-10 w-28 items-center justify-center gap-1 rounded-md text-sm font-bold disabled:opacity-40"
           >
             ⌫ 戻す

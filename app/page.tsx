@@ -57,7 +57,7 @@ import {
   updatePartyXP,
   getLevelUpGrowth,
 } from "@/lib/monster";
-import { buildAnswerTileBoard } from "@/lib/tileQuiz";
+import { buildAnswerRounds } from "@/lib/tileQuiz";
 import {
   applyAnswerToMissions,
   isNewWordStat,
@@ -553,7 +553,7 @@ export default function Page() {
   const tileBoard = useMemo(
     () =>
       answerMode === "tiles"
-        ? buildAnswerTileBoard({
+        ? buildAnswerRounds({
             items: VOCAB_ITEMS,
             index,
             unlockedPoolSize,

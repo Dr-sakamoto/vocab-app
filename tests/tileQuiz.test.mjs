@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildAnswerTileBoard } from "../lib/tileQuiz.js";
+import { buildAnswerRounds } from "../lib/tileQuiz.js";
 
 const ITEMS = [
   { id: "w0", target: "mainly", partOfSpeech: "adverb", answers: ["主に", "主として"] },
@@ -12,14 +12,8 @@ const ITEMS = [
   { id: "w5", target: "novel", partOfSpeech: "adjective", answers: ["斬新な"] },
 ];
 
-function countChars(chars) {
-  const map = new Map();
-  for (const c of chars) map.set(c, (map.get(c) ?? 0) + 1);
-  return map;
-}
-
-test("正答の全文字がタイルに含まれ、スロット数は正答の文字数", () => {
-  const board = buildAnswerTileBoard({
+test("ラウンド数=正答の文字数、各ラウンドは8択", () => {
+  const board = buildAnswerRounds({
     items: ITEMS,
     index: 1,
     unlockedPoolSize: ITEMS.length,
@@ -27,60 +21,60 @@ test("正答の全文字がタイルに含まれ、スロット数は正答の�
   });
   assert.equal(board.answer, "採用する");
   assert.deepEqual(board.answerChars, ["採", "用", "す", "る"]);
-
-  const tileChars = countChars(board.tiles.map((t) => t.char));
-  for (const [char, needed] of countChars(board.answerChars)) {
-    assert.ok((tileChars.get(char) ?? 0) >= needed, `${char} が足りない`);
+  assert.equal(board.rounds.length, 4);
+  for (const round of board.rounds) {
+    assert.equal(round.length, 8);
+    assert.equal(new Set(round.map((t) => t.id)).size, 8, "タイルIDはユニーク");
   }
-  // タイルIDはユニーク
-  assert.equal(new Set(board.tiles.map((t) => t.id)).size, board.tiles.length);
 });
 
-test("ダミーが加わり、盤面は正答より大きい（正答がそのまま並ばない）", () => {
-  const board = buildAnswerTileBoard({
+test("各ラウンドは正答の該当文字をちょうど1つ含み、他はダミー", () => {
+  const board = buildAnswerRounds({
     items: ITEMS,
-    index: 4,
+    index: 2, // 維持する
     unlockedPoolSize: ITEMS.length,
     seed: "s2",
   });
-  assert.ok(board.tiles.length > board.answerChars.length);
-  assert.ok(board.tiles.length <= 14);
+  board.rounds.forEach((round, i) => {
+    const correct = board.answerChars[i];
+    const chars = round.map((t) => t.char);
+    assert.ok(chars.includes(correct), `ラウンド${i}に正答文字 ${correct} が含まれる`);
+    // 正答文字は重複しない（正答が1つだけになるよう、ダミーは正答文字を避ける）
+    assert.equal(chars.filter((c) => c === correct).length, 1);
+  });
 });
 
-test("同じシードなら同じ盤面（再レンダーで揺れない）", () => {
-  const a = buildAnswerTileBoard({ items: ITEMS, index: 2, unlockedPoolSize: 6, seed: "fix" });
-  const b = buildAnswerTileBoard({ items: ITEMS, index: 2, unlockedPoolSize: 6, seed: "fix" });
+test("正答文字を順に選ぶと answer に一致する", () => {
+  const board = buildAnswerRounds({
+    items: ITEMS,
+    index: 3,
+    unlockedPoolSize: ITEMS.length,
+    seed: "s3",
+  });
+  const built = board.rounds
+    .map((round, i) => round.find((t) => t.char === board.answerChars[i]).char)
+    .join("");
+  assert.equal(built, board.answer);
+});
+
+test("同じシードなら同じラウンド構成（再レンダーで揺れない）", () => {
+  const a = buildAnswerRounds({ items: ITEMS, index: 2, unlockedPoolSize: 6, seed: "fix" });
+  const b = buildAnswerRounds({ items: ITEMS, index: 2, unlockedPoolSize: 6, seed: "fix" });
   assert.deepEqual(a, b);
 });
 
-test("ダミー文字は解放済みプールの訳の文字（または正答自身の文字）のみ", () => {
-  for (let s = 0; s < 10; s++) {
-    const board = buildAnswerTileBoard({
-      items: ITEMS,
-      index: 1,
-      unlockedPoolSize: 4, // w0-w3のみ解放
-      seed: `pool${s}`,
-    });
-    const allowed = new Set();
-    for (const item of ITEMS.slice(0, 4)) for (const c of item.answers[0]) allowed.add(c);
-    for (const c of ITEMS[0].answers[1] ?? "") allowed.add(c);
-    for (const tile of board.tiles) {
-      assert.ok(allowed.has(tile.char), `${tile.char} は未解放の文字`);
-    }
-  }
-});
-
-test("プールが極端に小さくてもタイル数は維持される（正答文字で埋める）", () => {
-  const board = buildAnswerTileBoard({
+test("プールが極端に小さくても各ラウンド8択を維持する（かな等で補填）", () => {
+  const board = buildAnswerRounds({
     items: [ITEMS[0]],
     index: 0,
     unlockedPoolSize: 1,
     seed: "tiny",
   });
   assert.equal(board.answer, "主に");
-  assert.ok(board.tiles.length >= board.answerChars.length + 4);
-  for (const tile of board.tiles) {
-    assert.ok(["主", "に"].includes(tile.char));
+  assert.equal(board.rounds.length, 2);
+  for (const round of board.rounds) {
+    assert.equal(round.length, 8);
+    assert.equal(new Set(round.map((t) => t.char)).size, 8, "重複のない8文字");
   }
 });
 
@@ -89,16 +83,16 @@ test("空白タイルは生成されない", () => {
     { id: "a", target: "give up", partOfSpeech: "phrase", answers: ["諦める"] },
     { id: "b", target: "x", partOfSpeech: "phrase", answers: ["取り 消す"] },
   ];
-  const board = buildAnswerTileBoard({ items, index: 0, unlockedPoolSize: 2, seed: "ws" });
-  for (const tile of board.tiles) {
-    assert.ok(!/\s/.test(tile.char));
+  const board = buildAnswerRounds({ items, index: 0, unlockedPoolSize: 2, seed: "ws" });
+  for (const round of board.rounds) {
+    for (const tile of round) assert.ok(!/\s/.test(tile.char));
   }
 });
 
 test("正答データがない場合は null", () => {
   const broken = [{ id: "x", target: "x", partOfSpeech: "noun", answers: [] }];
   assert.equal(
-    buildAnswerTileBoard({ items: broken, index: 0, unlockedPoolSize: 1, seed: "s" }),
+    buildAnswerRounds({ items: broken, index: 0, unlockedPoolSize: 1, seed: "s" }),
     null,
   );
 });
