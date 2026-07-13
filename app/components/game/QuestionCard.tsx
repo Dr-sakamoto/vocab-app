@@ -42,7 +42,7 @@ export default function QuestionCard({
             onClick={onSkip}
             disabled={skipDisabled}
             aria-label="この問題をわからないとして次へ"
-            className="absolute left-2 top-2 z-30 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#ff5a5a] text-xs font-bold text-[#ff5a5a] transition hover:bg-[#ff5a5a]/15 disabled:opacity-40"
+            className="absolute left-2 top-2 z-30 flex h-6 w-6 items-center justify-center rounded-sm border-2 border-[#ff5a5a] text-xs font-bold text-[#ff5a5a] transition hover:bg-[#ff5a5a]/15 disabled:opacity-40"
           >
             ?
           </button>
