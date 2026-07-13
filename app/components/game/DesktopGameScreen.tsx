@@ -24,7 +24,7 @@ export interface DesktopGameScreenProps {
 
 /**
  * PC版スクリーン。物理キーボードがあるので回答は常にタイピング。
- * 3ブロックを比率配分（33/45/22）で縦に積み、中央に最大幅で寄せる。
+ * 3ブロックを比率配分（37/41/22）で縦に積み、中央に最大幅で寄せる。
  */
 export default function DesktopGameScreen({
   world,
@@ -40,12 +40,12 @@ export default function DesktopGameScreen({
 
       <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col gap-3 p-3">
         {/* ── 1. ワールドウィンドウ ── */}
-        <header className="min-h-0 basis-0 grow-[33]">
+        <header className="min-h-0 basis-0 grow-[37]">
           <WorldWindow {...world} />
         </header>
 
         {/* ── 2. 問題ウィンドウ ── */}
-        <main className="min-h-0 basis-0 grow-[45]">
+        <main className="min-h-0 basis-0 grow-[41]">
           <div className="parchment flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
             {quiz.phase === "result" ? (
               <InlineResult
