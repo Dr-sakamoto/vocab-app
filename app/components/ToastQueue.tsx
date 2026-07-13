@@ -58,9 +58,9 @@ function ToastRow({
       animate={{ opacity: DEPTH_OPACITY[depth] ?? 0.55, x: 0, scale: DEPTH_SCALE[depth] ?? 0.96 }}
       exit={{ opacity: 0, x: -28, scale: 0.92 }}
       transition={{ type: "spring", stiffness: 340, damping: 30 }}
-      className="pointer-events-auto flex items-center gap-2.5 rounded-[20px] border border-white/60 bg-white/88 py-1.5 pl-1.5 pr-3.5 shadow-[0_4px_16px_rgba(24,24,27,0.10),0_1px_3px_rgba(24,24,27,0.06)] backdrop-blur-md"
+      className="font-dot pointer-events-auto flex items-center gap-2.5 rounded-md border-2 border-[#3aa83a] bg-[#0e120b] py-1.5 pl-1.5 pr-3 shadow-[inset_0_0_0_1px_#000,0_0_10px_rgba(97,255,95,0.25)]"
     >
-      <div className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-xl bg-indigo-50">
+      <div className="flex h-11 w-11 flex-none items-center justify-center overflow-hidden rounded-sm border border-[#3aa83a]/40 bg-black">
         {toast.image ? (
           <img
             src={toast.image}
@@ -69,11 +69,11 @@ function ToastRow({
             style={{ imageRendering: "pixelated" }}
           />
         ) : (
-          <span className="text-lg">🔔</span>
+          <span className="text-lg">✦</span>
         )}
       </div>
-      <p className="min-w-0 flex-1 truncate text-[13px] leading-tight text-zinc-800">{toast.message}</p>
-      <span className="flex-none rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">
+      <p className="min-w-0 flex-1 truncate text-[13px] leading-tight text-[#cfeecb]">{toast.message}</p>
+      <span className="flex-none rounded-sm border border-[#ffcf4a]/60 px-2 py-0.5 text-[10px] font-bold text-[#ffcf4a]">
         {toast.title}
       </span>
     </motion.div>

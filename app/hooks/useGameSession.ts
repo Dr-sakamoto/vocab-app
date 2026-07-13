@@ -37,12 +37,23 @@ export function useGameSession({
     [q],
   );
 
-  const checkAnswer = useCallback(async () => {
+  /**
+   * 回答を判定する。
+   * @param overrideInput 選択式などで入力欄以外から回答するときの回答文字列。
+   *   ボタンの onClick に直接渡されるとイベントが入ってくるため、文字列のみ採用する。
+   * @param skipApi 選択式では表記ゆれ審査が不要なうえ、他の単語の訳である
+   *   ダミー選択肢が「別解」として誤承認される恐れがあるため API を呼ばない。
+   */
+  const checkAnswer = useCallback(async (
+    overrideInput?: unknown,
+    { skipApi = false }: { skipApi?: boolean } = {},
+  ) => {
     if (checked || isCheckingAnswer || activeView === "result" || !q) return;
     setIsCheckingAnswer(true);
     setPosViolation(null);
 
-    const user = normalizeAnswer(input);
+    const answerText = typeof overrideInput === "string" ? overrideInput : input;
+    const user = normalizeAnswer(answerText);
     let result: { status: string; normalizedAnswers: string[]; posViolation?: string | null } = {
       status: normalizedAnswers.includes(user) ? "exact" : "wrong",
       normalizedAnswers,
@@ -50,12 +61,12 @@ export function useGameSession({
 
     if (result.status === "wrong" && (approvedAnswers[q.id] ?? []).includes(user)) {
       result = { status: "ai_approved", normalizedAnswers };
-    } else {
+    } else if (!skipApi) {
       try {
         const response = await fetch("/api/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input, answers: q.answers ?? [], partOfSpeech: q.partOfSpeech }),
+          body: JSON.stringify({ input: answerText, answers: q.answers ?? [], partOfSpeech: q.partOfSpeech }),
         });
 
         if (response.ok) result = await response.json();

@@ -1,18 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import AuroraBackground from "./components/AuroraBackground";
-import EtymonDock from "./components/EtymonDock";
 import FossilChoiceModal from "./components/FossilChoiceModal";
-import InlineResult from "./components/InlineResult";
 import PokemonBox from "./components/PokemonBox";
 import ProgressDashboard from "./components/ProgressDashboard";
 import StarterChoiceModal from "./components/StarterChoiceModal";
 import SyncButton from "./components/SyncButton";
-import TiltCard from "./components/quiz/TiltCard";
 import ToastQueue from "./components/ToastQueue";
-import WorldWindow from "./components/WorldWindow";
+import DesktopGameScreen from "./components/game/DesktopGameScreen";
+import MobileGameScreen from "./components/game/MobileGameScreen";
 import { useGameSession } from "./hooks/useGameSession";
 import { useVocabPool } from "./hooks/useVocabPool";
 import { useClickSound } from "./hooks/useClickSound";
@@ -61,6 +57,7 @@ import {
   updatePartyXP,
   getLevelUpGrowth,
 } from "@/lib/monster";
+import { buildAnswerRounds } from "@/lib/tileQuiz";
 import {
   applyAnswerToMissions,
   isNewWordStat,
@@ -75,7 +72,6 @@ import {
   spawnWildEncounter,
   tryCaptureEncounter,
 } from "@/lib/wildEncounter";
-import { getTierTheme } from "@/lib/tierTheme";
 import { QUESTIONS } from "@/lib/vocab";
 import { GAME, STORAGE_KEYS } from "@/lib/constants";
 import {
@@ -181,6 +177,22 @@ export default function Page() {
   const [isComposing, setIsComposing] = useState<boolean>(false);
   // 初期値 true: 復元が終わるまでスターター選択モーダルを出さない
   const [savedCollectionExists, setSavedCollectionExists] = useState<boolean>(true);
+
+  // ── スマホ最適化 ────────────────────────────────────────────────────────
+  // PC/スマホでUI・仕様が異なるためスクリーンを分離する。
+  // スマホはソフトウェアキーボードがフローを切るため回答を文字盤
+  // （みんはや式・1文字ずつタップ）に固定。PCは物理キーボードでタイピング。
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsMobile(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  const answerMode: "tiles" | "typing" = isMobile ? "tiles" : "typing";
 
   // SSR とハイドレーションの不一致を避けるため、初期値は空で、実データは
   // マウント後の localStorage 復元 useEffect で読み込む。
@@ -533,9 +545,23 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
-    if (phase !== "quiz" || isCheckingAnswer) return;
+    if (phase !== "quiz" || isCheckingAnswer || answerMode !== "typing") return;
     inputRef.current?.focus();
-  }, [phase, checked, index, isCheckingAnswer]);
+  }, [phase, checked, index, isCheckingAnswer, answerMode]);
+
+  // 文字盤（みんはや式）。問題ごとに固定シードで生成し、再レンダーで揺れない
+  const tileBoard = useMemo(
+    () =>
+      answerMode === "tiles"
+        ? buildAnswerRounds({
+            items: VOCAB_ITEMS,
+            index,
+            unlockedPoolSize,
+            seed: `tiles:${index}:${total}:${flowPlayCount}`,
+          })
+        : null,
+    [answerMode, index, unlockedPoolSize, total, flowPlayCount],
+  );
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -1076,17 +1102,81 @@ export default function Page() {
   useVisualViewportVars();
 
   const currentTier = getPoolTier(unlockedPoolSize);
-  const tierTheme = getTierTheme(currentTier.label);
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
   const fallbackHabitatName = useMemo(
     () => getUnlockedHabitats(unlockedPoolSize).at(-1)?.name ?? "",
     [unlockedPoolSize],
   );
 
-  const progressLabel = `${total} / ${GAME.PLAY_LIMIT}`;
   const progressPct = Math.max(0, Math.min(100, (total / GAME.PLAY_LIMIT) * 100));
-
   const shouldOpenDrawer = isDrawerOpen || isBoxOverLimit;
+
+  // 各スクリーンへ渡す props 群（レイアウトはスクリーン側の責務）
+  const worldProps = {
+    encounter: encounter?.status === "active" ? encounter : null,
+    fallbackHabitatName,
+    tier: currentTier,
+    unlockedPoolSize,
+    totalWords: VOCAB_ITEMS.length,
+    streakDays: displayStreak,
+    onOpenProgress: () => setIsProgressOpen(true),
+  };
+  const quizProps = {
+    phase,
+    questionKey: index,
+    partOfSpeech: getPartOfSpeech(q),
+    word: q.target,
+    total,
+    playLimit: GAME.PLAY_LIMIT,
+    progressPct,
+    score,
+    bestStreak,
+    tierMultiplier: currentTier.multiplier,
+  };
+  const resultProps = {
+    evaluation: resultEvaluation,
+    score,
+    playLimit: GAME.PLAY_LIMIT,
+    unlockedThisRun: lastUnlockCount,
+    onContinue: continueToNextSet,
+  };
+  const typingProps = {
+    inputRef,
+    input,
+    onInputChange: setInput,
+    onCompositionStart: () => setIsComposing(true),
+    onCompositionEnd: () => setIsComposing(false),
+    isComposing,
+    onFocus: () => {},
+    onBlur: () => {},
+    checked,
+    isCorrect,
+    answerStatus,
+    isCheckingAnswer,
+    normalizedAnswers,
+    posViolation,
+    reviewResult,
+    isRequestingReview,
+    onRequestAiReview: requestAiReview,
+    onCheck: () => checkAnswer(),
+    onNext: next,
+  };
+  const tileProps = {
+    board: tileBoard,
+    resetKey: `${index}:${total}:${flowPlayCount}`,
+    checked,
+    isCorrect,
+    isCheckingAnswer,
+    normalizedAnswers,
+    onSubmit: (text: string) => checkAnswer(text, { skipApi: true }),
+    onNext: next,
+  };
+  const dockProps = {
+    collection: monsterCollection,
+    onSelect: (monsterId: string) =>
+      setMonsterCollection((prev) => setActiveMonster(prev, monsterId)),
+    onOpenDrawer: () => setIsDrawerOpen(true),
+  };
 
   if (!q) {
     return (
@@ -1104,281 +1194,23 @@ export default function Page() {
 
   return (
     <>
-      <div
-        className="quiz-shell relative h-dvh overflow-hidden text-zinc-900 sm:h-screen"
-        style={{ backgroundImage: tierTheme.quizGradient }}
-      >
-        {/* 既存の進捗同期アニメーション背景を流用（ティアで配色が変わる） */}
-        <AuroraBackground vivid colors={tierTheme.auroraColors} />
-        <div className="scene-vignette" aria-hidden />
-
-        {/* ブロックの高さは flex 比率(33/45/22)で配分し、gap で間隔を確保する。
-            %指定だと gap ぶんが溢れるため grow で残り空間を分け合う */}
-        <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col gap-2 p-2 sm:gap-3 sm:p-3">
-          {/* ── 1. ワールドウィンドウ ── */}
-          <header className="min-h-0 basis-0 grow-[33]">
-            <WorldWindow
-              encounter={encounter?.status === "active" ? encounter : null}
-              fallbackHabitatName={fallbackHabitatName}
-              tier={currentTier}
-              unlockedPoolSize={unlockedPoolSize}
-              totalWords={VOCAB_ITEMS.length}
-              streakDays={displayStreak}
-              onOpenProgress={() => setIsProgressOpen(true)}
-            />
-          </header>
-
-          {/* ── 2. 問題ウィンドウ ── */}
-          <main className="min-h-0 basis-0 grow-[45]">
-            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-indigo-100/60 bg-white shadow-xl shadow-indigo-200/40">
-              {phase === "result" ? (
-                <InlineResult
-                  evaluation={resultEvaluation}
-                  score={score}
-                  playLimit={GAME.PLAY_LIMIT}
-                  unlockedThisRun={lastUnlockCount}
-                  onContinue={continueToNextSet}
-                />
-              ) : (
-                <>
-                  {/* my-auto: 中身が短いときは上下中央に置き、余白を偏らせない。
-                      あふれたときは auto マージンが 0 になり通常通りスクロールする */}
-                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-                    <div className="my-auto w-full">
-                    {/* プログレス行 */}
-                    <div className="px-4 pt-3 sm:px-6">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="flex-1 h-1.5 overflow-hidden rounded-full bg-indigo-100"
-                          role="progressbar"
-                          aria-valuenow={total}
-                          aria-valuemin={1}
-                          aria-valuemax={GAME.PLAY_LIMIT}
-                        >
-                          <motion.div
-                            className="gradient-cta h-full rounded-full"
-                            style={{ backgroundImage: tierTheme.accentGradient }}
-                            animate={{ width: `${progressPct}%` }}
-                            transition={{ duration: 0.4, ease: "easeOut" }}
-                          />
-                        </div>
-                        <div className="text-xs text-indigo-400 shrink-0 font-medium">
-                          {progressLabel}
-                        </div>
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-3 text-xs text-zinc-400">
-                        <span>{score} 正解</span>
-                        <AnimatePresence>
-                          {bestStreak > 1 && (
-                            <motion.span
-                              key={bestStreak}
-                              initial={{ scale: 0.7, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              className="text-amber-500 font-semibold drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]"
-                            >
-                              🔥 {bestStreak}連続
-                            </motion.span>
-                          )}
-                        </AnimatePresence>
-                        <span
-                          className="ml-auto rounded-full px-2 py-0.5 text-xs font-bold text-white"
-                          style={{ backgroundColor: currentTier.color }}
-                        >
-                          ×{currentTier.multiplier}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 問題カード：問題が変わるたびスライドイン（ティアに応じて配色が変わる）。
-                        マウスに追従して3D傾斜＋グレアが動く（TiltCard） */}
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                      className="mx-4 mt-3 sm:mx-6"
-                    >
-                      <TiltCard
-                        style={{ backgroundImage: tierTheme.accentGradient }}
-                        className="gradient-cta relative overflow-hidden rounded-2xl px-5 py-7 text-center shadow-xl shadow-indigo-300/40 sm:py-9"
-                      >
-                        <div className="relative z-20">
-                          <div className="text-xs font-semibold uppercase tracking-widest text-black">
-                            {getPartOfSpeech(q)}
-                          </div>
-                          <div className="mt-2 break-words text-4xl font-bold tracking-tight text-white leading-tight drop-shadow-[0_0_24px_rgba(255,255,255,0.4)] sm:text-5xl">
-                            {q.target}
-                          </div>
-                        </div>
-                      </TiltCard>
-                    </motion.div>
-
-                    {/* 入力フィールド。答え合わせ/次への操作はスケッチ通り
-                        入力欄の右端に⏎アイコンとして織り込む（独立ボタン行は持たない） */}
-                    <div className="px-4 mt-3 pb-3 sm:px-6">
-                      <div className="relative">
-                        <input
-                          ref={inputRef}
-                          value={input}
-                          onChange={(e) => setInput(e.target.value)}
-                          onCompositionStart={() => setIsComposing(true)}
-                          onCompositionEnd={() => setIsComposing(false)}
-                          placeholder="日本語訳を入力..."
-                          aria-label="日本語訳を入力してください"
-                          className="w-full rounded-xl border-2 border-indigo-100 bg-indigo-50/50 py-3.5 pl-4 pr-16 text-base outline-none transition-all focus:border-indigo-400 focus:bg-white focus:shadow-lg focus:shadow-indigo-200/50 disabled:opacity-50"
-                          onKeyDown={(e) => {
-                            if (isComposing) return;
-                            if (e.key !== "Enter") return;
-                            if (checked) next();
-                            else checkAnswer();
-                          }}
-                          disabled={isCheckingAnswer}
-                        />
-                        <button
-                          type="button"
-                          onClick={checked ? next : checkAnswer}
-                          disabled={isCheckingAnswer}
-                          aria-label={checked ? "次の問題へ" : "答え合わせ"}
-                          style={
-                            checked
-                              ? undefined
-                              : { backgroundImage: tierTheme.accentGradient }
-                          }
-                          className={`absolute inset-y-1.5 right-1.5 flex w-12 items-center justify-center rounded-lg transition-all disabled:opacity-40 ${
-                            checked
-                              ? "border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-100 text-indigo-700 hover:from-indigo-100 hover:to-violet-200"
-                              : "gradient-cta text-white shadow-md shadow-indigo-300/50"
-                          }`}
-                        >
-                          {isCheckingAnswer ? (
-                            <span className="ios-spinner" aria-hidden="true">
-                              {Array.from({ length: 12 }).map((_, i) => (
-                                <span
-                                  key={i}
-                                  className="ios-spinner-bar"
-                                  style={{
-                                    transform: `rotate(${i * 30}deg)`,
-                                    animationDelay: `${-((12 - i) % 12) / 12}s`,
-                                  }}
-                                />
-                              ))}
-                            </span>
-                          ) : checked ? (
-                            /* 次へ: → */
-                            <svg
-                              viewBox="0 0 24 24"
-                              className="h-6 w-6"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.4"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden
-                            >
-                              <path d="M4 12h15" />
-                              <path d="m13 6 6 6-6 6" />
-                            </svg>
-                          ) : (
-                            /* 答え合わせ: ⏎（リターンキー） */
-                            <svg
-                              viewBox="0 0 24 24"
-                              className="h-6 w-6"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.4"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden
-                            >
-                              <path d="M20 5v6a3 3 0 0 1-3 3H5" />
-                              <path d="m9 9-5 5 5 5" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-
-                      <AnimatePresence mode="wait">
-                        {checked && (
-                          <motion.div
-                            key={isCorrect ? "correct" : "wrong"}
-                            initial={{ opacity: 0, scale: 0.95, y: 4 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
-                            className="mt-2"
-                          >
-                            {isCorrect ? (
-                              <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-                                <div className="text-sm font-bold text-emerald-700">
-                                  {answerStatus === "ai_approved" ? "〇（AI承認）" : answerStatus === "alternative" ? "◯ 正解（別解）" : "◯ 正解"}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3">
-                                <div className="text-xs font-semibold text-rose-400 mb-0.5">不正解</div>
-                                <div className="text-sm font-bold text-rose-900">{normalizedAnswers.join(" / ")}</div>
-                                {posViolation && (
-                                  <div className="mt-1 text-xs text-rose-700 opacity-80">{posViolation}</div>
-                                )}
-                                {!reviewResult && (
-                                  <div className="mt-2 flex flex-col gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={requestAiReview}
-                                      disabled={isRequestingReview}
-                                      className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-100 px-3 py-2 text-xs font-medium text-indigo-800 hover:from-indigo-100 hover:to-violet-200 disabled:opacity-50 transition text-left"
-                                    >
-                                      {isRequestingReview && (
-                                        <span className="ios-spinner" aria-hidden="true">
-                                          {Array.from({ length: 12 }).map((_, i) => (
-                                            <span
-                                              key={i}
-                                              className="ios-spinner-bar"
-                                              style={{
-                                                transform: `rotate(${i * 30}deg)`,
-                                                animationDelay: `${-((12 - i) % 12) / 12}s`,
-                                              }}
-                                            />
-                                          ))}
-                                        </span>
-                                      )}
-                                      {isRequestingReview ? "AIが審議中..." : "AIに審議してもらう"}
-                                    </button>
-                                    {isRequestingReview && (
-                                      <p className="text-xs text-zinc-400 px-1">AIの審議には少し時間がかかります。そのままお待ちください。</p>
-                                    )}
-                                  </div>
-                                )}
-                                {reviewResult && !reviewResult.approved && (
-                                  <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-                                    AI審議: 不承認（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </main>
-
-          {/* ── 3. エティモンウィンドウ ── */}
-          <footer className="relative z-20 min-h-0 basis-0 grow-[22]">
-            <EtymonDock
-              collection={monsterCollection}
-              onSelect={(monsterId: string) =>
-                setMonsterCollection((prev) => setActiveMonster(prev, monsterId))
-              }
-              onOpenDrawer={() => setIsDrawerOpen(true)}
-            />
-          </footer>
-        </div>
-      </div>
+      {isMobile ? (
+        <MobileGameScreen
+          world={worldProps}
+          quiz={quizProps}
+          result={resultProps}
+          tiles={tileProps}
+          dock={dockProps}
+        />
+      ) : (
+        <DesktopGameScreen
+          world={worldProps}
+          quiz={quizProps}
+          result={resultProps}
+          typing={typingProps}
+          dock={dockProps}
+        />
+      )}
 
       {/* 手持ち編成（取っ手から開く。PokemonBox 自体がモーダルとして出る） */}
       {shouldOpenDrawer && (
