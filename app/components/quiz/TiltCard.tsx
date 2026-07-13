@@ -3,7 +3,6 @@
 import { ReactNode, useRef, CSSProperties } from "react";
 import {
   motion,
-  useMotionTemplate,
   useMotionValue,
   useReducedMotion,
   useSpring,
@@ -17,10 +16,10 @@ interface TiltCardProps {
 }
 
 /**
- * マウス位置に応じてカードが3D傾斜し、光沢（グレア）がついてくる問題カード用ラッパー。
+ * マウス位置に応じてカードが3D傾斜する問題カード用ラッパー。
  * /preview/dramatic のTiltCardを本番向けに引き算したもの：傾きは±6°に抑え、
  * タッチ端末（mousemoveが来ない環境）ではただの静的カードとして振る舞う。
- * prefers-reduced-motion時は傾斜・グレアとも無効。
+ * prefers-reduced-motion時は傾斜も無効。
  */
 export default function TiltCard({ children, className, style }: TiltCardProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -35,9 +34,6 @@ export default function TiltCard({ children, className, style }: TiltCardProps) 
     stiffness: 220,
     damping: 20,
   });
-  const glareX = useTransform(x, [0, 1], ["15%", "85%"]);
-  const glareY = useTransform(y, [0, 1], ["15%", "85%"]);
-  const glare = useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, rgba(255,255,255,0.28), transparent 55%)`;
 
   if (reduceMotion) {
     return (
@@ -63,11 +59,6 @@ export default function TiltCard({ children, className, style }: TiltCardProps) 
       style={{ ...style, rotateX, rotateY, transformPerspective: 900 }}
       className={className}
     >
-      <motion.div
-        className="pointer-events-none absolute inset-0 z-10"
-        style={{ background: glare }}
-        aria-hidden
-      />
       {children}
     </motion.div>
   );

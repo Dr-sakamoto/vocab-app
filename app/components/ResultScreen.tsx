@@ -10,7 +10,7 @@ const PRIMARY_BUTTON_CLASS =
 const SECONDARY_BUTTON_CLASS =
   "btn-3d [--btn-edge:rgba(63,63,70,0.18)] inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-black hover:bg-zinc-50 disabled:opacity-40";
 const BATTLE_WIN_BUTTON_CLASS =
-  "btn-3d btn-shine [--btn-edge:#881337] inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 text-sm font-bold text-white disabled:opacity-40";
+  "btn-3d [--btn-edge:#881337] inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-5 text-sm font-bold text-white disabled:opacity-40";
 
 const AUTO_CONTINUE_SECONDS = 10;
 
@@ -219,7 +219,6 @@ export default function ResultScreen({
                 isBattle ? "ring-rose-900/10" : "ring-emerald-900/10"
               }`}
             >
-              <div className="shimmer-sweep" />
               <div
                 className={`relative text-[11px] font-semibold uppercase tracking-widest ${
                   isBattle ? "text-rose-600" : "text-emerald-600"
@@ -295,7 +294,7 @@ export default function ResultScreen({
             <button
               type="button"
               onClick={onUseMasterBall}
-              className="btn-3d btn-shine [--btn-edge:#4c1d95] flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-400 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-3 text-sm font-bold text-white hover:from-violet-500 hover:to-purple-500"
+              className="btn-3d [--btn-edge:#4c1d95] flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-400 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-3 text-sm font-bold text-white hover:from-violet-500 hover:to-purple-500"
             >
               <span className="text-lg">◎</span>
               マスターボールを使って捕獲する
