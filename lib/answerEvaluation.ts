@@ -159,9 +159,15 @@ function kanaToHiragana(value: string): string {
   );
 }
 
+// kuromoji/IPADICは「いう」を「言う」と別の見出し語として扱うため、
+// 表記ゆれが起きやすい語だけ個別に正規化する
+const BASE_FORM_ALIASES: Record<string, string> = {
+  "いう": "言う",
+};
+
 function tokenBase(token: any): string {
-  if (token.base_form && token.base_form !== "*") return token.base_form;
-  return token.surface_form ?? "";
+  const base = token.basic_form && token.basic_form !== "*" ? token.basic_form : token.surface_form ?? "";
+  return BASE_FORM_ALIASES[base] ?? base;
 }
 
 function tokenReading(token: any): string {
@@ -319,11 +325,13 @@ function isAlternativeMatch(userAnalysis: AnswerAnalysis, answerAnalysis: Answer
   if (isKanaOnly(answerAnalysis.normalized) && answerAnalysis.normalized === userAnalysis.readingKey) return true;
 
   const userKeys = unique([
+    userAnalysis.normalized,
     userAnalysis.baseKey,
     userAnalysis.readingKey,
     ...userAnalysis.termKeys,
   ]);
   const answerKeys = unique([
+    answerAnalysis.normalized,
     answerAnalysis.baseKey,
     answerAnalysis.readingKey,
     ...answerAnalysis.termKeys,

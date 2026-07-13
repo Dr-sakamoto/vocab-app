@@ -53,6 +53,25 @@ test("accepts dictionary-based synonyms as alternatives", async () => {
   assert.equal(result.status, "alternative");
 });
 
+test("accepts いう/言う kana-kanji orthography variants as alternatives", async () => {
+  const result = await evaluateAnswer({
+    input: "悪口をいう",
+    answers: ["を呪う", "悪口を言う"],
+    partOfSpeech: "verb",
+  });
+
+  assert.equal(result.status, "alternative");
+});
+
+test("accepts conjugated forms via dictionary base form", async () => {
+  const result = await evaluateAnswer({
+    input: "食べた",
+    answers: ["食べる"],
+  });
+
+  assert.equal(result.status, "alternative");
+});
+
 test("keeps unrelated answers wrong", async () => {
   const result = await evaluateAnswer({
     input: "破産",
