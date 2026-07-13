@@ -22,9 +22,9 @@ export default function StarterChoiceModal({ onSelect }: StarterChoiceModalProps
         transition={{ type: "spring", stiffness: 300, damping: 26 }}
         className="glass-panel w-full max-w-lg rounded-3xl p-5 shadow-2xl"
       >
-        <h2 className="gradient-text font-display text-xl font-bold">ポケモンを選ぶ</h2>
+        <h2 className="gradient-text font-display text-xl font-bold">エティモンを選ぶ</h2>
         <p className="mt-2 text-sm leading-6 text-zinc-600">
-          オーキド博士の研究所。最初のポケモンを1匹選んでください。
+          オーキド博士の研究所。最初のエティモンを1匹選んでください。
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">

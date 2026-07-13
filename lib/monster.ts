@@ -1407,7 +1407,7 @@ export function awardEligibleGiftMonsters(
 
 export function getGiftToastTitle(gift: any): string {
   if (gift?.trigger === "professor-transfer") return "博士からもらった！";
-  return "ポケモンをもらった！";
+  return "エティモンをもらった！";
 }
 
 export function totalXPForLevel(level: number): number {

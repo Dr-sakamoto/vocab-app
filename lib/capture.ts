@@ -346,7 +346,7 @@ export const HABITATS: Habitat[] = [
   },
   {
     id: "pokemon-tower",
-    name: "ポケモンタワー",
+    name: "エティモンタワー",
     minPool: 960,
     encounterRule: "frlg-version-average",
     versionEncounters: both([
@@ -455,7 +455,7 @@ export const HABITATS: Habitat[] = [
   },
   {
     id: "pokemon-mansion",
-    name: "ポケモンやしき",
+    name: "エティモンやしき",
     minPool: 1500,
     encounterRule: "frlg-version-average",
     versionEncounters: split(
