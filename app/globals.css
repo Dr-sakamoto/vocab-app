@@ -666,6 +666,15 @@ a {
   color: var(--ega-fg);
 }
 
+/* 固定サイズの解答欄：横スクロールバーは見た目上隠す（入力自体は可能） */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* ゲージ枠 */
 .gauge-track {
   background: #060803;
