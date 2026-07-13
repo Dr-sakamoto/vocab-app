@@ -3,11 +3,13 @@ import test from "node:test";
 
 import {
   BATTLE_PARTY_SIZE,
+  ENCOUNTER_RATE,
   applyDamageToEncounter,
   getBattleParty,
   getMaxHPForLevel,
   getPartyAttackPower,
   normalizeWildEncounter,
+  rollWildEncounter,
   spawnWildEncounter,
   tryCaptureEncounter,
 } from "../lib/wildEncounter.js";
@@ -61,6 +63,13 @@ test("捕獲猶予: 弱い手持ちほど倒すまでの正解数が多い（乱
   assert.ok(weakHits > strongHits);
   // 強パーティでも即死はしない（最低でも数問の猶予がある）
   assert.ok(strongHits >= 3, `strongHits=${strongHits}`);
+});
+
+test("遭遇判定: 遭遇率を下回れば遭遇、上回れば非遭遇のまま", () => {
+  assert.equal(rollWildEncounter(() => 0), true);
+  assert.equal(rollWildEncounter(() => ENCOUNTER_RATE - 0.0001), true);
+  assert.equal(rollWildEncounter(() => ENCOUNTER_RATE), false);
+  assert.equal(rollWildEncounter(() => 0.999999), false);
 });
 
 test("スポーン: 解放済み生息地から出現し、ミッションとHPが積まれる", () => {
