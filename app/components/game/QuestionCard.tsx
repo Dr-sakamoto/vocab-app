@@ -52,7 +52,7 @@ export default function QuestionCard({
             {partOfSpeech}
           </div>
           <div
-            className={`mt-1.5 break-words font-bold tracking-tight text-[#61ff5f] leading-tight drop-shadow-[0_0_14px_rgba(97,255,95,0.5)] ${
+            className={`mt-1.5 break-words font-bold tracking-tight text-[#f5f5f5] leading-tight drop-shadow-[0_0_14px_rgba(255,255,255,0.5)] ${
               dense ? "text-3xl" : "text-3xl sm:text-5xl"
             }`}
           >
