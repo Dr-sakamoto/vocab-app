@@ -118,6 +118,41 @@ export function useGameSession({
     setIsCheckingAnswer(false);
   }, [checked, isCheckingAnswer, activeView, q, input, normalizedAnswers, approvedAnswers, stats, index, setStats]);
 
+  /**
+   * 「？」ボタン（わからない）押下時の判定。
+   * 不正解時と全く同じ扱いにする（score/streak/単語ごとの正誤統計・
+   * バトルのダメージ/捕獲判定に反映）。入力欄の途中入力は判定に使わず
+   * 常に不正解として扱う。
+   */
+  const giveUp = useCallback(() => {
+    if (checked || isCheckingAnswer || activeView === "result" || !q) return;
+    const prev = stats[index] ?? { correct: 0, wrong: 0 };
+
+    setPosViolation(null);
+    setIsCorrect(false);
+    setAnswerStatus("skipped");
+    setChecked(true);
+    setInput("");
+    setSessionAnswers((a) => [
+      ...a,
+      {
+        id: q.id,
+        correct: false,
+        previousCorrect: prev.correct,
+        previousWrong: prev.wrong,
+      },
+    ]);
+
+    setStats((prevStats) => {
+      const nextStats = [...prevStats];
+      const cur = nextStats[index] ?? { correct: 0, wrong: 0 };
+      nextStats[index] = { correct: cur.correct, wrong: cur.wrong + 1 };
+      return nextStats;
+    });
+
+    setStreak(0);
+  }, [checked, isCheckingAnswer, activeView, q, stats, index, setStats]);
+
   const resetSession = useCallback(() => {
     setScore(0);
     setTotal(1);
@@ -163,6 +198,7 @@ export function useGameSession({
     posViolation,
     setPosViolation,
     checkAnswer,
+    giveUp,
     resetSession,
     prepareNextQuestion,
     normalizedAnswers,
