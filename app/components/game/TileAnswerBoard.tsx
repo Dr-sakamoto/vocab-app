@@ -40,6 +40,7 @@ export default function TileAnswerBoard({
   const [picked, setPicked] = useState<string[]>([]);
   const submittedRef = useRef<boolean>(false);
   const lastResetKeyRef = useRef<string>(resetKey);
+  const answerFieldRef = useRef<HTMLDivElement>(null);
 
   // 「盤面リセット」と「全文字選択で自動判定」を1つの effect にまとめる。
   // 分けると、resetKey が変わった直後のコミットで reset 側が picked を
@@ -67,6 +68,14 @@ export default function TileAnswerBoard({
     return () => window.clearTimeout(timer);
   }, [checked, isCorrect, onNext]);
 
+  // 入力欄は幅固定。文字が増えたら実物の入力欄同様、末尾（カーソル側）が
+  // 見えるように自動で右へスクロールする。
+  useEffect(() => {
+    const el = answerFieldRef.current;
+    if (!el) return;
+    el.scrollLeft = el.scrollWidth;
+  }, [picked]);
+
   if (!board) return null;
 
   // 現在のラウンド（＝選んだ文字数の位置）の選択肢
@@ -81,18 +90,15 @@ export default function TileAnswerBoard({
 
   return (
     <div>
-      {/* 選んだ文字の並び（総文字数は出さない。判定前は末尾に入力位置を示す枠） */}
-      <div className="flex min-h-[2.5rem] flex-wrap items-center justify-center gap-1">
-        {picked.map((char, i) => (
-          <span
-            key={i}
-            className={`flex h-10 w-9 items-center justify-center rounded-md border text-lg font-bold ${answeredRowClass}`}
-          >
-            {char}
-          </span>
-        ))}
+      {/* 選んだ文字を差し込む固定サイズの解答欄（総文字数は出さない）。
+          幅は固定のまま、文字が増えると入力欄のように末尾へ自動スクロールする。 */}
+      <div
+        ref={answerFieldRef}
+        className={`no-scrollbar mx-auto flex h-12 w-full max-w-[280px] items-center overflow-x-auto whitespace-nowrap rounded-md border px-3 text-lg font-bold tracking-widest ${answeredRowClass}`}
+      >
+        <span>{picked.join("")}</span>
         {!checked && (
-          <span className="flex h-10 w-9 items-center justify-center rounded-md border border-dashed border-[#3aa83a]/60 text-lg text-[#3aa83a]">
+          <span className="ml-0.5 shrink-0 text-[#3aa83a]">
             <span className="animate-pulse">▍</span>
           </span>
         )}
