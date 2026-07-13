@@ -156,7 +156,7 @@ export default function TypingAnswerRow({
                 {posViolation && (
                   <div className="mt-1 text-xs text-[#ffaa7a] opacity-90">{posViolation}</div>
                 )}
-                {!reviewResult && (
+                {!reviewResult && answerStatus !== "skipped" && (
                   <div className="mt-2 flex flex-col gap-1">
                     <button
                       type="button"
