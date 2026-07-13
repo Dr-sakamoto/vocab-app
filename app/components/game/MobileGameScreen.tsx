@@ -99,6 +99,8 @@ export default function MobileGameScreen({
                       questionKey={quiz.questionKey}
                       partOfSpeech={quiz.partOfSpeech}
                       word={quiz.word}
+                      onSkip={quiz.onSkip}
+                      skipDisabled={quiz.skipDisabled}
                       dense
                     />
                   </div>

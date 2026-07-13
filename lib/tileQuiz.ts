@@ -14,6 +14,45 @@ import { VocabItem } from "./types";
 const OPTIONS_PER_ROUND = 8;
 const FALLBACK_KANA = [..."あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"];
 
+// 文字盤は2行×4列で描画される（TileAnswerBoard参照）。各行の左半分に
+// ひらがな等、右半分に漢字を固定配置し、正解を知っていても文字種を
+// 探し回るだけのストレスを減らす（左右どちらにも正答は来るのでヒントにはならない）。
+const ROW_SIZE = 4;
+const KANJI_PATTERN = /[㐀-䶿一-鿿]/;
+
+function isKanji(char: string): boolean {
+  return KANJI_PATTERN.test(char);
+}
+
+function arrangeByScript(tiles: AnswerTile[], rng: () => number): AnswerTile[] {
+  const kanjiTiles = shuffleInPlace(tiles.filter((t) => isKanji(t.char)), rng);
+  const otherTiles = shuffleInPlace(tiles.filter((t) => !isKanji(t.char)), rng);
+
+  const positions: (AnswerTile | undefined)[] = new Array(tiles.length);
+  const leftIndices: number[] = [];
+  const rightIndices: number[] = [];
+  for (let i = 0; i < tiles.length; i++) {
+    (i % ROW_SIZE < ROW_SIZE / 2 ? leftIndices : rightIndices).push(i);
+  }
+
+  const fill = (indices: number[], pool: AnswerTile[]) => {
+    for (const idx of indices) {
+      if (pool.length === 0) break;
+      positions[idx] = pool.shift();
+    }
+  };
+  fill(leftIndices, otherTiles);
+  fill(rightIndices, kanjiTiles);
+
+  // 文字種に偏りがあり片側の枠が余ったぶんは、空いている枠に詰める
+  const overflow = shuffleInPlace([...otherTiles, ...kanjiTiles], rng);
+  for (let i = 0; i < positions.length; i++) {
+    if (!positions[i]) positions[i] = overflow.shift();
+  }
+
+  return positions as AnswerTile[];
+}
+
 export interface AnswerTile {
   id: string;
   char: string;
@@ -105,7 +144,7 @@ export function buildAnswerRounds({
     }
 
     const chars = [correct, ...decoys];
-    return shuffleInPlace(
+    return arrangeByScript(
       chars.map((char, j) => ({ id: `r${i}-${j}`, char })),
       rng,
     );
