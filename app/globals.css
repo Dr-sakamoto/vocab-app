@@ -545,20 +545,20 @@ a {
 
 
 /* ── EGAレトロRPGスキン（Elvira/古PC-CRPG風・フルカラー） ─────────────────────
-   黒背景に EGA 調の緑／琥珀／赤／シアン。装飾は二重のピクセル枠。
+   黒背景に EGA 調の白／琥珀／赤／シアン。装飾は二重のピクセル枠。
    書体はビットマップ風のモノスペース。可読性優先でスキャンライン等の
    走査線ノイズは入れない。クラス名は旧スキンから流用して差し替える。 */
 
 :root {
-  --ega-bg: #0a0c08;
-  --ega-panel: #0e120b;
-  --ega-fg: #cfeecb;       /* 本文（読みやすい淡いリン光緑） */
-  --ega-bright: #61ff5f;   /* 強調（EGA明緑） */
+  --ega-bg: #0a0a0a;
+  --ega-panel: #131313;
+  --ega-fg: #e6e6e6;       /* 本文（読みやすい淡いリン光白） */
+  --ega-bright: #f5f5f5;   /* 強調（EGA明白） */
   --ega-amber: #ffcf4a;    /* 見出し・地図 */
   --ega-red: #ff5a5a;      /* 不正解・危険 */
   --ega-cyan: #58d0ff;
-  --ega-dim: #6f9268;      /* 補助テキスト */
-  --ega-line: #3aa83a;     /* 枠線（緑） */
+  --ega-dim: #7d7d7d;      /* 補助テキスト */
+  --ega-line: #9a9a9a;     /* 枠線（白） */
   --ega-line-amber: #b78a2a;
 }
 
@@ -574,10 +574,10 @@ a {
   color: var(--ega-fg);
   background-color: var(--ega-bg);
   background-image:
-    radial-gradient(ellipse at 50% -10%, rgba(97, 255, 95, 0.08), transparent 55%),
+    radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.08), transparent 55%),
     radial-gradient(ellipse at 12% 108%, rgba(255, 207, 74, 0.06), transparent 50%),
     radial-gradient(ellipse at 90% 105%, rgba(255, 90, 90, 0.06), transparent 50%),
-    linear-gradient(180deg, #0b0e09, #0a0c08 60%, #070805);
+    linear-gradient(180deg, #0d0d0d, #0a0a0a 60%, #060606);
   text-rendering: geometricPrecision;
 }
 
@@ -587,8 +587,8 @@ a {
   background-color: var(--ega-panel);
   border: 2px solid var(--ega-line);
   box-shadow:
-    inset 0 0 0 1px #0a0c08,
-    inset 0 0 0 3px rgba(58, 168, 58, 0.35),
+    inset 0 0 0 1px #0a0a0a,
+    inset 0 0 0 3px rgba(255, 255, 255, 0.25),
     0 0 0 1px #000;
   color: var(--ega-fg);
 }
@@ -598,7 +598,7 @@ a {
   background-color: var(--ega-panel);
   border: 2px solid var(--ega-line-amber);
   box-shadow:
-    inset 0 0 0 1px #0a0c08,
+    inset 0 0 0 1px #0a0a0a,
     inset 0 0 0 3px rgba(183, 138, 42, 0.35),
     0 0 0 1px #000;
   color: var(--ega-amber);
@@ -613,45 +613,45 @@ a {
 
 /* 出題カード（黒地に明緑の語。EGAの発光） */
 .quest-card {
-  background-color: #060803;
+  background-color: #0a0a0a;
   border: 2px solid var(--ega-bright);
   box-shadow:
     inset 0 0 0 1px #000,
-    inset 0 0 18px rgba(97, 255, 95, 0.12),
+    inset 0 0 18px rgba(255, 255, 255, 0.1),
     0 0 0 1px #000;
   color: var(--ega-bright);
 }
 
 /* コマンド／ボタン：黒地に緑枠、押下で緑地反転（EGAメニュー風） */
 .brass-btn {
-  background-color: #0c1109;
+  background-color: #111111;
   border: 2px solid var(--ega-line);
   color: var(--ega-bright);
-  text-shadow: 0 0 6px rgba(97, 255, 95, 0.35);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
   box-shadow: inset 0 0 0 1px #000;
   transition: background-color 0.08s, color 0.08s;
 }
 .brass-btn:hover:not(:disabled) {
-  background-color: #12210f;
+  background-color: #1e1e1e;
 }
 .brass-btn:active:not(:disabled) {
   background-color: var(--ega-bright);
-  color: #06120a;
+  color: #0a0a0a;
   text-shadow: none;
 }
 
 /* 文字盤タイル：黒地に緑枠の英字/かなキー */
 .tile-key {
-  background-color: #0c1109;
+  background-color: #111111;
   border: 2px solid var(--ega-line);
   color: var(--ega-fg);
-  box-shadow: inset 0 0 0 1px #000, 0 2px 0 #0a3b0a;
+  box-shadow: inset 0 0 0 1px #000, 0 2px 0 #262626;
   transition: transform 0.05s;
 }
 .tile-key:active:not(:disabled) {
   transform: translateY(2px);
-  background-color: #12210f;
-  box-shadow: inset 0 0 0 1px #000, 0 0 0 #0a3b0a;
+  background-color: #1e1e1e;
+  box-shadow: inset 0 0 0 1px #000, 0 0 0 #262626;
 }
 .tile-key:disabled {
   opacity: 0.22;
@@ -660,8 +660,8 @@ a {
 
 /* 回答スロット */
 .slot-box {
-  background: #060803;
-  border: 1px solid rgba(58, 168, 58, 0.5);
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-bottom: 2px solid var(--ega-line);
   color: var(--ega-fg);
 }
@@ -677,7 +677,7 @@ a {
 
 /* ゲージ枠 */
 .gauge-track {
-  background: #060803;
-  border: 1px solid #0a3b0a;
+  background: #0a0a0a;
+  border: 1px solid #262626;
   box-shadow: inset 0 0 0 1px #000;
 }
