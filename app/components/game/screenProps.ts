@@ -34,6 +34,9 @@ export interface QuizBlockProps {
   score: number;
   bestStreak: number;
   tierMultiplier: number;
+  /** 未回答のときだけ渡す。回答済みなら undefined にしてボタンを隠す */
+  onSkip?: () => void;
+  skipDisabled?: boolean;
 }
 
 export interface ResultBlockProps {

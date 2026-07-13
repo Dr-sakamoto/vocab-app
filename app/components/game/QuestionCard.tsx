@@ -10,6 +10,9 @@ export interface QuestionCardProps {
   word: string;
   /** スマホは余白を絞る */
   dense?: boolean;
+  /** 未回答のときだけ表示する「わからない」ボタンの押下時 */
+  onSkip?: () => void;
+  skipDisabled?: boolean;
 }
 
 /** 出題カード。呪文書の1ページ風（ハイファンタジースキン） */
@@ -18,6 +21,8 @@ export default function QuestionCard({
   partOfSpeech,
   word,
   dense = false,
+  onSkip,
+  skipDisabled = false,
 }: QuestionCardProps) {
   return (
     <motion.div
@@ -31,6 +36,17 @@ export default function QuestionCard({
           dense ? "py-4" : "py-6 sm:py-9"
         }`}
       >
+        {onSkip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            disabled={skipDisabled}
+            aria-label="この問題をわからないとして次へ"
+            className="absolute left-2 top-2 z-30 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#ff5a5a] text-xs font-bold text-[#ff5a5a] transition hover:bg-[#ff5a5a]/15 disabled:opacity-40"
+          >
+            ?
+          </button>
+        )}
         <div className="relative z-20">
           <div className="fantasy-title text-xs font-semibold tracking-[0.2em] text-[#ffcf4a]">
             {partOfSpeech}

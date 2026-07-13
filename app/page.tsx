@@ -1154,6 +1154,8 @@ export default function Page() {
     score,
     bestStreak,
     tierMultiplier: currentTier.multiplier,
+    onSkip: checked ? undefined : skip,
+    skipDisabled: isCheckingAnswer,
   };
   const resultProps = {
     evaluation: resultEvaluation,
@@ -1182,7 +1184,6 @@ export default function Page() {
     onRequestAiReview: requestAiReview,
     onCheck: () => checkAnswer(),
     onNext: next,
-    onSkip: skip,
   };
   const tileProps = {
     board: tileBoard,
@@ -1193,7 +1194,6 @@ export default function Page() {
     normalizedAnswers,
     onSubmit: (text: string) => checkAnswer(text, { skipApi: true }),
     onNext: next,
-    onSkip: skip,
   };
   const dockProps = {
     collection: monsterCollection,

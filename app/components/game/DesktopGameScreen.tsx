@@ -94,6 +94,8 @@ export default function DesktopGameScreen({
                       questionKey={quiz.questionKey}
                       partOfSpeech={quiz.partOfSpeech}
                       word={quiz.word}
+                      onSkip={quiz.onSkip}
+                      skipDisabled={quiz.skipDisabled}
                     />
                   </div>
 
