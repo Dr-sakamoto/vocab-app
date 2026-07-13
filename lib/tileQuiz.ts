@@ -13,10 +13,18 @@ import { VocabItem } from "./types";
 
 const OPTIONS_PER_ROUND = 8;
 const FALLBACK_KANA = [..."あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"];
+// ダミー漢字が足りない場合の補填用（常用漢字から抜粋、重複なし）
+const FALLBACK_KANJI = [
+  ..."日一国人年大十二本中長出三時行見月分後前生五間上東四今金九入学高円子外八六下来気小七山話女北午百川校木聞道場員立開手力男動",
+];
 
 // 文字盤は2行×4列で描画される（TileAnswerBoard参照）。各行の左半分に
 // ひらがな等、右半分に漢字を固定配置し、正解を知っていても文字種を
 // 探し回るだけのストレスを減らす（左右どちらにも正答は来るのでヒントにはならない）。
+// このレイアウトは厳格なルールとして扱う: 漢字は必ず右半分、それ以外
+// （ひらがな・カタカナ・記号等）は必ず左半分に入れる。片方の候補が
+// 足りない場合でも反対側の文字種で穴埋めしてはならない（buildAnswerRounds
+// 側でスロット数ぶんの文字を文字種ごとに確保してから渡すこと）。
 const ROW_SIZE = 4;
 const KANJI_PATTERN = /[㐀-䶿一-鿿]/;
 
@@ -24,33 +32,31 @@ function isKanji(char: string): boolean {
   return KANJI_PATTERN.test(char);
 }
 
+function splitIndicesByColumn(total: number): { leftIndices: number[]; rightIndices: number[] } {
+  const leftIndices: number[] = [];
+  const rightIndices: number[] = [];
+  for (let i = 0; i < total; i++) {
+    (i % ROW_SIZE < ROW_SIZE / 2 ? leftIndices : rightIndices).push(i);
+  }
+  return { leftIndices, rightIndices };
+}
+
 function arrangeByScript(tiles: AnswerTile[], rng: () => number): AnswerTile[] {
   const kanjiTiles = shuffleInPlace(tiles.filter((t) => isKanji(t.char)), rng);
   const otherTiles = shuffleInPlace(tiles.filter((t) => !isKanji(t.char)), rng);
 
-  const positions: (AnswerTile | undefined)[] = new Array(tiles.length);
-  const leftIndices: number[] = [];
-  const rightIndices: number[] = [];
-  for (let i = 0; i < tiles.length; i++) {
-    (i % ROW_SIZE < ROW_SIZE / 2 ? leftIndices : rightIndices).push(i);
+  const { leftIndices, rightIndices } = splitIndicesByColumn(tiles.length);
+  if (otherTiles.length !== leftIndices.length || kanjiTiles.length !== rightIndices.length) {
+    throw new Error(
+      `tileQuiz: 文字種の内訳が左右の枠数と一致しない（漢字=${kanjiTiles.length}/枠=${rightIndices.length}, その他=${otherTiles.length}/枠=${leftIndices.length}）。右=漢字・左=それ以外のルールを厳格化するため、buildAnswerRounds 側で文字種ごとの必要数を満たしてから渡すこと。`,
+    );
   }
 
-  const fill = (indices: number[], pool: AnswerTile[]) => {
-    for (const idx of indices) {
-      if (pool.length === 0) break;
-      positions[idx] = pool.shift();
-    }
-  };
-  fill(leftIndices, otherTiles);
-  fill(rightIndices, kanjiTiles);
+  const positions: AnswerTile[] = new Array(tiles.length);
+  leftIndices.forEach((idx, i) => (positions[idx] = otherTiles[i]));
+  rightIndices.forEach((idx, i) => (positions[idx] = kanjiTiles[i]));
 
-  // 文字種に偏りがあり片側の枠が余ったぶんは、空いている枠に詰める
-  const overflow = shuffleInPlace([...otherTiles, ...kanjiTiles], rng);
-  for (let i = 0; i < positions.length; i++) {
-    if (!positions[i]) positions[i] = overflow.shift();
-  }
-
-  return positions as AnswerTile[];
+  return positions;
 }
 
 export interface AnswerTile {
@@ -113,37 +119,59 @@ export function buildAnswerRounds({
     }
   }
 
+  const { leftIndices, rightIndices } = splitIndicesByColumn(optionsPerRound);
+
   const rounds: AnswerTile[][] = answerChars.map((correct, i) => {
-    // その回の正答文字と重複しないダミーを集める
+    // その回の正答文字と重複しないダミーを、右=漢字／左=それ以外の
+    // 必要枠数ぴったりに文字種ごと集める（漢字とそれ以外を混ぜて後から
+    // 帳尻合わせすると、左右のルールが崩れるため）
+    const correctIsKanji = isKanji(correct);
+    const kanjiNeeded = rightIndices.length - (correctIsKanji ? 1 : 0);
+    const otherNeeded = leftIndices.length - (correctIsKanji ? 0 : 1);
+
     const used = new Set<string>([correct]);
-    const decoys: string[] = [];
+    const kanjiDecoys: string[] = [];
+    const otherDecoys: string[] = [];
+    const decoysFilled = () => kanjiDecoys.length >= kanjiNeeded && otherDecoys.length >= otherNeeded;
     const pushDecoy = (char: string) => {
       if (used.has(char) || /\s/.test(char)) return;
+      if (isKanji(char)) {
+        if (kanjiDecoys.length >= kanjiNeeded) return;
+        kanjiDecoys.push(char);
+      } else {
+        if (otherDecoys.length >= otherNeeded) return;
+        otherDecoys.push(char);
+      }
       used.add(char);
-      decoys.push(char);
     };
 
     // 1) プールの他単語の文字から
     for (const char of shuffleInPlace([...candidatePool], rng)) {
-      if (decoys.length >= optionsPerRound - 1) break;
+      if (decoysFilled()) break;
       pushDecoy(char);
     }
     // 2) 足りなければ正答の他の文字から
-    if (decoys.length < optionsPerRound - 1) {
+    if (!decoysFilled()) {
       for (const char of shuffleInPlace([...answerChars], rng)) {
-        if (decoys.length >= optionsPerRound - 1) break;
+        if (decoysFilled()) break;
         pushDecoy(char);
       }
     }
-    // 3) それでも足りなければ かな で埋める
-    if (decoys.length < optionsPerRound - 1) {
+    // 3) それでも漢字が足りなければ常用漢字で、それ以外はかなで埋める
+    if (kanjiDecoys.length < kanjiNeeded) {
+      for (const char of shuffleInPlace([...FALLBACK_KANJI], rng)) {
+        if (kanjiDecoys.length >= kanjiNeeded) break;
+        pushDecoy(char);
+      }
+    }
+    if (otherDecoys.length < otherNeeded) {
       for (const char of shuffleInPlace([...FALLBACK_KANA], rng)) {
-        if (decoys.length >= optionsPerRound - 1) break;
+        if (otherDecoys.length >= otherNeeded) break;
         pushDecoy(char);
       }
     }
 
-    const chars = [correct, ...decoys];
+    const chars = [correct, ...kanjiDecoys, ...otherDecoys];
     return arrangeByScript(
       chars.map((char, j) => ({ id: `r${i}-${j}`, char })),
       rng,
