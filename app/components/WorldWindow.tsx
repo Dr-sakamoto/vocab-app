@@ -18,7 +18,7 @@ interface WorldWindowProps {
 }
 
 function hpBarColor(ratio: number): string {
-  if (ratio > 0.5) return "bg-[#61ff5f]";
+  if (ratio > 0.5) return "bg-[#f5f5f5]";
   if (ratio > 0.25) return "bg-[#ffcf4a]";
   return "bg-[#ff5a5a]";
 }
@@ -83,12 +83,12 @@ export default function WorldWindow({
                 style={{ width: `${Math.max(0, hpRatio * 100)}%` }}
               />
             </div>
-            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[#6f9268]">
+            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[#7d7d7d]">
               ✓{doneCount}/{encounter.missions.length}
             </span>
           </>
         ) : (
-          <span className="truncate text-[11px] text-[#6f9268]">
+          <span className="truncate text-[11px] text-[#7d7d7d]">
             つぎのエティモンをさがしている…
           </span>
         )}
@@ -181,7 +181,7 @@ export default function WorldWindow({
                     transition={{ duration: 0.4, ease: "easeOut" }}
                   />
                 </div>
-                <div className="mt-0.5 text-center text-[9px] tabular-nums text-[#6f9268] sm:text-[11px]">
+                <div className="mt-0.5 text-center text-[9px] tabular-nums text-[#7d7d7d] sm:text-[11px]">
                   {encounter.hp} / {encounter.maxHP}
                 </div>
               </div>
@@ -191,7 +191,7 @@ export default function WorldWindow({
               key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-lg font-bold text-[#6f9268]"
+              className="text-lg font-bold text-[#7d7d7d]"
             >
               空
             </motion.p>
@@ -203,7 +203,7 @@ export default function WorldWindow({
           続けてエンカウントのチェックリスト */}
       <div className="parchment min-w-0 flex-1 overflow-y-auto rounded-lg px-2.5 py-1.5">
         {streakDays > 0 && (
-          <div className="mb-1 flex items-center gap-1.5 border-b border-[#3aa83a]/30 pb-1 text-[10px] font-bold sm:text-sm">
+          <div className="mb-1 flex items-center gap-1.5 border-b border-[#9a9a9a]/30 pb-1 text-[10px] font-bold sm:text-sm">
             <span aria-hidden>🔥</span>
             <span className="text-[#ffcf4a]">{streakDays}日連続の冒険</span>
           </div>
@@ -219,15 +219,15 @@ export default function WorldWindow({
                   aria-hidden
                   className={`mt-px flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[9px] font-bold sm:h-4 sm:w-4 ${
                     mission.done
-                      ? "border-[#61ff5f] bg-[#61ff5f] text-[#06120a]"
-                      : "border-[#3aa83a] bg-transparent text-transparent"
+                      ? "border-[#f5f5f5] bg-[#f5f5f5] text-[#0a0a0a]"
+                      : "border-[#9a9a9a] bg-transparent text-transparent"
                   }`}
                 >
                   ✓
                 </span>
                 <span
                   className={
-                    mission.done ? "text-[#6f9268] line-through" : "text-[#cfeecb]"
+                    mission.done ? "text-[#7d7d7d] line-through" : "text-[#e6e6e6]"
                   }
                 >
                   {mission.label}
@@ -241,7 +241,7 @@ export default function WorldWindow({
             ))}
           </ul>
         ) : (
-          <div className="flex h-full items-center justify-center text-[10px] text-[#6f9268]">
+          <div className="flex h-full items-center justify-center text-[10px] text-[#7d7d7d]">
             —
           </div>
         )}

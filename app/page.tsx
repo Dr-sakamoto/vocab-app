@@ -246,6 +246,7 @@ export default function Page() {
     setAnswerStatus,
     isCheckingAnswer,
     checkAnswer,
+    giveUp,
     resetSession,
     prepareNextQuestion,
     normalizedAnswers,
@@ -969,15 +970,6 @@ export default function Page() {
     advanceQuestion(total);
   }, [checked, phase, total, advanceQuestion]);
 
-  // ── とばす ─────────────────────────────────────────────────────────────────
-  // 未回答のまま次の問題へ。正誤どちらにもしないため score・streak・
-  // 単語ごとの正誤統計・バトルのダメージ/捕獲判定には一切触れない。
-  // セット区切り（10問）は next と同じく total を進めて維持する。
-  const skip = useCallback(() => {
-    if (checked || phase === "result") return;
-    advanceQuestion(total - 1);
-  }, [checked, phase, total, advanceQuestion]);
-
   /** リザルトから次の10問セットへ。画面はそのまま、中身だけ入れ替える */
   const continueToNextSet = useCallback(() => {
     markDailyPlay();
@@ -1160,7 +1152,7 @@ export default function Page() {
     score,
     bestStreak,
     tierMultiplier: currentTier.multiplier,
-    onSkip: checked ? undefined : skip,
+    onSkip: checked ? undefined : giveUp,
     skipDisabled: isCheckingAnswer,
   };
   const resultProps = {

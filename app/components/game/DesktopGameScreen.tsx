@@ -68,22 +68,22 @@ export default function DesktopGameScreen({
                       aria-valuemax={quiz.playLimit}
                     >
                       <div
-                        className="h-full rounded-full bg-[#61ff5f] transition-all duration-300"
+                        className="h-full rounded-full bg-[#f5f5f5] transition-all duration-300"
                         style={{ width: `${quiz.progressPct}%` }}
                       />
                     </div>
-                    <span className="shrink-0 text-xs font-medium tabular-nums text-[#6f9268]">
+                    <span className="shrink-0 text-xs font-medium tabular-nums text-[#7d7d7d]">
                       {quiz.total} / {quiz.playLimit}
                     </span>
                   </div>
-                  <div className="mt-1.5 flex items-center gap-3 text-xs text-[#6f9268]">
+                  <div className="mt-1.5 flex items-center gap-3 text-xs text-[#7d7d7d]">
                     <span>{quiz.score} 正解</span>
                     {quiz.bestStreak > 1 && (
                       <span className="font-semibold text-[#ffcf4a]">
                         🔥 {quiz.bestStreak}連続
                       </span>
                     )}
-                    <span className="ml-auto rounded-full border border-[#6d5228] px-2 py-0.5 text-xs font-bold text-[#6f9268]">
+                    <span className="ml-auto rounded-full border border-[#6d5228] px-2 py-0.5 text-xs font-bold text-[#7d7d7d]">
                       ×{quiz.tierMultiplier}
                     </span>
                   </div>

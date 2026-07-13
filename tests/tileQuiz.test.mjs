@@ -89,6 +89,51 @@ test("空白タイルは生成されない", () => {
   }
 });
 
+test("文字盤は右4つ=漢字、左4つ=それ以外を厳格に守る", () => {
+  const KANJI_PATTERN = /[㐀-䶿一-鿿]/;
+  const isKanji = (ch) => KANJI_PATTERN.test(ch);
+
+  for (let index = 0; index < ITEMS.length; index++) {
+    const board = buildAnswerRounds({
+      items: ITEMS,
+      index,
+      unlockedPoolSize: ITEMS.length,
+      seed: `strict-${index}`,
+    });
+    for (const round of board.rounds) {
+      const left = [round[0], round[1], round[4], round[5]];
+      const right = [round[2], round[3], round[6], round[7]];
+      for (const tile of left) assert.ok(!isKanji(tile.char), `左側は漢字以外: ${tile.char}`);
+      for (const tile of right) assert.ok(isKanji(tile.char), `右側は漢字: ${tile.char}`);
+    }
+  }
+});
+
+test("候補プールが極端に偏っていても左右の文字種ルールは崩れない", () => {
+  // 訳がすべて漢字のみの単語ばかりの偏ったプール
+  const kanjiHeavyItems = [
+    { id: "a", target: "a", partOfSpeech: "noun", answers: ["漢字"] },
+    { id: "b", target: "b", partOfSpeech: "noun", answers: ["国家"] },
+    { id: "c", target: "c", partOfSpeech: "noun", answers: ["世界"] },
+    { id: "d", target: "d", partOfSpeech: "noun", answers: ["言語"] },
+  ];
+  const KANJI_PATTERN = /[㐀-䶿一-鿿]/;
+  const isKanji = (ch) => KANJI_PATTERN.test(ch);
+
+  const board = buildAnswerRounds({
+    items: kanjiHeavyItems,
+    index: 0,
+    unlockedPoolSize: kanjiHeavyItems.length,
+    seed: "kanji-heavy",
+  });
+  for (const round of board.rounds) {
+    const left = [round[0], round[1], round[4], round[5]];
+    const right = [round[2], round[3], round[6], round[7]];
+    for (const tile of left) assert.ok(!isKanji(tile.char), `左側は漢字以外: ${tile.char}`);
+    for (const tile of right) assert.ok(isKanji(tile.char), `右側は漢字: ${tile.char}`);
+  }
+});
+
 test("正答データがない場合は null", () => {
   const broken = [{ id: "x", target: "x", partOfSpeech: "noun", answers: [] }];
   assert.equal(

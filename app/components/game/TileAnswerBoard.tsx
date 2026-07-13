@@ -85,7 +85,7 @@ export default function TileAnswerBoard({
   const answeredRowClass = !checked
     ? "slot-box"
     : isCorrect
-    ? "border-[#61ff5f] bg-[#0c1f0c] text-[#61ff5f]"
+    ? "border-[#f5f5f5] bg-[#1c1c1c] text-[#f5f5f5]"
     : "border-[#ff5a5a] bg-[#1f0a0a] text-[#ff5a5a]";
 
   return (
@@ -98,7 +98,7 @@ export default function TileAnswerBoard({
       >
         <span>{picked.join("")}</span>
         {!checked && (
-          <span className="ml-0.5 shrink-0 text-[#3aa83a]">
+          <span className="ml-0.5 shrink-0 text-[#9a9a9a]">
             <span className="animate-pulse">▍</span>
           </span>
         )}
@@ -146,7 +146,7 @@ export default function TileAnswerBoard({
               transition={{ duration: 0.2 }}
             >
               {isCorrect ? (
-                <div className="flex h-12 items-center justify-center rounded-md border-2 border-[#61ff5f] bg-[#0c1f0c] text-base font-bold text-[#61ff5f]">
+                <div className="flex h-12 items-center justify-center rounded-md border-2 border-[#f5f5f5] bg-[#1c1c1c] text-base font-bold text-[#f5f5f5]">
                   ◯ 正解！
                 </div>
               ) : (
