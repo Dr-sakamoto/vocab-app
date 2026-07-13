@@ -69,6 +69,7 @@ import {
   getBattleParty,
   getPartyAttackPower,
   normalizeWildEncounter,
+  rollWildEncounter,
   spawnWildEncounter,
   tryCaptureEncounter,
 } from "@/lib/wildEncounter";
@@ -605,22 +606,14 @@ export default function Page() {
       storyProgressRef.current = retroStory;
       setStoryProgress(retroStory);
 
-      // 出現エティモンの復元。進行中のものがなければ新しく出現させる
+      // 出現エティモンの復元。進行中のものがなければ非遭遇状態から始める
+      // （遭遇率に従い、1問ごとの抽選で遭遇する）
       const restoredEncounter = normalizeWildEncounter(
         storage.get(STORAGE_KEYS.WILD_ENCOUNTER, null),
       );
       if (restoredEncounter) {
         encounterRef.current = restoredEncounter;
         setEncounter(restoredEncounter);
-      } else {
-        const spawned = spawnWildEncounter({
-          unlockedPoolSize: loadedPoolSize,
-          habitatVisits: migratedStarters.collection.habitatVisits,
-          seed: `${Date.now()}-${Math.random()}`,
-          collection: migratedStarters.collection,
-        });
-        encounterRef.current = spawned;
-        setEncounter(spawned);
       }
 
       // 単語進捗
@@ -744,10 +737,19 @@ export default function Page() {
     processedAnswerCountRef.current = gameSessionAnswers.length;
 
     const latest = gameSessionAnswers[gameSessionAnswers.length - 1];
-    const current = encounterRef.current;
-    if (!latest || !current || current.status !== "active") return;
+    if (!latest) return;
 
+    const current = encounterRef.current;
     const collection = monsterCollectionRef.current;
+
+    // 非遭遇中: 遭遇率を参照し、1問ごとに現在地のテーブルから遭遇を抽選する
+    if (!current || current.status !== "active") {
+      if (rollWildEncounter()) {
+        spawnEncounter(unlockedPoolSize, collection);
+      }
+      return;
+    }
+
     const party = getBattleParty(collection);
     const partyLineIds = party.map((monster) => monster.lineId);
     const partyMaxLevel = party.reduce(
@@ -792,7 +794,10 @@ export default function Page() {
         image: nextEncounter.sprite,
       });
       persistProgress({ nextCollection: capturedCollection });
-      spawnEncounter(unlockedPoolSize, capturedCollection);
+      // 捕獲後は非遭遇状態に戻す（次の遭遇は1問ごとの抽選で決まる）
+      encounterRef.current = null;
+      setEncounter(null);
+      persistEncounter(null);
       return;
     }
 
@@ -810,7 +815,10 @@ export default function Page() {
           message: `${nextEncounter.name}は力尽きて逃げていった`,
           image: nextEncounter.sprite,
         });
-        spawnEncounter(unlockedPoolSize, collection);
+        // 逃走後も非遭遇状態に戻す（次の遭遇は1問ごとの抽選で決まる）
+        encounterRef.current = null;
+        setEncounter(null);
+        persistEncounter(null);
         return;
       }
     }

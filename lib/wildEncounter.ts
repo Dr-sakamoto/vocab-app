@@ -34,6 +34,17 @@ import { MonsterCollection } from "./types";
 /** バトル（ダメージ計算）に参加する手持ち枠数。ドックに表示される4体 */
 export const BATTLE_PARTY_SIZE = 4;
 
+/**
+ * 遭遇率。非遭遇中は野生エティモンが不在（ミッション欄・敵モンスター欄なし）で、
+ * 1問回答するごとにこの確率で遭遇し、現在地の生息地テーブルから出現する。
+ */
+export const ENCOUNTER_RATE = 0.35;
+
+/** 非遭遇中の1問ごとの遭遇判定。遭遇率を参照してヒットしたら true を返す */
+export function rollWildEncounter(rng: () => number = Math.random): boolean {
+  return rng() < ENCOUNTER_RATE;
+}
+
 export type WildEncounterStatus = "active" | "captured" | "escaped";
 
 export interface WildEncounterState {
