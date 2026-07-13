@@ -35,7 +35,7 @@ export default function BattleBanner({
   const tierLabel = battle.tier === "gym"
     ? "ジムリーダー"
     : battle.tier === "legendary"
-      ? "伝説のポケモン"
+      ? "伝説のエティモン"
       : battle.tier === "symbol"
         ? "シンボル"
         : battle.tier === "rocket"
@@ -114,7 +114,7 @@ export default function BattleBanner({
               ))}
             </div>
             <p className="mt-2 text-xs text-rose-700">
-              今戦っているポケモンを先頭に表示しています。
+              今戦っているエティモンを先頭に表示しています。
             </p>
           </div>
         </div>

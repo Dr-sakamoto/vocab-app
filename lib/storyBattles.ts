@@ -70,7 +70,7 @@ export const STORY_BATTLES: Battle[] = [
     minPool: 60,
     habitatId: "route-1",
     party: [{ lineId: RIVAL_STARTER_MARKER, level: 5 }],
-    preMessage: "…おまえが　ポケモンを　えらぶのか",
+    preMessage: "…おまえが　エティモンを　えらぶのか",
   },
   {
     id: "rival-2",
@@ -283,7 +283,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "rival-5",
     name: "ライバル",
-    location: "ポケモンタワー3かい",
+    location: "エティモンタワー3かい",
     tier: "normal",
     minPool: 960,
     habitatId: "pokemon-tower",
@@ -297,7 +297,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "rocket-tower",
     name: "ロケット団員",
-    location: "ポケモンタワー最上階",
+    location: "エティモンタワー最上階",
     tier: "chain",
     minPool: 960,
     habitatId: "pokemon-tower",

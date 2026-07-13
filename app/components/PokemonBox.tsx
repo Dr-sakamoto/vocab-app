@@ -332,7 +332,7 @@ export default function PokemonBox({
               ★
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-zinc-950">ポケモン管理</h2>
+              <h2 className="text-lg font-semibold text-zinc-950">エティモン管理</h2>
               <p className={overLimit ? "text-sm font-semibold text-rose-600" : "text-xs text-zinc-500"}>
                 ボックス {boxMonsters.length} / {limit}
                 {totalTransferred > 0 && ` ・博士に送った数 ${totalTransferred}`}
