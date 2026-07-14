@@ -24,7 +24,9 @@ export interface MobileGameScreenProps {
 
 /**
  * スマホ版スクリーン。
- * - 最上段はマップのマス（正方形）を基準にした固定高の帯
+ * - 最上段はエティモンウィンドウ（手持ち編成）。最下段ではなく最上段に
+ *   固定配置し、常にパーティが視界に入るようにする
+ * - 続いてマップのマス（正方形）を基準にした固定高の帯
  * - 問題ウィンドウは上詰め固定。判定後に選択肢が消えても問題カードの
  *   位置がズレない（正解時の視覚的なジャンプを防ぐ）
  * - 回答は文字盤（みんはや式・1文字ずつタップ）固定。キーボードは一切出さない
@@ -43,12 +45,21 @@ export default function MobileGameScreen({
       <div className="scene-vignette" aria-hidden />
 
       <div className="relative z-10 flex h-full w-full flex-col gap-2 p-2">
-        {/* ── 1. ワールドウィンドウ（マップのマス=正方形を基準にした高さ） ── */}
-        <header className="h-32 shrink-0">
-          <WorldWindow {...world} />
+        {/* ── 1. エティモンウィンドウ（手持ち編成。最上段に固定配置） ── */}
+        <header className="relative z-20 h-28 shrink-0">
+          <EtymonDock
+            collection={dock.collection}
+            onSelect={dock.onSelect}
+            onOpenDrawer={dock.onOpenDrawer}
+          />
         </header>
 
-        {/* ── 2. 問題ウィンドウ（残り全部。判定後に選択肢が消えても
+        {/* ── 2. ワールドウィンドウ（マップのマス=正方形を基準にした高さ） ── */}
+        <div className="h-32 shrink-0">
+          <WorldWindow {...world} />
+        </div>
+
+        {/* ── 3. 問題ウィンドウ（残り全部。判定後に選択肢が消えても
              問題カードの位置がズレないよう上詰めで固定する） ── */}
         <main className="min-h-0 flex-1">
           <div className="parchment flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
@@ -114,15 +125,6 @@ export default function MobileGameScreen({
             )}
           </div>
         </main>
-
-        {/* ── 3. エティモンウィンドウ ── */}
-        <footer className="relative z-20 h-28 shrink-0">
-          <EtymonDock
-            collection={dock.collection}
-            onSelect={dock.onSelect}
-            onOpenDrawer={dock.onOpenDrawer}
-          />
-        </footer>
       </div>
     </div>
   );
