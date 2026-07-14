@@ -108,16 +108,16 @@ export default function TileAnswerBoard({
 
       {/* 現在ラウンドの選択肢（8択）。1文字選ぶと次ラウンドへ入れ替わる */}
       {!checked && (
-        <div className="mt-2.5 space-y-2" role="group" aria-label="文字盤">
+        <div className="mt-3 space-y-3" role="group" aria-label="文字盤">
           {rows.map((row, ri) => (
-            <div key={ri} className="flex justify-center gap-2">
+            <div key={ri} className="flex justify-center gap-3">
               {row.map((tile) => (
                 <button
                   key={tile.id}
                   type="button"
                   disabled={isCheckingAnswer}
                   onClick={() => setPicked((prev) => [...prev, tile.char])}
-                  className="tile-key h-14 w-14 rounded-md text-xl font-bold transition-transform"
+                  className="tile-key h-16 w-16 rounded-md text-2xl font-bold transition-transform"
                   aria-label={`文字 ${tile.char}`}
                 >
                   {tile.char}
