@@ -844,6 +844,7 @@ export interface FossilGiftGroup {
   location: string;
   level: number;
   choices: FossilChoice[];
+  minPool?: number;
 }
 
 export const FOSSIL_GIFT_GROUP: FossilGiftGroup = {
@@ -860,7 +861,7 @@ export const FOSSIL_GIFT_GROUP: FossilGiftGroup = {
 };
 
 function resolveGiftMinPool(event: GiftMonsterEvent | FossilGiftGroup, habitatMinPools: Record<string, number> = {}): number {
-  if (Number.isFinite(Number((event as any).minPool))) return Number((event as any).minPool);
+  if (Number.isFinite(Number(event.minPool))) return Number(event.minPool);
   if (typeof event.habitatId === "string" && Number.isFinite(Number(habitatMinPools[event.habitatId]))) {
     return Number(habitatMinPools[event.habitatId]);
   }
@@ -925,14 +926,15 @@ export function createMonsterInstance({
     heldItemType: typeof heldItemType === "string" && heldItemType ? heldItemType : undefined,
     heldItemName: typeof heldItemName === "string" && heldItemName ? heldItemName : undefined,
     ...(forcedSpeciesId !== null ? { forcedSpeciesId } : {}),
-  } as any;
+  };
 }
 
-export function normalizeMonsterCollection(collection: any, legacy: { lineId?: string | null; totalXP?: number } = {}): MonsterCollection {
+export function normalizeMonsterCollection(collection: unknown, legacy: { lineId?: string | null; totalXP?: number } = {}): MonsterCollection {
+  const c = (collection && typeof collection === "object" ? collection : {}) as Record<string, unknown>;
   const legacyLineId = normalizeMonsterLineId(legacy.lineId);
   const legacyXP = clampMonsterXP(legacy.totalXP);
-  const sourceMonsters = Array.isArray(collection?.monsters)
-    ? collection.monsters
+  const sourceMonsters = Array.isArray(c.monsters)
+    ? c.monsters
     : (DEFAULT_MONSTER_COLLECTION.monsters || []).map(monster => ({
         ...monster,
         totalXP: monster.lineId === legacyLineId ? legacyXP : 0,
@@ -954,7 +956,7 @@ export function normalizeMonsterCollection(collection: any, legacy: { lineId?: s
   }
 
   const monsters = Array.from(byId.values());
-  const requestedActiveId = collection?.activeId;
+  const requestedActiveId = c.activeId as string | null | undefined;
   const fallbackActiveId =
     monsters.find(monster => monster.lineId === legacyLineId)?.id ??
     monsters[0]?.id ??
@@ -964,8 +966,8 @@ export function normalizeMonsterCollection(collection: any, legacy: { lineId?: s
       ? requestedActiveId
       : fallbackActiveId;
 
-  const requestedPartyIds = Array.isArray(collection?.partyIds)
-    ? collection.partyIds
+  const requestedPartyIds = Array.isArray(c.partyIds)
+    ? c.partyIds
     : DEFAULT_MONSTER_COLLECTION.partyIds;
   const monsterIds = new Set(monsters.map(monster => monster.id));
   const partyIds: (string | null)[] = [];
@@ -1014,8 +1016,8 @@ export function normalizeMonsterCollection(collection: any, legacy: { lineId?: s
   }
 
   const habitatVisits: Record<string, number> = {};
-  if (collection?.habitatVisits && typeof collection.habitatVisits === "object") {
-    for (const [habitatId, visits] of Object.entries(collection.habitatVisits)) {
+  if (c.habitatVisits && typeof c.habitatVisits === "object") {
+    for (const [habitatId, visits] of Object.entries(c.habitatVisits)) {
       const safeVisits = Number(visits);
       if (Number.isFinite(safeVisits) && safeVisits > 0) {
         habitatVisits[habitatId] = Math.floor(safeVisits);
@@ -1024,8 +1026,8 @@ export function normalizeMonsterCollection(collection: any, legacy: { lineId?: s
   }
 
   const professorTransfers: Record<string, number> = {};
-  if (collection?.professorTransfers && typeof collection.professorTransfers === "object") {
-    for (const [lineId, count] of Object.entries(collection.professorTransfers)) {
+  if (c.professorTransfers && typeof c.professorTransfers === "object") {
+    for (const [lineId, count] of Object.entries(c.professorTransfers)) {
       const safeLineId = normalizeMonsterLineId(lineId);
       const safeCount = Number(count);
       if (Number.isFinite(safeCount) && safeCount > 0) {
@@ -1039,8 +1041,8 @@ export function normalizeMonsterCollection(collection: any, legacy: { lineId?: s
     ...FOSSIL_GIFT_GROUP.choices.map(choice => `${FOSSIL_GIFT_GROUP.id}-${choice.lineId}`),
   ]);
   const giftClaims: Record<string, boolean> = {};
-  if (collection?.giftClaims && typeof collection.giftClaims === "object") {
-    for (const [giftId, claimed] of Object.entries(collection.giftClaims)) {
+  if (c.giftClaims && typeof c.giftClaims === "object") {
+    for (const [giftId, claimed] of Object.entries(c.giftClaims)) {
       if (claimed && validGiftIds.has(giftId)) {
         giftClaims[giftId] = true;
       }
@@ -1048,8 +1050,8 @@ export function normalizeMonsterCollection(collection: any, legacy: { lineId?: s
   }
 
   const storyProgress =
-    collection?.storyProgress && typeof collection.storyProgress === "object"
-      ? collection.storyProgress
+    c.storyProgress && typeof c.storyProgress === "object"
+      ? (c.storyProgress as StoryProgress)
       : undefined;
 
   return {
@@ -1064,7 +1066,7 @@ export function normalizeMonsterCollection(collection: any, legacy: { lineId?: s
   };
 }
 
-export function getActiveMonster(collection: any): MonsterInstance {
+export function getActiveMonster(collection: unknown): MonsterInstance {
   const normalized = normalizeMonsterCollection(collection);
   return (
     normalized.monsters.find(monster => monster.id === normalized.activeId) ??
@@ -1072,12 +1074,12 @@ export function getActiveMonster(collection: any): MonsterInstance {
   );
 }
 
-export function getMonsterById(collection: any, monsterId: string): MonsterInstance | null {
+export function getMonsterById(collection: unknown, monsterId: string): MonsterInstance | null {
   const normalized = normalizeMonsterCollection(collection);
   return normalized.monsters.find(monster => monster.id === monsterId) ?? null;
 }
 
-export function setActiveMonster(collection: any, monsterId: string): MonsterCollection {
+export function setActiveMonster(collection: unknown, monsterId: string): MonsterCollection {
   const normalized = normalizeMonsterCollection(collection);
   if (!normalized.monsters.some(monster => monster.id === monsterId)) return normalized;
   const partyIds = normalized.partyIds.slice(0, PARTY_SIZE);
@@ -1090,7 +1092,7 @@ export function setActiveMonster(collection: any, monsterId: string): MonsterCol
   return { ...normalized, activeId: monsterId, partyIds };
 }
 
-export function getPartySlots(collection: any): (MonsterInstance | null)[] {
+export function getPartySlots(collection: unknown): (MonsterInstance | null)[] {
   const normalized = normalizeMonsterCollection(collection);
   const byId = new Map(normalized.monsters.map(monster => [monster.id, monster]));
   return Array.from({ length: PARTY_SIZE }, (_, index) => {
@@ -1099,11 +1101,11 @@ export function getPartySlots(collection: any): (MonsterInstance | null)[] {
   });
 }
 
-export function getPartyCount(collection: any): number {
+export function getPartyCount(collection: unknown): number {
   return getPartySlots(collection).filter(Boolean).length;
 }
 
-export function updatePartyXP(collection: any, gainedXP: number): MonsterCollection {
+export function updatePartyXP(collection: unknown, gainedXP: number): MonsterCollection {
   const normalized = normalizeMonsterCollection(collection);
   const partyIdSet = new Set(normalized.partyIds);
   const fullXP = clampMonsterXP(gainedXP);
@@ -1124,7 +1126,7 @@ export function updatePartyXP(collection: any, gainedXP: number): MonsterCollect
       if (
         xpToAdd > 0 &&
         monster.heldItemType &&
-        !(monster as any).forcedSpeciesId
+        !monster.forcedSpeciesId
       ) {
         const previousState = getMonsterState(previousXP, monster.lineId);
         const nextState = getMonsterState(nextXP, monster.lineId);
@@ -1133,10 +1135,10 @@ export function updatePartyXP(collection: any, gainedXP: number): MonsterCollect
           if (Number.isFinite(Number(targetSpeciesId))) {
             nextMonster = {
               ...nextMonster,
-              heldItemType: null,
-              heldItemName: null,
+              heldItemType: undefined,
+              heldItemName: undefined,
               forcedSpeciesId: targetSpeciesId,
-            } as any;
+            };
           }
         }
       }
@@ -1146,13 +1148,13 @@ export function updatePartyXP(collection: any, gainedXP: number): MonsterCollect
   };
 }
 
-export function getBoxMonsters(collection: any): MonsterInstance[] {
+export function getBoxMonsters(collection: unknown): MonsterInstance[] {
   const normalized = normalizeMonsterCollection(collection);
   const partyIdSet = new Set(normalized.partyIds);
   return normalized.monsters.filter(monster => !partyIdSet.has(monster.id));
 }
 
-export function sortBoxMonsters(collection: any, mode: "dex" | "level"): MonsterCollection {
+export function sortBoxMonsters(collection: unknown, mode: "dex" | "level"): MonsterCollection {
   const normalized = normalizeMonsterCollection(collection);
   const partyIdSet = new Set(normalized.partyIds);
   const sortedBoxMonsters = normalized.monsters
@@ -1189,11 +1191,11 @@ export function sortBoxMonsters(collection: any, mode: "dex" | "level"): Monster
   });
 }
 
-export function getBoxCount(collection: any): number {
+export function getBoxCount(collection: unknown): number {
   return getBoxMonsters(collection).length;
 }
 
-export function sendPartySlotToBox(collection: any, partyIndex: number): MonsterCollection {
+export function sendPartySlotToBox(collection: unknown, partyIndex: number): MonsterCollection {
   const normalized = normalizeMonsterCollection(collection);
   if (!Number.isInteger(partyIndex) || partyIndex < 0 || partyIndex >= PARTY_SIZE) return normalized;
   if (!normalized.partyIds[partyIndex]) return normalized;
@@ -1217,7 +1219,13 @@ export function sendPartySlotToBox(collection: any, partyIndex: number): Monster
   });
 }
 
-export function swapMonsterLocations(collection: any, first: any, second: any): MonsterCollection {
+export interface MonsterLocation {
+  area: "party" | "box" | "remove";
+  index: number;
+  id: string | null;
+}
+
+export function swapMonsterLocations(collection: unknown, first: MonsterLocation, second: MonsterLocation): MonsterCollection {
   const normalized = normalizeMonsterCollection(collection);
   if (!first || !second) return normalized;
 
@@ -1225,7 +1233,7 @@ export function swapMonsterLocations(collection: any, first: any, second: any): 
   const monsters = [...normalized.monsters];
   const partyIdSet = new Set(partyIds);
 
-  const getLocationId = (location: any) => {
+  const getLocationId = (location: MonsterLocation) => {
     if (location.area === "party") return partyIds[location.index] ?? null;
     if (location.area === "box") {
       const id = location.id;
@@ -1263,7 +1271,7 @@ export function swapMonsterLocations(collection: any, first: any, second: any): 
   });
 }
 
-export function updateMonsterXP(collection: any, monsterId: string, getNextXP: (xp: number) => number): MonsterCollection {
+export function updateMonsterXP(collection: unknown, monsterId: string, getNextXP: (xp: number) => number): MonsterCollection {
   const normalized = normalizeMonsterCollection(collection);
   return {
     ...normalized,
@@ -1277,7 +1285,7 @@ export function updateMonsterXP(collection: any, monsterId: string, getNextXP: (
   };
 }
 
-export function sendMonstersToProfessor(collection: any, monsterIds: string[] = []): MonsterCollection {
+export function sendMonstersToProfessor(collection: unknown, monsterIds: string[] = []): MonsterCollection {
   const normalized = normalizeMonsterCollection(collection);
   const requestedIds = new Set(Array.isArray(monsterIds) ? monsterIds : []);
   if (requestedIds.size === 0) return normalized;
@@ -1301,7 +1309,7 @@ export function sendMonstersToProfessor(collection: any, monsterIds: string[] = 
   });
 }
 
-export function getTotalProfessorTransfers(collection: any): number {
+export function getTotalProfessorTransfers(collection: unknown): number {
   const normalized = normalizeMonsterCollection(collection);
   return Object.values(normalized.professorTransfers ?? {}).reduce(
     (sum, count) => sum + Math.max(0, Number(count) || 0),
@@ -1309,7 +1317,7 @@ export function getTotalProfessorTransfers(collection: any): number {
   );
 }
 
-export function getPendingFossilGift(collection: any, { unlockedPoolSize = 0, habitatMinPools = {} } = {}): FossilGiftGroup | null {
+export function getPendingFossilGift(collection: unknown, { unlockedPoolSize = 0, habitatMinPools = {} } = {}): FossilGiftGroup | null {
   const normalized = normalizeMonsterCollection(collection);
   const poolSize = Math.max(0, Number(unlockedPoolSize) || 0);
   if (poolSize < resolveGiftMinPool(FOSSIL_GIFT_GROUP, habitatMinPools)) return null;
@@ -1317,7 +1325,7 @@ export function getPendingFossilGift(collection: any, { unlockedPoolSize = 0, ha
   return FOSSIL_GIFT_GROUP;
 }
 
-export function claimFossilGift(collection: any, lineId: string, { habitatMinPools = {} } = {}): { collection: MonsterCollection; awarded: any | null } {
+export function claimFossilGift(collection: unknown, lineId: string, {}: { habitatMinPools?: Record<string, number> } = {}): { collection: MonsterCollection; awarded: AwardedGiftMonster | null } {
   const normalized = normalizeMonsterCollection(collection);
   const choice = FOSSIL_GIFT_GROUP.choices.find(entry => entry.lineId === lineId);
   if (!choice) return { collection: normalized, awarded: null };
@@ -1355,15 +1363,30 @@ export function claimFossilGift(collection: any, lineId: string, { habitatMinPoo
   };
 }
 
+export interface AwardedGiftMonster {
+  id: string;
+  lineId: string;
+  trigger: "professor-transfer" | "pool";
+  location: string;
+  habitatId?: string;
+  message: string;
+  monsterId: string;
+  name: string;
+  sprite: string;
+  requiredTransfers?: number;
+  level?: number;
+  minPool?: number;
+}
+
 export function awardEligibleGiftMonsters(
-  collection: any,
+  collection: unknown,
   { unlockedPoolSize = 0, trigger = "all", habitatMinPools = {} } = {},
-): { collection: MonsterCollection; awarded: any[] } {
+): { collection: MonsterCollection; awarded: AwardedGiftMonster[] } {
   const normalized = normalizeMonsterCollection(collection);
   const totalTransfers = getTotalProfessorTransfers(normalized);
   const poolSize = Math.max(0, Number(unlockedPoolSize) || 0);
   const nextGiftClaims = { ...normalized.giftClaims };
-  const awarded: any[] = [];
+  const awarded: AwardedGiftMonster[] = [];
   const monsters = [...normalized.monsters];
 
   for (const event of GIFT_MONSTER_EVENTS) {
@@ -1405,7 +1428,7 @@ export function awardEligibleGiftMonsters(
   };
 }
 
-export function getGiftToastTitle(gift: any): string {
+export function getGiftToastTitle(gift: AwardedGiftMonster): string {
   if (gift?.trigger === "professor-transfer") return "博士からもらった！";
   return "エティモンをもらった！";
 }
@@ -1517,13 +1540,15 @@ export function getSpeciesById(speciesId: number | string): Species | null {
   return SPECIES_BY_ID.get(Number(speciesId)) ?? null;
 }
 
-export function getMonsterDisplayState(monster: any): MonsterState {
+export function getMonsterDisplayState(
+  monster: { totalXP?: number; lineId?: string; forcedSpeciesId?: number | null } | null | undefined,
+): MonsterState {
   if (!monster || typeof monster !== "object") {
     return getMonsterState(0, DEFAULT_MONSTER_LINE_ID);
   }
-  const state = getMonsterState(monster.totalXP, monster.lineId);
+  const state = getMonsterState(monster.totalXP ?? 0, monster.lineId ?? DEFAULT_MONSTER_LINE_ID);
   if (Number.isFinite(Number(monster.forcedSpeciesId))) {
-    const forcedSpecies = getSpeciesById(monster.forcedSpeciesId);
+    const forcedSpecies = getSpeciesById(monster.forcedSpeciesId as number);
     if (forcedSpecies) {
       return {
         ...state,
@@ -1558,7 +1583,7 @@ export function getItemEvolutionTargetSpeciesId(speciesId: number | string, item
   return targets ? targets[itemType] ?? null : null;
 }
 
-export function getItemEvolutionCandidates(collection: any, partyOnly: boolean = true): { monster: MonsterInstance; itemTypes: string[] }[] {
+export function getItemEvolutionCandidates(collection: unknown, partyOnly: boolean = true): { monster: MonsterInstance; itemTypes: string[] }[] {
   const normalized = normalizeMonsterCollection(collection);
   const candidates: { monster: MonsterInstance; itemTypes: string[] }[] = [];
   const partyIds = new Set(partyOnly ? normalized.partyIds.filter(Boolean) : normalized.monsters.map(m => m.id));
@@ -1580,7 +1605,7 @@ export interface ItemEvolutionPickup {
   itemName: string;
 }
 
-export function getItemEvolutionPickup(collection: any, rng: () => number = Math.random): ItemEvolutionPickup | null {
+export function getItemEvolutionPickup(collection: unknown, rng: () => number = Math.random): ItemEvolutionPickup | null {
   const candidates = getItemEvolutionCandidates(collection, true);
   if (candidates.length === 0) return null;
 
@@ -1623,7 +1648,7 @@ export function getItemEvolutionPickup(collection: any, rng: () => number = Math
   };
 }
 
-export function getItemEvolutionCandidateTypes(collection: any): string[] {
+export function getItemEvolutionCandidateTypes(collection: unknown): string[] {
   return getItemEvolutionCandidates(collection, true)
     .flatMap(candidate => candidate.itemTypes)
     .filter((value, index, self) => self.indexOf(value) === index);

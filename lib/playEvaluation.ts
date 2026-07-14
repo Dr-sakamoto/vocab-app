@@ -156,7 +156,6 @@ export function evaluatePlay({
   answers,
   score,
   playLimit,
-  bestStreak,
   unlockedPoolSize,
   playCount = 1,
 }: EvaluatePlayProps): PlayEvaluation {

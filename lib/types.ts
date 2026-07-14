@@ -89,6 +89,22 @@ export interface StoryProgress {
   professorStartersAwarded: boolean;
 }
 
+export interface BattlePartyMember {
+  lineId: string;
+  level: number;
+}
+
+export interface BattleRewards {
+  badge?: string;
+  fossilItem?: boolean;
+  unlocksSideAreas?: boolean;
+  hallOfFame?: boolean;
+  hitmon?: boolean;
+  lapras?: boolean;
+  masterBall?: boolean;
+  voltorbTrap?: boolean;
+}
+
 export interface Battle {
   id: string;
   name: string;
@@ -97,7 +113,21 @@ export interface Battle {
   opponentSprite?: string;
   playLimit?: number;
   boss?: boolean;
-  [key: string]: any;
+  location: string;
+  tier?: string;
+  party: BattlePartyMember[];
+  preMessage?: string;
+  optional?: boolean;
+  minPool: number;
+  maxPool?: number;
+  requiresDefeat?: string[];
+  requiresBadges?: string[];
+  requiresHallOfFame?: boolean;
+  requiresMewSeen?: boolean;
+  reappearOnHabitat?: boolean;
+  reappearChance?: number;
+  firstEncounterGuaranteed?: boolean;
+  rewards?: BattleRewards;
 }
 
 export interface EvaluationBreakdownItem {
@@ -114,6 +144,13 @@ export interface PoolTier {
   color: string;
 }
 
+export interface CapturePreview {
+  lineId: string;
+  level?: number;
+  habitat?: { id: string; name: string };
+  monsterId?: string;
+}
+
 export interface PlayEvaluation {
   grade: string;
   title: string;
@@ -123,7 +160,7 @@ export interface PlayEvaluation {
   fzm: number;
   breakdown: EvaluationBreakdownItem[];
   captureFailed?: boolean;
-  capturePreview?: any;
+  capturePreview?: CapturePreview;
 }
 
 export interface ToastItem {

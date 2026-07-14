@@ -2,9 +2,10 @@
 
 import React from "react";
 import { getMonsterDisplayState } from "@/lib/monster";
+import { MonsterInstance } from "@/lib/types";
 
 interface MonsterCompanionProps {
-  monster?: any;
+  monster?: MonsterInstance | null;
   totalXP?: number;
   gainedXP?: number;
   size?: "sm" | "md" | "lg";

@@ -1,6 +1,7 @@
 import { createMonsterInstance, getMonsterLine, getSpecies, normalizeMonsterCollection } from "./monster";
 import { awardRivalStarterSeed, resolveBattleForProgress, RIVAL_STARTER_MARKER } from "./starters";
-import { StoryProgress, MonsterCollection, Battle, WordStat } from "./types";
+import type { CaptureResult } from "./capture";
+import { StoryProgress, MonsterCollection, Battle, BattlePartyMember, WordStat } from "./types";
 
 const TRAINER_SPRITE_ROOT = "https://play.pokemonshowdown.com/sprites/trainers";
 
@@ -437,7 +438,7 @@ export const STORY_BATTLES: Battle[] = [
     habitatId: "power-plant",
     requiresDefeat: ["morty"],
     optional: true,
-    firstEncounterGuaranteed: 1,
+    firstEncounterGuaranteed: true,
     reappearChance: 0.12,
     party: [{ lineId: "zapdos", level: 50 }],
   },
@@ -450,7 +451,7 @@ export const STORY_BATTLES: Battle[] = [
     habitatId: "seafoam-islands",
     requiresDefeat: ["morty"],
     optional: true,
-    firstEncounterGuaranteed: 1,
+    firstEncounterGuaranteed: true,
     reappearChance: 0.12,
     party: [{ lineId: "articuno", level: 50 }],
   },
@@ -495,7 +496,7 @@ export const STORY_BATTLES: Battle[] = [
     habitatId: "victory-road",
     requiresBadges: ["boulder", "cascade", "thunder", "rainbow", "marsh", "storm", "volcano", "earth"],
     optional: true,
-    firstEncounterGuaranteed: 1,
+    firstEncounterGuaranteed: true,
     reappearChance: 0.1,
     party: [{ lineId: "moltres", level: 50 }],
   },
@@ -594,7 +595,7 @@ export const STORY_BATTLES: Battle[] = [
     habitatId: "cerulean-cave",
     requiresHallOfFame: true,
     optional: true,
-    firstEncounterGuaranteed: 1,
+    firstEncounterGuaranteed: true,
     reappearChance: 0.08,
     party: [{ lineId: "mewtwo", level: 70 }],
   },
@@ -634,8 +635,8 @@ export const DEFAULT_STORY_PROGRESS: StoryProgress = {
   professorStartersAwarded: false,
 };
 
-export function normalizeStoryProgress(raw: any): StoryProgress {
-  const source = raw && typeof raw === "object" ? raw : {};
+export function normalizeStoryProgress(raw: unknown): StoryProgress {
+  const source = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const defeated: Record<string, boolean> = {};
   if (source.defeated && typeof source.defeated === "object") {
     for (const [id, value] of Object.entries(source.defeated)) {
@@ -660,13 +661,17 @@ export function normalizeStoryProgress(raw: any): StoryProgress {
     }
   }
 
-  const pendingChallengeId = BATTLE_BY_ID.has(source.pendingChallengeId)
-    ? source.pendingChallengeId
-    : null;
+  const pendingChallengeId =
+    typeof source.pendingChallengeId === "string" && BATTLE_BY_ID.has(source.pendingChallengeId)
+      ? source.pendingChallengeId
+      : null;
   const pendingChallengePoolSize = Number.isFinite(Number(source.pendingChallengePoolSize))
     ? Number(source.pendingChallengePoolSize)
     : null;
-  const activeBattleId = BATTLE_BY_ID.has(source.activeBattleId) ? source.activeBattleId : null;
+  const activeBattleId =
+    typeof source.activeBattleId === "string" && BATTLE_BY_ID.has(source.activeBattleId)
+      ? source.activeBattleId
+      : null;
   const activeBattlePoolSize = Number.isFinite(Number(source.activeBattlePoolSize))
     ? Number(source.activeBattlePoolSize)
     : null;
@@ -925,14 +930,14 @@ export function getStartScreenBattle(progress: StoryProgress): Battle | null {
 export function getOpponentPokemonIndex(
   battle: Battle,
   questionNumber: number,
-  playLimit = getBattlePlayLimit(battle),
+  playLimit: number,
   currentAccuracy = 0,
 ): number {
   const party = battle?.party ?? [];
   if (party.length === 0) return 0;
 
   const winAccuracy = getBattleWinAccuracy(battle);
-  const thresholds = party.map((entry: any, index: number) => {
+  const thresholds = party.map((_entry, index) => {
     if (party.length === 1) return winAccuracy;
     return winAccuracy * (0.5 + 0.5 * (index / (party.length - 1)));
   });
@@ -948,24 +953,37 @@ export function getOpponentPokemonIndex(
   return Math.min(party.length - 1, currentIndex);
 }
 
+export interface OpponentPokemonStatus {
+  index: number;
+  lineId: string;
+  level: number;
+  name: string;
+  speciesName: string;
+  sprite: string;
+  speciesId: number;
+  requiredAccuracy: number;
+  isDefeated: boolean;
+  isActive: boolean;
+}
+
 export function getOpponentPokemonStatus(
   battle: Battle,
   questionNumber: number,
   playLimit: number,
   currentAccuracy = 0,
-): any[] {
+): OpponentPokemonStatus[] {
   const party = battle?.party ?? [];
   if (party.length === 0) return [];
 
   const winAccuracy = getBattleWinAccuracy(battle);
-  const thresholds = party.map((entry: any, index: number) => {
+  const thresholds = party.map((_entry, index) => {
     if (party.length === 1) return winAccuracy;
     return winAccuracy * (0.5 + 0.5 * (index / (party.length - 1)));
   });
 
   const currentIndex = getOpponentPokemonIndex(battle, questionNumber, playLimit, currentAccuracy);
 
-  return party.map((entry: any, index: number) => {
+  return party.map((entry, index) => {
     const requiredAccuracy = thresholds[index];
     const line = getMonsterLine(entry.lineId);
     const species = getSpecies(entry.level, entry.lineId);
@@ -985,12 +1003,20 @@ export function getOpponentPokemonStatus(
   });
 }
 
+export interface OpponentPokemon extends BattlePartyMember {
+  name: string;
+  sprite: string;
+  speciesId: number;
+  index: number;
+  total: number;
+}
+
 export function getOpponentPokemon(
   battle: Battle,
   questionNumber: number,
   playLimit: number,
   currentAccuracy = 0,
-): any {
+): OpponentPokemon {
   const party = battle?.party ?? [];
   const index = getOpponentPokemonIndex(battle, questionNumber, playLimit, currentAccuracy);
   const entry = party[index] ?? party[0];
@@ -1059,7 +1085,7 @@ export function pickBattleQuestionIndex({
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-export function markMewWordSeen(progress: StoryProgress, wordIndex: number, totalWords: number): StoryProgress {
+export function markMewWordSeen(progress: StoryProgress, wordIndex: number): StoryProgress {
   const normalized = normalizeStoryProgress(progress);
   const safeIndex = Number(wordIndex);
   if (!Number.isInteger(safeIndex) || safeIndex < 0) return normalized;
@@ -1117,10 +1143,16 @@ function awardFossilItem(progress: StoryProgress, collection: MonsterCollection)
   };
 }
 
+export interface BattleReward {
+  type: "badge" | "item" | "hall" | "pokemon";
+  message: string;
+  sprite?: string;
+}
+
 export interface ResolveBattleVictoryResult {
   progress: StoryProgress;
   collection: MonsterCollection;
-  rewards: any[];
+  rewards: BattleReward[];
 }
 
 export function resolveBattleVictory(
@@ -1142,7 +1174,7 @@ export function resolveBattleVictory(
   nextProgress = clearActiveBattle(nextProgress);
 
   let nextCollection = normalizeMonsterCollection(collection);
-  const rewards = [];
+  const rewards: BattleReward[] = [];
 
   if (battle.rewards?.badge) {
     nextProgress = addBadge(nextProgress, battle.rewards.badge);
@@ -1223,11 +1255,18 @@ interface ResolveBattleDefeatProps {
   habitatMinPools?: Record<string, number>;
 }
 
+export interface ResolveBattleDefeatResult {
+  progress: StoryProgress;
+  relocatedHabitatId: string | null;
+  persistsOnStart?: boolean;
+  reappearWhenHabitatId?: string | null;
+}
+
 export function resolveBattleDefeat(
   progress: StoryProgress,
   battleId: string,
-  { habitatId = null, habitatMinPools = {} }: ResolveBattleDefeatProps = {},
-): any {
+  { habitatId = null }: ResolveBattleDefeatProps = {},
+): ResolveBattleDefeatResult {
   const battle = getBattleById(battleId);
   let nextProgress = clearActiveBattle(normalizeStoryProgress(progress));
 
@@ -1318,7 +1357,7 @@ export function getTrainerSprite(battle: Battle | null): string | null {
   return null;
 }
 
-export function getBattleResultMessage(battle: Battle | null, won: boolean, capture: any | null = null): string | null {
+export function getBattleResultMessage(battle: Battle | null, won: boolean, capture: CaptureResult | null = null): string | null {
   if (!battle) return null;
   if (!won) {
     if (battle.boss || BATTLE_TIERS[battle.tier ?? ""]?.blocksProgress) {

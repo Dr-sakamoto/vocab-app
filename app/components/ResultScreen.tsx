@@ -4,6 +4,17 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import AuroraBackground from "./AuroraBackground";
 import { getTierTheme } from "@/lib/tierTheme";
+import { Battle, PlayEvaluation } from "@/lib/types";
+import { CaptureResult } from "@/lib/capture";
+
+interface BattleResult {
+  battle?: Battle;
+  won?: boolean;
+  capture?: CaptureResult | null;
+  trainerSprite?: string;
+  resultMessage?: string;
+  opponentSprite?: string;
+}
 
 const PRIMARY_BUTTON_CLASS =
   "btn-3d [--btn-edge:#52525b] inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white disabled:opacity-40";
@@ -16,10 +27,10 @@ const AUTO_CONTINUE_SECONDS = 10;
 
 interface ResultScreenProps {
   unlockedThisRun: number;
-  evaluation: any;
+  evaluation: PlayEvaluation | null;
   onRestart: () => void;
   onBackToStart: () => void;
-  battleResult?: any;
+  battleResult?: BattleResult | null;
   playLimit?: number;
   score?: number;
   bestStreak?: number;
@@ -37,14 +48,12 @@ export default function ResultScreen({
   battleResult = null,
   playLimit = 10,
   score = 0,
-  bestStreak = 0,
   masterBallAvailable = false,
   onUseMasterBall,
 }: ResultScreenProps) {
   const { grade, title, message, xp, tier, breakdown } = evaluation ?? {};
   const isBattle = Boolean(battleResult?.battle);
   const won = battleResult?.won;
-  const lost = battleResult?.lost;
   const captureFailed = battleResult?.capture && !battleResult.capture.caught;
   const wildCaptureFailed =
     !isBattle && evaluation?.captureFailed && evaluation?.capturePreview?.lineId;
@@ -120,7 +129,7 @@ export default function ResultScreen({
                 won ? "bg-gradient-to-r from-rose-500 to-orange-500" : "bg-zinc-600"
               } text-white`}
             >
-              {battleResult.trainerSprite ? (
+              {battleResult?.trainerSprite ? (
                 <div className="flex w-20 shrink-0 items-center justify-center bg-black/10 p-2 sm:w-32 sm:p-3">
                   <img
                     src={battleResult.trainerSprite}
@@ -136,17 +145,17 @@ export default function ResultScreen({
                 </p>
                 <p className="mt-1 text-2xl font-black">
                   {won
-                    ? `${battleResult.battle.name}に勝った！`
-                    : `${battleResult.battle.name}に負けた…`}
+                    ? `${battleResult?.battle?.name}に勝った！`
+                    : `${battleResult?.battle?.name}に負けた…`}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-white/90">
-                  {battleResult.resultMessage}
+                  {battleResult?.resultMessage}
                 </p>
                 <p className="mt-2 text-sm tabular-nums opacity-90">
                   スコア {score} / {playLimit}
                 </p>
               </div>
-              {battleResult.opponentSprite ? (
+              {battleResult?.opponentSprite ? (
                 <div className="hidden w-24 shrink-0 items-center justify-center bg-black/10 p-3 sm:flex">
                   <img
                     src={battleResult.opponentSprite}
@@ -258,7 +267,7 @@ export default function ResultScreen({
             </p>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {breakdown?.map((item: any, i: number) => (
+              {breakdown?.map((item, i) => (
                 <motion.div
                   key={item.label}
                   initial={{ opacity: 0, y: 8 }}

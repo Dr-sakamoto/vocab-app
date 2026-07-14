@@ -1,4 +1,5 @@
 import kuromoji from "kuromoji";
+import type { IpadicFeatures, Tokenizer } from "kuromoji";
 import { normalizeAnswer, normalizeForMorphology } from "./answerNormalization";
 
 const TOKENIZER_DIC_PATH = "node_modules/kuromoji/dict";
@@ -138,13 +139,13 @@ const SYNONYM_GROUPS: string[][] = [
   ["活気", "鮮やか", "生き生き"],
 ];
 
-let tokenizerPromise: Promise<any> | undefined;
+let tokenizerPromise: Promise<Tokenizer> | undefined;
 let synonymIndex: Map<string, Set<number>> | undefined;
 
-function getTokenizer(): Promise<any> {
+function getTokenizer(): Promise<Tokenizer> {
   if (!tokenizerPromise) {
     tokenizerPromise = new Promise((resolve, reject) => {
-      kuromoji.builder({ dicPath: TOKENIZER_DIC_PATH }).build((error: any, tokenizer: any) => {
+      kuromoji.builder({ dicPath: TOKENIZER_DIC_PATH }).build((error, tokenizer) => {
         if (error) reject(error);
         else resolve(tokenizer);
       });
@@ -165,17 +166,17 @@ const BASE_FORM_ALIASES: Record<string, string> = {
   "いう": "言う",
 };
 
-function tokenBase(token: any): string {
+function tokenBase(token: IpadicFeatures): string {
   const base = token.basic_form && token.basic_form !== "*" ? token.basic_form : token.surface_form ?? "";
   return BASE_FORM_ALIASES[base] ?? base;
 }
 
-function tokenReading(token: any): string {
+function tokenReading(token: IpadicFeatures): string {
   const reading = token.reading && token.reading !== "*" ? token.reading : tokenBase(token);
   return kanaToHiragana(normalizeAnswer(reading));
 }
 
-function isContentToken(token: any): boolean {
+function isContentToken(token: IpadicFeatures): boolean {
   if (!token?.surface_form) return false;
   if (IGNORE_POS.has(token.pos)) return false;
   if (!CONTENT_POS.has(token.pos)) return false;
@@ -197,7 +198,7 @@ export interface Term {
   pos: string;
 }
 
-export function getCoreTermsFromTokens(tokens: any[]): Term[] {
+export function getCoreTermsFromTokens(tokens: IpadicFeatures[]): Term[] {
   const terms = tokens
     .filter(isContentToken)
     .map(token => ({
@@ -223,7 +224,7 @@ export interface AnswerAnalysis {
   readingKey: string;
   termKeys: string[];
   terms: Term[];
-  tokens: any[];
+  tokens: IpadicFeatures[];
 }
 
 export async function analyzeAnswer(value: string): Promise<AnswerAnalysis> {
@@ -245,11 +246,11 @@ export async function analyzeAnswer(value: string): Promise<AnswerAnalysis> {
   };
 }
 
-function checkPosViolation(tokens: any[], partOfSpeech: string | undefined): string | null {
+function checkPosViolation(tokens: IpadicFeatures[], partOfSpeech: string | undefined): string | null {
   if (!partOfSpeech || tokens.length === 0) return null;
 
   if (partOfSpeech === "adjective") {
-    if (tokens.some((t: any) => t.pos === "副詞")) {
+    if (tokens.some(t => t.pos === "副詞")) {
       return "副詞の形（〜に/〜く）ではなく、形容詞の形（〜な/〜い）で答えてください";
     }
 
@@ -263,10 +264,10 @@ function checkPosViolation(tokens: any[], partOfSpeech: string | undefined): str
       }
     }
 
-    const adjTokens = tokens.filter((t: any) => t.pos === "形容詞");
-    const hasBaseAdj = adjTokens.some((t: any) => t.conjugated_form === "基本形");
+    const adjTokens = tokens.filter(t => t.pos === "形容詞");
+    const hasBaseAdj = adjTokens.some(t => t.conjugated_form === "基本形");
     const hasAdverbialAdj = adjTokens.some(
-      (t: any) => t.conjugated_form === "連用テ接続" || t.conjugated_form === "連用形",
+      t => t.conjugated_form === "連用テ接続" || t.conjugated_form === "連用形",
     );
     if (hasAdverbialAdj && !hasBaseAdj) {
       return "「〜く」は副詞的な形です。形容詞の基本形（〜い/〜な）で答えてください";
@@ -274,8 +275,8 @@ function checkPosViolation(tokens: any[], partOfSpeech: string | undefined): str
   }
 
   if (partOfSpeech === "verb") {
-    const hasVerb = tokens.some((t: any) => t.pos === "動詞");
-    if (!hasVerb && tokens.some((t: any) => t.pos === "名詞" || t.pos === "形容詞")) {
+    const hasVerb = tokens.some(t => t.pos === "動詞");
+    if (!hasVerb && tokens.some(t => t.pos === "名詞" || t.pos === "形容詞")) {
       return "動詞の形（〜する/〜る/〜う）で答えましょう";
     }
   }

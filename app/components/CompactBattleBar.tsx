@@ -2,6 +2,7 @@
 
 import { Battle } from "@/lib/types";
 import { getOpponentPokemon, getOpponentPokemonStatus, getTrainerSprite, isCapturableBattle } from "@/lib/storyBattles";
+import type { OpponentPokemonStatus } from "@/lib/storyBattles";
 
 interface CompactBattleBarProps {
   battle: Battle | null;
@@ -44,7 +45,7 @@ export default function CompactBattleBar({
           <p className="truncate text-sm font-bold">{battle.name}</p>
           <p className="truncate text-xs text-rose-100">{battle.location}</p>
           <div className="mt-1 flex flex-wrap gap-2">
-            {pokemonStatus.map((status: any) => (
+            {pokemonStatus.map((status: OpponentPokemonStatus) => (
               <span
                 key={status.index}
                 className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-semibold ${
