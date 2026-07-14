@@ -26,10 +26,11 @@ export default function QuestionCard({
   onSkip,
   skipDisabled = false,
 }: QuestionCardProps) {
-  // 問題が切り替わったら前の単語の読み上げを止める
+  // 問題が切り替わったら新しい単語を自動で読み上げ、次に切り替わる時に止める
   useEffect(() => {
+    speakEnglishWord(word);
     return () => stopSpeaking();
-  }, [questionKey]);
+  }, [questionKey, word]);
 
   return (
     <motion.div
