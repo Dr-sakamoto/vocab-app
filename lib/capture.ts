@@ -1,7 +1,22 @@
-import { createMonsterInstance, normalizeMonsterCollection, getXpForLevel, getMonsterLine, getSpecies, getLineIdBySpeciesId, getItemEvolutionPickup } from "./monster";
+import { createMonsterInstance, normalizeMonsterCollection, getXpForLevel, getMonsterLine, getSpecies, getLineIdBySpeciesId, getItemEvolutionPickup, ItemEvolutionPickup } from "./monster";
 import { MonsterCollection } from "./types";
 
-export function applyCaptureResultToCollection(collection: MonsterCollection, result: any): MonsterCollection {
+export interface CaptureResult {
+  caught: boolean;
+  captureRate?: number;
+  captureRoll?: number | null;
+  reason?: string;
+  itemPickup?: ItemEvolutionPickup | null;
+  habitat?: { id: string; name: string };
+  lineId?: string;
+  encounterWeight?: number;
+  level?: number;
+  speciesId?: number;
+  monsterId?: string;
+  masterBall?: boolean;
+}
+
+export function applyCaptureResultToCollection(collection: MonsterCollection, result: CaptureResult): MonsterCollection {
   const normalized = normalizeMonsterCollection(collection);
   if (result?.itemPickup) {
     const { monsterId, itemType, itemName } = result.itemPickup;
@@ -17,15 +32,16 @@ export function applyCaptureResultToCollection(collection: MonsterCollection, re
       }),
     });
   }
-  if (!result?.caught || !result.lineId || !result.monsterId) return normalized;
+  if (!result?.caught || !result.lineId || !result.monsterId || !result.habitat) return normalized;
 
+  const habitat = result.habitat;
   const habitatVisits = {
     ...normalized.habitatVisits,
-    [result.habitat.id]: (normalized.habitatVisits[result.habitat.id] ?? 0) + 1,
+    [habitat.id]: (normalized.habitatVisits[habitat.id] ?? 0) + 1,
   };
 
   const initialXP = typeof getXpForLevel === "function"
-    ? getXpForLevel(result.level)
+    ? getXpForLevel(result.level ?? 1)
     : 0;
 
   const monsters = [
@@ -34,7 +50,7 @@ export function applyCaptureResultToCollection(collection: MonsterCollection, re
       id: result.monsterId,
       lineId: result.lineId,
       totalXP: initialXP,
-      acquiredAt: result.habitat.id,
+      acquiredAt: habitat.id,
     }),
   ];
 
@@ -613,11 +629,18 @@ export function getHabitatMinPoolMap(habitats = HABITATS): Record<string, number
   return Object.fromEntries(habitats.map(habitat => [habitat.id, habitat.minPool]));
 }
 
-export function normalizeVersionedEncounters(versionEncounters: VersionEncounters | undefined): any[] {
+export interface WeightedEncounter {
+  lineId: string;
+  weight: number;
+  minLevel: number;
+  maxLevel: number;
+}
+
+export function normalizeVersionedEncounters(versionEncounters: VersionEncounters | undefined): WeightedEncounter[] {
   const versions = Object.values(versionEncounters ?? {}).filter(Array.isArray);
   if (versions.length === 0) return [];
 
-  const merged = new Map();
+  const merged = new Map<string, WeightedEncounter>();
   for (const encounters of versions) {
     for (const encounter of encounters) {
       const rate = Number(encounter.rate);
@@ -628,7 +651,6 @@ export function normalizeVersionedEncounters(versionEncounters: VersionEncounter
 
       const line = getMonsterLine(lineId);
       const defaultMinLevel = line?.species?.[0]?.minLevel ?? 1;
-      const defaultMaxLevel = line?.species?.at(-1)?.maxLevel ?? defaultMinLevel;
       const rawMinLevel = Number(encounter.minLevel);
       const rawMaxLevel = Number(encounter.maxLevel);
       const minLevel = Number.isFinite(rawMinLevel) ? rawMinLevel : defaultMinLevel;
@@ -698,7 +720,7 @@ export function pickHabitat({
   );
 }
 
-export function pickEncounterLine(habitat: Habitat, rng: () => number): any {
+export function pickEncounterLine(habitat: Habitat, rng: () => number): WeightedEncounter | null {
   const encounters = normalizeVersionedEncounters(habitat?.versionEncounters);
   return pickWeighted(encounters, encounter => encounter.weight, rng);
 }
@@ -721,7 +743,7 @@ export function rollCaptureEncounter({
   habitat: selectedHabitat = null,
   habitats = HABITATS,
   monsterCollection = null,
-}: RollCaptureEncounterProps): any {
+}: RollCaptureEncounterProps): CaptureResult {
   const rng = createSeededRng(seed);
   const captureRate = CAPTURE_RATES_BY_GRADE[grade] ?? 0;
   const itemPickup = monsterCollection ? getItemEvolutionPickup(monsterCollection, rng) : null;

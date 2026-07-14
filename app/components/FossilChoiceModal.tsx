@@ -1,21 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { getMonsterLine, getSpecies } from "@/lib/monster";
-
-interface FossilChoice {
-  lineId: string;
-}
-
-interface FossilGroup {
-  location?: string;
-  level?: number;
-  choices?: FossilChoice[];
-  [key: string]: any;
-}
+import { getMonsterLine, getSpecies, FossilGiftGroup } from "@/lib/monster";
 
 interface FossilChoiceModalProps {
-  group: FossilGroup | null;
+  group: FossilGiftGroup | null;
   onSelect: (lineId: string) => void;
 }
 

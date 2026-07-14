@@ -55,6 +55,8 @@ import {
   swapMonsterLocations,
   updatePartyXP,
   getLevelUpGrowth,
+  FossilGiftGroup,
+  AwardedGiftMonster,
 } from "@/lib/monster";
 import { buildAnswerRounds } from "@/lib/tileQuiz";
 import {
@@ -101,12 +103,6 @@ const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q, i) => ({
   ...q,
   id: `w${i}`,
 }));
-
-type GiftGroup = {
-  id?: string;
-  title?: string;
-  message?: string;
-};
 
 type BoxSortMode = "dex" | "level";
 
@@ -156,7 +152,7 @@ export default function Page() {
   const [resultEvaluation, setResultEvaluation] = useState<PlayEvaluation | null>(null);
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
   const [activeToasts, setActiveToastsState] = useState<ActiveToast[]>([]);
-  const [fossilChoice, setFossilChoice] = useState<GiftGroup | null>(null);
+  const [fossilChoice, setFossilChoice] = useState<FossilGiftGroup | null>(null);
   const [storyProgress, setStoryProgress] = useState<StoryProgress>(() =>
     normalizeStoryProgressForPage(DEFAULT_STORY_PROGRESS),
   );
@@ -379,7 +375,7 @@ export default function Page() {
   };
 
   const enqueueGiftToasts = useCallback(
-    (awarded: any[] = []) => {
+    (awarded: AwardedGiftMonster[] = []) => {
       enqueueToasts(
         awarded.map((gift) => ({
           title: getGiftToastTitle(gift),
@@ -566,6 +562,10 @@ export default function Page() {
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
+    // エフェクト本体で大量の setState を同期実行すると余分な再レンダーを招くため、
+    // マイクロタスクへずらす。didLoadFromStorageRef を見る他エフェクトは元々
+    // このタイミングずれを前提にガードされている。
+    queueMicrotask(() => {
     try {
       setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
 
@@ -617,11 +617,12 @@ export default function Page() {
       }
 
       // 単語進捗
-      const parsed = storage.get<any[] | null>(STORAGE_KEYS.PROGRESS, null);
+      const parsed = storage.get<unknown[] | null>(STORAGE_KEYS.PROGRESS, null);
       if (parsed && Array.isArray(parsed)) {
-        const map = new Map();
-        for (const item of parsed) {
-          if (!item || typeof item !== "object") continue;
+        const map = new Map<string, WordStat>();
+        for (const raw of parsed) {
+          if (!raw || typeof raw !== "object") continue;
+          const item = raw as Record<string, unknown>;
           const correct = Number(item.correct);
           const wrong = Number(item.wrong);
           const safe = {
@@ -651,6 +652,7 @@ export default function Page() {
       didLoadFromStorageRef.current = true;
       setIsLoaded(true);
     }
+    });
   }, [syncGiftProgress, setUnlockedPoolSize]);
 
   // 復元完了後に最初の問題を選ぶ（復元された stats・プールを反映した抽選にする）

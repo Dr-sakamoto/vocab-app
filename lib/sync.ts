@@ -1,8 +1,9 @@
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { QUESTIONS } from "./vocab";
 import { PARTY_SIZE, clampMonsterXP, getActiveMonster, normalizeMonsterCollection } from "./monster";
 import { mergeStoryProgress } from "./storyBattles";
-import { MonsterCollection, StoryProgress, WordStat } from "./types";
+import { MonsterCollection, MonsterInstance, StoryProgress, WordStat } from "./types";
 
 const VOCAB_IDS = QUESTIONS.map((_, i) => `w${i}`);
 
@@ -25,7 +26,7 @@ export async function signOut(): Promise<void> {
   if (error) throw error;
 }
 
-export async function getCurrentUser(): Promise<any | null> {
+export async function getCurrentUser(): Promise<User | null> {
   const {
     data: { session },
     error,
@@ -35,7 +36,7 @@ export async function getCurrentUser(): Promise<any | null> {
   return session?.user ?? null;
 }
 
-async function requireSignedInUser(): Promise<any> {
+async function requireSignedInUser(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) {
     throw new Error("Googleログイン後に同期してください。");
@@ -45,12 +46,12 @@ async function requireSignedInUser(): Promise<any> {
 
 function mergeMonsterCollections(
   localCollection: MonsterCollection,
-  remoteCollection: MonsterCollection | null,
+  remoteCollection: unknown,
   legacyXP: number = 0,
 ): MonsterCollection {
   const local = normalizeMonsterCollection(localCollection, { totalXP: legacyXP });
   const remote = normalizeMonsterCollection(remoteCollection || {}, { totalXP: legacyXP });
-  const byId = new Map<string, any>();
+  const byId = new Map<string, MonsterInstance>();
 
   for (const monster of [...remote.monsters, ...local.monsters]) {
     const existing = byId.get(monster.id);
@@ -175,7 +176,7 @@ interface DownloadAndMergeProps {
   monsterCollection: MonsterCollection;
 }
 
-interface DownloadAndMergeResult {
+export interface DownloadAndMergeResult {
   stats: WordStat[];
   unlockedPoolSize: number;
   monsterCollection: MonsterCollection;
@@ -190,8 +191,16 @@ export async function downloadAndMerge({ stats, unlockedPoolSize, monsterCollect
     .eq("user_id", user.id);
   if (wordsError) throw wordsError;
 
-  let remoteMeta: any = null;
-  let metaError: any = null;
+  interface RemoteMeta {
+    unlocked_pool_size: number | null;
+    monster_total_xp: number | null;
+    active_monster_id: string | null;
+    monster_collection: (Partial<MonsterCollection> & Record<string, unknown>) | null;
+    professor_transfers?: Record<string, number> | null;
+  }
+
+  let remoteMeta: RemoteMeta | null = null;
+  let metaError: { code?: string } | null = null;
 
   const res = await supabase
     .from("user_meta")

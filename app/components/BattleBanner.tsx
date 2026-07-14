@@ -2,6 +2,7 @@
 
 import { Battle } from "@/lib/types";
 import { getOpponentPokemon, getOpponentPokemonStatus, getTrainerSprite, isCapturableBattle } from "@/lib/storyBattles";
+import type { OpponentPokemonStatus } from "@/lib/storyBattles";
 
 interface BattleBannerProps {
   battle: Battle | null;
@@ -98,7 +99,7 @@ export default function BattleBanner({
               手持ち {opponent.index + 1} / {opponent.total}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {pokemonStatus.map((status: any) => (
+              {pokemonStatus.map((status: OpponentPokemonStatus) => (
                 <div
                   key={status.index}
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${

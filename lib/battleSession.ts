@@ -1,5 +1,5 @@
 import { evaluateBattlePlay, BattleEvaluation } from "./battleEvaluation";
-import { CAPTURE_RATES_BY_GRADE, applyCaptureResultToCollection } from "./capture";
+import { CAPTURE_RATES_BY_GRADE, applyCaptureResultToCollection, CaptureResult } from "./capture";
 import {
   canUseMasterBall,
   consumeMasterBall,
@@ -14,7 +14,7 @@ import {
   setPendingChallenge,
 } from "./storyBattles";
 import { resolveBattleForProgress } from "./starters";
-import { StoryProgress, MonsterCollection, Battle, SessionAnswer, ToastItem, TrainerChallenge } from "./types";
+import { StoryProgress, MonsterCollection, Battle, SessionAnswer, ToastItem, TrainerChallenge, CapturePreview } from "./types";
 
 export function getSessionPlayLimit(activeBattle: Battle | null, defaultLimit: number = 10): number {
   return activeBattle ? getBattlePlayLimit(activeBattle) : defaultLimit;
@@ -35,8 +35,8 @@ export function buildTrainerChallengeAlert(battle: Battle): TrainerChallenge {
 export function applyMasterBallCapture(
   progress: StoryProgress,
   collection: MonsterCollection,
-  capturePreview: any,
-): { progress: StoryProgress; collection: MonsterCollection; capture: any | null } {
+  capturePreview: CapturePreview,
+): { progress: StoryProgress; collection: MonsterCollection; capture: CaptureResult | null } {
   if (!canUseMasterBall(progress) || !capturePreview?.lineId) {
     return { progress, collection, capture: null };
   }
@@ -68,7 +68,7 @@ interface ProcessBattleEndProps {
   answers: SessionAnswer[] | null;
   unlockedPoolSize: number;
   playCount: number;
-  habitat: any;
+  habitat: { id: string } | null;
   habitatMinPools: Record<string, number>;
   useMasterBall?: boolean;
 }
@@ -79,7 +79,7 @@ interface ProcessBattleEndResult {
   evaluation: BattleEvaluation;
   progress: StoryProgress;
   collection: MonsterCollection;
-  capture: any | null;
+  capture: CaptureResult | null;
   alerts: TrainerChallenge[];
   toasts: ToastItem[];
   relocatedHabitatId: string | null;
@@ -103,7 +103,7 @@ export function processBattleEnd({
   let nextCollection = collection;
   const alerts: TrainerChallenge[] = [];
   const toasts: ToastItem[] = [];
-  let capture: any | null = null;
+  let capture: CaptureResult | null = null;
 
   const evaluation = evaluateBattlePlay({
     answers,

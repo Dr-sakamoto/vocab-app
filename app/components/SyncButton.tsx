@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import {
   downloadAndMerge,
@@ -8,15 +9,20 @@ import {
   signInWithGoogle,
   signOut,
   uploadProgress,
+  DownloadAndMergeResult,
 } from "@/lib/sync";
 import { MonsterCollection, WordStat } from "@/lib/types";
+
+function getErrorMessage(err: unknown): string | undefined {
+  return err instanceof Error ? err.message : undefined;
+}
 
 interface SyncButtonProps {
   stats: WordStat[];
   unlockedPoolSize: number;
   monsterCollection: MonsterCollection;
   approvedAnswers?: Record<string, string[]>;
-  onMerged: (merged: any) => void;
+  onMerged: (merged: DownloadAndMergeResult) => void;
 }
 
 export default function SyncButton({
@@ -25,7 +31,7 @@ export default function SyncButton({
   monsterCollection,
   onMerged,
 }: SyncButtonProps) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -43,10 +49,10 @@ export default function SyncButton({
       onMerged(merged);
       setStatus("done");
       setMessage("同期しました。");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Sync error:", err);
       setStatus("error");
-      setMessage(err?.message ?? "同期に失敗しました。");
+      setMessage(getErrorMessage(err) ?? "同期に失敗しました。");
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
@@ -56,10 +62,10 @@ export default function SyncButton({
     let disposed = false;
 
     getCurrentUser()
-      .then((currentUser: any) => {
+      .then((currentUser) => {
         if (!disposed) setUser(currentUser);
       })
-      .catch((err: any) => {
+      .catch((err) => {
         console.error("Auth session error:", err);
         if (!disposed) {
           setStatus("error");
@@ -84,10 +90,14 @@ export default function SyncButton({
           setMessage("ログアウトしました。");
         }
       }));
-    } catch (err: any) {
+    } catch (err) {
       console.error("Supabase init error:", err);
-      setStatus("error");
-      setMessage(err?.message ?? "同期機能を初期化できませんでした。");
+      // エフェクト本体で同期的に setState すると余分な再レンダーを招くため、
+      // マイクロタスクへずらして React のコミット後に反映させる。
+      queueMicrotask(() => {
+        setStatus("error");
+        setMessage(getErrorMessage(err) ?? "同期機能を初期化できませんでした。");
+      });
     }
 
     return () => {
@@ -101,10 +111,10 @@ export default function SyncButton({
     setMessage("");
     try {
       await signInWithGoogle();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Google sign-in error:", err);
       setStatus("error");
-      setMessage(err?.message ?? "Googleログインを開始できませんでした。");
+      setMessage(getErrorMessage(err) ?? "Googleログインを開始できませんでした。");
     }
   };
 
@@ -114,10 +124,10 @@ export default function SyncButton({
     try {
       await signOut();
       setStatus("done");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Sign-out error:", err);
       setStatus("error");
-      setMessage(err?.message ?? "ログアウトに失敗しました。");
+      setMessage(getErrorMessage(err) ?? "ログアウトに失敗しました。");
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
