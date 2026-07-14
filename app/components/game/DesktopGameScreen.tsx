@@ -72,18 +72,18 @@ export default function DesktopGameScreen({
                         style={{ width: `${quiz.progressPct}%` }}
                       />
                     </div>
-                    <span className="shrink-0 text-xs font-medium tabular-nums text-[#7d7d7d]">
+                    <span className="font-fantasy shrink-0 text-xs font-medium tabular-nums text-[#7d7d7d]">
                       {quiz.total} / {quiz.playLimit}
                     </span>
                   </div>
                   <div className="mt-1.5 flex items-center gap-3 text-xs text-[#7d7d7d]">
-                    <span>{quiz.score} 正解</span>
+                    <span className="font-fantasy">{quiz.score} 正解</span>
                     {quiz.bestStreak > 1 && (
-                      <span className="font-semibold text-[#ffcf4a]">
+                      <span className="font-fantasy font-semibold text-[#ffcf4a]">
                         🔥 {quiz.bestStreak}連続
                       </span>
                     )}
-                    <span className="ml-auto rounded-full border border-[#6d5228] px-2 py-0.5 text-xs font-bold text-[#7d7d7d]">
+                    <span className="font-fantasy ml-auto rounded-full border border-[#6d5228] px-2 py-0.5 text-xs font-bold text-[#7d7d7d]">
                       ×{quiz.tierMultiplier}
                     </span>
                   </div>

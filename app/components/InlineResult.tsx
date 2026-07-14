@@ -57,23 +57,23 @@ export default function InlineResult({
                 initial={{ scale: 0.4, opacity: 0, rotate: -8 }}
                 animate={{ scale: 1, opacity: 1, rotate: 0 }}
                 transition={{ type: "spring", stiffness: 260, damping: 14, delay: 0.15 }}
-                className="text-3xl font-bold text-[#f5f5f5] drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                className="font-fantasy text-3xl font-bold text-[#f5f5f5] drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]"
               >
                 {grade}
               </motion.span>
               <span className="text-sm font-medium text-[#e6e6e6]">{title}</span>
             </div>
-            <div className="text-sm tabular-nums text-[#7d7d7d]">
+            <div className="font-fantasy text-sm tabular-nums text-[#7d7d7d]">
               {score} / {playLimit} 正解
             </div>
           </div>
 
           <div className="relative mt-2 overflow-hidden rounded-md border border-[#9a9a9a]/50 bg-[#0a0a0a] px-3 py-2 text-center">
             <div className="relative flex items-baseline justify-center gap-1.5">
-              <span className="text-3xl font-bold tabular-nums text-[#f5f5f5]">
+              <span className="font-fantasy text-3xl font-bold tabular-nums text-[#f5f5f5]">
                 {(xp ?? 0).toLocaleString()}
               </span>
-              <span className="text-lg font-bold text-[#ffcf4a]">XP</span>
+              <span className="font-fantasy text-lg font-bold text-[#ffcf4a]">XP</span>
             </div>
           </div>
 
@@ -95,7 +95,7 @@ export default function InlineResult({
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">{item.label}</span>
-                  <span className="tabular-nums font-semibold">
+                  <span className="font-fantasy tabular-nums font-semibold">
                     +{item.points.toLocaleString()} XP
                   </span>
                 </div>
@@ -115,7 +115,7 @@ export default function InlineResult({
           className="brass-btn flex h-12 w-full items-center justify-center gap-2 rounded-md text-sm font-bold"
         >
           次のセットへ →
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/25 text-xs tabular-nums text-[#f3e3b5]">
+          <span className="font-fantasy flex h-6 w-6 items-center justify-center rounded-full bg-black/25 text-xs tabular-nums text-[#f3e3b5]">
             {secondsLeft}
           </span>
         </button>

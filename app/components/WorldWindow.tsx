@@ -126,7 +126,7 @@ export default function WorldWindow({
               </div>
               <div>
                 <div className="text-[9px] font-semibold sm:text-[10px]">
-                  {tier.label} ×{tier.multiplier}
+                  {tier.label} <span className="font-fantasy">×{tier.multiplier}</span>
                 </div>
                 <div className="gauge-track mt-0.5 h-1.5 w-full overflow-hidden rounded-full">
                   <div
@@ -134,7 +134,7 @@ export default function WorldWindow({
                     style={{ width: `${poolPct}%` }}
                   />
                 </div>
-                <div className="mt-0.5 text-right text-[9px] tabular-nums sm:text-[10px]">
+                <div className="font-fantasy mt-0.5 text-right text-[9px] tabular-nums sm:text-[10px]">
                   {unlockedPoolSize} / {totalWords}
                 </div>
               </div>
@@ -202,7 +202,7 @@ export default function WorldWindow({
         {streakDays > 0 && (
           <div className="mb-1 flex items-center gap-1.5 border-b border-[#9a9a9a]/30 pb-1 text-[10px] font-bold sm:text-sm">
             <span aria-hidden>🔥</span>
-            <span className="text-[#ffcf4a]">{streakDays}日連続の冒険</span>
+            <span className="font-fantasy text-[#ffcf4a]">{streakDays}日連続の冒険</span>
           </div>
         )}
         {encounter ? (
@@ -229,7 +229,7 @@ export default function WorldWindow({
                 >
                   {mission.label}
                   {mission.goal > 1 && !mission.done && (
-                    <span className="ml-1 tabular-nums text-[#ffcf4a]">
+                    <span className="font-fantasy ml-1 tabular-nums text-[#ffcf4a]">
                       {mission.progress}/{mission.goal}
                     </span>
                   )}

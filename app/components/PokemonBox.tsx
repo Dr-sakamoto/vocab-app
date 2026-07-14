@@ -483,7 +483,7 @@ export default function PokemonBox({
               {transferSummary.map((item) => (
                 <div key={item.name} className="flex justify-between gap-3">
                   <span>{item.name}</span>
-                  <span className="font-semibold tabular-nums">{item.count}匹</span>
+                  <span className="font-fantasy font-semibold tabular-nums">{item.count}匹</span>
                 </div>
               ))}
             </div>

@@ -151,7 +151,7 @@ export default function ResultScreen({
                 <p className="mt-2 text-sm leading-6 text-white/90">
                   {battleResult?.resultMessage}
                 </p>
-                <p className="mt-2 text-sm tabular-nums opacity-90">
+                <p className="font-fantasy mt-2 text-sm tabular-nums opacity-90">
                   スコア {score} / {playLimit}
                 </p>
               </div>
@@ -190,7 +190,7 @@ export default function ResultScreen({
                     initial={{ scale: 0.4, opacity: 0, rotate: -8 }}
                     animate={{ scale: 1, opacity: 1, rotate: 0 }}
                     transition={{ type: "spring", stiffness: 260, damping: 14, delay: 0.2 }}
-                    className={`font-display text-4xl font-bold ${
+                    className={`font-fantasy text-4xl font-bold ${
                       isBattle
                         ? "text-rose-950 drop-shadow-[0_0_14px_rgba(244,63,94,0.45)]"
                         : "text-emerald-950 drop-shadow-[0_0_14px_rgba(16,185,129,0.45)]"
@@ -216,7 +216,7 @@ export default function ResultScreen({
                   <div className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
                     {tier.label}
                   </div>
-                  <div className="text-lg font-bold tabular-nums">
+                  <div className="font-fantasy text-lg font-bold tabular-nums">
                     ×{tier.multiplier}
                   </div>
                 </div>
@@ -240,7 +240,7 @@ export default function ResultScreen({
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.25 }}
-                  className={`font-display text-5xl sm:text-6xl font-bold tabular-nums tracking-tight ${
+                  className={`font-fantasy text-5xl sm:text-6xl font-bold tabular-nums tracking-tight ${
                     isBattle
                       ? "text-rose-950 drop-shadow-[0_0_18px_rgba(244,63,94,0.35)]"
                       : "text-emerald-950 drop-shadow-[0_0_18px_rgba(16,185,129,0.35)]"
@@ -249,7 +249,7 @@ export default function ResultScreen({
                   {(xp ?? 0).toLocaleString()}
                 </motion.span>
                 <span
-                  className={`text-2xl font-bold ${
+                  className={`font-fantasy text-2xl font-bold ${
                     isBattle ? "text-rose-700" : "text-emerald-700"
                   }`}
                 >
@@ -281,7 +281,7 @@ export default function ResultScreen({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium">{item.label}</span>
-                    <span className="tabular-nums font-semibold">
+                    <span className="font-fantasy tabular-nums font-semibold">
                       +{item.points.toLocaleString()} XP
                     </span>
                   </div>
@@ -336,7 +336,7 @@ export default function ResultScreen({
 
         {autoContinueEnabled && (
           <div className="flex items-center justify-center gap-2">
-            <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-black text-sm font-bold tabular-nums text-white">
+            <span className="font-fantasy flex h-7 w-7 flex-none items-center justify-center rounded-full bg-black text-sm font-bold tabular-nums text-white">
               {autoContinueSecondsLeft}
             </span>
             <p className="text-sm font-semibold text-zinc-700">
