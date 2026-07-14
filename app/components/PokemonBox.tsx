@@ -123,7 +123,7 @@ function MonsterTile({
       <span className={["mt-1 max-w-full truncate text-[11px] font-medium", isHoldingItem ? "text-sky-600" : "text-zinc-700"].join(" ")}>
         {current!.species.name}
       </span>
-      <span className="text-[10px] tabular-nums text-zinc-400">Lv. {current!.level}</span>
+      <span className="font-fantasy text-[10px] tabular-nums text-zinc-400">Lv. {current!.level}</span>
     </button>
   );
 }

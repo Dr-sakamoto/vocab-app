@@ -71,7 +71,7 @@ export default function CompactBattleBar({
           />
           <div className="text-right text-[12px] leading-tight">
             <p className="font-semibold">{opponent.name}</p>
-            <p className="text-rose-100">Lv.{opponent.level} · {opponent.index + 1}/{opponent.total}</p>
+            <p className="font-fantasy text-rose-100">Lv.{opponent.level} · {opponent.index + 1}/{opponent.total}</p>
           </div>
         </div>
       </div>

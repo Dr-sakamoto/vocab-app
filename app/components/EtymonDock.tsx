@@ -108,7 +108,7 @@ export default function EtymonDock({
                 {state.species.name}
               </span>
               <span
-                className={`text-[9px] tabular-nums sm:text-[11px] ${
+                className={`font-fantasy text-[9px] tabular-nums sm:text-[11px] ${
                   isActive ? "text-[#7d7d7d]" : "text-[#7d7d7d]"
                 }`}
               >
@@ -123,10 +123,10 @@ export default function EtymonDock({
           className="brass-btn flex w-10 shrink-0 flex-col items-center justify-center rounded-md text-center sm:w-14"
           title="1正解ごとに出現エティモンへ与えるダメージ"
         >
-          <span className="fantasy-title text-[9px] font-bold sm:text-[10px]">
+          <span className="font-fantasy fantasy-title text-[9px] font-bold sm:text-[10px]">
             ATK
           </span>
-          <span className="text-base font-bold tabular-nums sm:text-lg">
+          <span className="font-fantasy text-base font-bold tabular-nums sm:text-lg">
             {attackPower}
           </span>
         </div>

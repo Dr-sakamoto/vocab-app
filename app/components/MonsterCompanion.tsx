@@ -85,7 +85,7 @@ export default function MonsterCompanion({
             >
               {current.species.name}
             </span>
-            <span className="text-xs tabular-nums text-zinc-500">
+            <span className="font-fantasy text-xs tabular-nums text-zinc-500">
               Lv. {current.level}
             </span>
           </div>
@@ -93,8 +93,8 @@ export default function MonsterCompanion({
           {/* EXP バー */}
           <div className="mt-2">
             <div className="mb-1 flex justify-between text-xs text-zinc-400">
-              <span>EXP</span>
-              <span className="tabular-nums">
+              <span className="font-fantasy">EXP</span>
+              <span className="font-fantasy tabular-nums">
                 {current.currentXP.toLocaleString()} /{" "}
                 {current.neededXP.toLocaleString()}
               </span>

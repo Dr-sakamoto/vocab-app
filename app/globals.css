@@ -11,6 +11,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-display);
+  --font-fantasy: var(--font-fantasy);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -516,6 +517,13 @@ a {
   font-family:
     "DotGothic16", "MS Gothic", "Osaka-Mono", ui-monospace, monospace;
 }
+/* Lv./ATK/HPなど、単語の出題内容とは無関係な「システム表示」の英数字・記号用。
+   添付のクロスステッチ見本(Blackletter)に寄せたファンタジー書体。
+   出題本体（.quest-card）には適用しないこと。 */
+.font-fantasy {
+  letter-spacing: 0.04em;
+}
+
 .fantasy-shell {
   letter-spacing: 0.02em;
   color: var(--ega-fg);

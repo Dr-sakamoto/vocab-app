@@ -93,7 +93,7 @@ export default function BattleBanner({
           <div className="min-w-0 flex-1">
             <p className="font-display text-lg font-bold text-zinc-950">
               {opponent.name}
-              <span className="ml-2 text-sm font-medium text-zinc-500">Lv.{opponent.level}</span>
+              <span className="font-fantasy ml-2 text-sm font-medium text-zinc-500">Lv.{opponent.level}</span>
             </p>
             <p className="mt-1 text-sm text-zinc-600">
               手持ち {opponent.index + 1} / {opponent.total}

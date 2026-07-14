@@ -64,7 +64,7 @@ export default function WorldWindow({
               className="h-7 w-7 shrink-0 object-contain"
               style={{ imageRendering: "pixelated" }}
             />
-            <span className="shrink-0 text-[11px] font-bold">
+            <span className="font-fantasy shrink-0 text-[11px] font-bold">
               Lv.{encounter.level}
             </span>
             <span className="min-w-0 truncate text-[11px] font-bold">
@@ -83,7 +83,7 @@ export default function WorldWindow({
                 style={{ width: `${Math.max(0, hpRatio * 100)}%` }}
               />
             </div>
-            <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[#7d7d7d]">
+            <span className="font-fantasy shrink-0 text-[10px] font-semibold tabular-nums text-[#7d7d7d]">
               ✓{doneCount}/{encounter.missions.length}
             </span>
           </>
@@ -149,7 +149,7 @@ export default function WorldWindow({
               className="flex h-full w-full min-h-0 flex-col items-center justify-center"
             >
               <div className="flex w-full items-baseline justify-center gap-1 text-[10px] font-bold sm:text-xs">
-                <span className="shrink-0 tabular-nums text-[#ffcf4a]">
+                <span className="font-fantasy shrink-0 tabular-nums text-[#ffcf4a]">
                   Lv.{encounter.level}
                 </span>
                 <span className="truncate">{encounter.name}</span>
