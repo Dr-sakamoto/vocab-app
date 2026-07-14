@@ -164,7 +164,7 @@ export default function WorldWindow({
                   }
                 }}
                 className="min-h-0 w-auto flex-1 object-contain py-0.5"
-                style={{ imageRendering: "pixelated", maxHeight: "62%" }}
+                style={{ imageRendering: "pixelated", maxHeight: "70%" }}
               />
               <div className="w-full">
                 <div
@@ -180,9 +180,6 @@ export default function WorldWindow({
                     animate={{ width: `${Math.max(0, hpRatio * 100)}%` }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
                   />
-                </div>
-                <div className="mt-0.5 text-center text-[9px] tabular-nums text-[#7d7d7d] sm:text-[11px]">
-                  {encounter.hp} / {encounter.maxHP}
                 </div>
               </div>
             </motion.div>
