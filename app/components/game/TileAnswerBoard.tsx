@@ -20,9 +20,12 @@ export interface TileAnswerBoardProps {
 /**
  * みんはや式の文字盤回答（スマホ固定）。
  * 1文字選ぶごとに選択肢（8択）が入れ替わり、正答の文字数ぶん繰り返す。
- * 総文字数（残りスロット数）は伏せる。全文字を選び終えても自動送信はせず、
- * 「決定」ボタンを押した時点で判定する（意図した語を打ち終える前に文字数が
- * たまたま正答と一致し、誤って途中の入力が送信されるのを防ぐため）。
+ * 総文字数（残りスロット数）は伏せる。正答の文字数ぶんラウンドを使い切っても
+ * パネルは消さず、ラウンドを先頭から繰り返し表示し続ける（ちょうど正答の
+ * 文字数に達した瞬間にパネルが消えると、それ自体が文字数のヒントになって
+ * しまうため）。送信するかどうかはあくまでユーザーが「決定」ボタンを押した
+ * タイミングで決める。決定ボタンは1文字でも選んでいれば押せる（文字数の一致は
+ * 条件にしない）。
  * 判定後は正解なら即座に、不正解なら3秒後に自動で次の問題へ進む
  * （「次へ」ボタンは不正解時の待ち時間を早める手動スキップとして残す）。
  */
@@ -53,11 +56,9 @@ export default function TileAnswerBoard({
     }
   }, [resetKey]);
 
-  const isComplete = !!board && picked.length === board.answerChars.length;
-
   const handleSubmit = () => {
     if (!board || checked || isCheckingAnswer || submittedRef.current) return;
-    if (picked.length !== board.answerChars.length) return;
+    if (picked.length === 0) return;
     submittedRef.current = true;
     onSubmit(picked.join(""));
   };
@@ -80,8 +81,10 @@ export default function TileAnswerBoard({
 
   if (!board) return null;
 
-  // 現在のラウンド（＝選んだ文字数の位置）の選択肢
-  const currentRound = board.rounds[picked.length] ?? [];
+  // 現在のラウンド（＝選んだ文字数の位置）の選択肢。正答の文字数ぶんの
+  // ラウンドを使い切ってもパネルを消さず、先頭から繰り返す（消えた瞬間が
+  // 文字数のヒントにならないようにするため）。
+  const currentRound = board.rounds[picked.length % board.rounds.length] ?? [];
   const rows = [currentRound.slice(0, 4), currentRound.slice(4)];
 
   const answeredRowClass = !checked
@@ -142,7 +145,7 @@ export default function TileAnswerBoard({
             </button>
             <button
               type="button"
-              disabled={!isComplete || isCheckingAnswer}
+              disabled={picked.length === 0 || isCheckingAnswer}
               onClick={handleSubmit}
               className="brass-btn flex h-12 w-32 items-center justify-center gap-1 rounded-md text-base font-bold disabled:opacity-40"
             >
