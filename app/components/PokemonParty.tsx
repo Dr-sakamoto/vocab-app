@@ -89,7 +89,7 @@ export default function PokemonParty({ collection, onSelect }: PokemonPartyProps
                 >
                   {current.species.name}
                 </span>
-                <span className="text-[10px] tabular-nums text-zinc-400">
+                <span className="font-fantasy text-[10px] tabular-nums text-zinc-400">
                   Lv. {current.level}
                 </span>
               </div>

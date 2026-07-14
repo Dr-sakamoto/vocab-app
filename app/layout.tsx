@@ -1,11 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Space_Grotesk, Jacquard_12 } from "next/font/google";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   weight: ["500", "700"],
   variable: "--font-display",
+  display: "swap",
+});
+
+// Lv./ATK/HPなど、単語問題とは無関係な「システム表示」の英数字・記号用。
+// クロスステッチのブラックレター意匠を復刻したドット/ピクセル書体。
+// 出題本体（.quest-card）には適用しない。
+const jacquard12 = Jacquard_12({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-fantasy",
   display: "swap",
 });
 
@@ -27,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`h-full antialiased ${spaceGrotesk.variable}`}>
+    <html lang="ja" className={`h-full antialiased ${spaceGrotesk.variable} ${jacquard12.variable}`}>
       <head>
         {/* EGAレトロRPGスキンのビットマップ（ドット）フォント DotGothic16。
             日本語（漢字・かな）と英字をドットで表示。実行時に unicode-range で

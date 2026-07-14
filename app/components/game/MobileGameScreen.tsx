@@ -88,18 +88,18 @@ export default function MobileGameScreen({
                         style={{ width: `${quiz.progressPct}%` }}
                       />
                     </div>
-                    <span className="shrink-0 text-xs font-medium tabular-nums text-[#7d7d7d]">
+                    <span className="font-fantasy shrink-0 text-xs font-medium tabular-nums text-[#7d7d7d]">
                       {quiz.total} / {quiz.playLimit}
                     </span>
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-[#7d7d7d]">
-                    <span>{quiz.score} 正解</span>
+                    <span className="font-fantasy">{quiz.score} 正解</span>
                     {quiz.bestStreak > 1 && (
-                      <span className="font-semibold text-[#ffcf4a]">
+                      <span className="font-fantasy font-semibold text-[#ffcf4a]">
                         🔥 {quiz.bestStreak}連続
                       </span>
                     )}
-                    <span className="ml-auto rounded-full border border-[#9a9a9a] px-2 py-0.5 text-[10px] font-bold text-[#f5f5f5]">
+                    <span className="font-fantasy ml-auto rounded-full border border-[#9a9a9a] px-2 py-0.5 text-[10px] font-bold text-[#f5f5f5]">
                       ×{quiz.tierMultiplier}
                     </span>
                   </div>
