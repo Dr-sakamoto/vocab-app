@@ -20,8 +20,10 @@ export interface TileAnswerBoardProps {
 /**
  * みんはや式の文字盤回答（スマホ固定）。
  * 1文字選ぶごとに選択肢（8択）が入れ替わり、正答の文字数ぶん繰り返す。
- * 総文字数（残りスロット数）は伏せる。全文字を選び終えると自動で判定し、
- * 正解なら即座に、不正解なら3秒後に自動で次の問題へ進む
+ * 総文字数（残りスロット数）は伏せる。全文字を選び終えても自動送信はせず、
+ * 「決定」ボタンを押した時点で判定する（意図した語を打ち終える前に文字数が
+ * たまたま正答と一致し、誤って途中の入力が送信されるのを防ぐため）。
+ * 判定後は正解なら即座に、不正解なら3秒後に自動で次の問題へ進む
  * （「次へ」ボタンは不正解時の待ち時間を早める手動スキップとして残す）。
  */
 const CORRECT_ADVANCE_DELAY_MS = 700;
@@ -42,23 +44,23 @@ export default function TileAnswerBoard({
   const lastResetKeyRef = useRef<string>(resetKey);
   const answerFieldRef = useRef<HTMLDivElement>(null);
 
-  // 「盤面リセット」と「全文字選択で自動判定」を1つの effect にまとめる。
-  // 分けると、resetKey が変わった直後のコミットで reset 側が picked を
-  // クリアする「前」に判定側が前の問題の picked を読んでしまい、たまたま
-  // 新しい正答と文字数が一致すると前の問題の回答を新しい問題に誤って
-  // 自動送信してしまう（＝前の問題の答えで新問題が即不正解になる）ため。
+  // 問題が変わったら（resetKey が変わったら）盤面の選択状態をリセットする。
   useEffect(() => {
     if (lastResetKeyRef.current !== resetKey) {
       lastResetKeyRef.current = resetKey;
       setPicked([]);
       submittedRef.current = false;
-      return;
     }
+  }, [resetKey]);
+
+  const isComplete = !!board && picked.length === board.answerChars.length;
+
+  const handleSubmit = () => {
     if (!board || checked || isCheckingAnswer || submittedRef.current) return;
     if (picked.length !== board.answerChars.length) return;
     submittedRef.current = true;
     onSubmit(picked.join(""));
-  }, [resetKey, picked, board, checked, isCheckingAnswer, onSubmit]);
+  };
 
   // 判定後は自動で次へ（正解はすぐ／不正解は3秒待ってから）
   useEffect(() => {
@@ -126,17 +128,27 @@ export default function TileAnswerBoard({
         </div>
       )}
 
-      {/* 操作列: 1文字戻す / 判定後は結果（正解は即・不正解は3秒後に自動で次へ） */}
+      {/* 操作列: 1文字戻す・決定（送信） / 判定後は結果（正解は即・不正解は3秒後に自動で次へ） */}
       <div className="mt-2.5 min-h-[3rem]">
         {!checked ? (
-          <button
-            type="button"
-            disabled={picked.length === 0 || isCheckingAnswer}
-            onClick={() => setPicked((prev) => prev.slice(0, -1))}
-            className="brass-btn mx-auto flex h-12 w-32 items-center justify-center gap-1 rounded-md text-base font-bold disabled:opacity-40"
-          >
-            ⌫ 戻す
-          </button>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              disabled={picked.length === 0 || isCheckingAnswer}
+              onClick={() => setPicked((prev) => prev.slice(0, -1))}
+              className="brass-btn flex h-12 w-24 items-center justify-center gap-1 rounded-md text-base font-bold disabled:opacity-40"
+            >
+              ⌫ 戻す
+            </button>
+            <button
+              type="button"
+              disabled={!isComplete || isCheckingAnswer}
+              onClick={handleSubmit}
+              className="brass-btn flex h-12 w-32 items-center justify-center gap-1 rounded-md text-base font-bold disabled:opacity-40"
+            >
+              決定 ✓
+            </button>
+          </div>
         ) : (
           <AnimatePresence>
             <motion.div
