@@ -4,8 +4,21 @@
  * AudioContextはユーザー操作（pointerdown）内で遅延生成するため自動再生制限に触れない。
  */
 
+import { STORAGE_KEYS } from "./constants";
+import storage from "./storage";
+
 let audioContext: AudioContext | null = null;
 let noiseBuffer: AudioBuffer | null = null;
+let soundEnabled = storage.get(STORAGE_KEYS.SOUND_ENABLED, true);
+
+export function isSoundEnabled(): boolean {
+  return soundEnabled;
+}
+
+export function setSoundEnabled(enabled: boolean): void {
+  soundEnabled = enabled;
+  storage.set(STORAGE_KEYS.SOUND_ENABLED, enabled);
+}
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -57,6 +70,7 @@ function playBurst(
 }
 
 export function playClickSound(): void {
+  if (!soundEnabled) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
