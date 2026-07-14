@@ -345,8 +345,8 @@ export default function PokemonBox({
                 type="button"
                 onClick={onOpenSync}
                 className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 text-lg leading-none text-zinc-500 hover:bg-zinc-50"
-                aria-label="クラウド同期"
-                title="クラウド同期"
+                aria-label="設定"
+                title="設定"
               >
                 ⚙️
               </button>

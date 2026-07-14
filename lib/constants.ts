@@ -25,6 +25,7 @@ export const STORAGE_KEYS = {
   STORY_PROGRESS: "story-progress",
   STREAK: "vocab-daily-streak",
   WILD_ENCOUNTER: "wild-encounter",
+  SOUND_ENABLED: "vocab-sound-enabled",
 } as const;
 
 export const BUTTON_CLASSES = {

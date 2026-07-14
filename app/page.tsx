@@ -11,6 +11,7 @@ import MobileGameScreen from "./components/game/MobileGameScreen";
 import { useGameSession } from "./hooks/useGameSession";
 import { useVocabPool } from "./hooks/useVocabPool";
 import { useClickSound } from "./hooks/useClickSound";
+import { isSoundEnabled, setSoundEnabled } from "@/lib/clickSound";
 import { useVisualViewportVars } from "./hooks/useVisualViewport";
 
 import {
@@ -162,6 +163,7 @@ export default function Page() {
   const [encounter, setEncounter] = useState<WildEncounterState | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [isSyncOpen, setIsSyncOpen] = useState<boolean>(false);
+  const [soundEnabled, setSoundEnabledState] = useState<boolean>(true);
 
   const [index, setIndex] = useState<number>(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -567,6 +569,7 @@ export default function Page() {
     // このタイミングずれを前提にガードされている。
     queueMicrotask(() => {
     try {
+      setSoundEnabledState(isSoundEnabled());
       setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
 
       let loadedPoolSize = Math.min(GAME.INITIAL_POOL_SIZE, VOCAB_ITEMS.length);
@@ -1263,12 +1266,12 @@ export default function Page() {
         />
       )}
 
-      {/* クラウド同期モーダル（モンスター管理画面の⚙️から開く） */}
+      {/* 設定モーダル（モンスター管理画面の⚙️から開く） */}
       {isSyncOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/45 p-4">
           <div className="w-full max-w-md rounded-2xl border bg-white p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-zinc-950">クラウド同期</h2>
+              <h2 className="text-base font-semibold text-zinc-950">設定</h2>
               <button
                 type="button"
                 onClick={() => setIsSyncOpen(false)}
@@ -1278,6 +1281,34 @@ export default function Page() {
                 ×
               </button>
             </div>
+
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-zinc-200 px-3 py-2.5">
+              <span className="text-sm font-medium text-zinc-900">サウンド</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={soundEnabled}
+                aria-label="サウンドのオン・オフ"
+                onClick={() => {
+                  const next = !soundEnabled;
+                  setSoundEnabled(next);
+                  setSoundEnabledState(next);
+                }}
+                className={[
+                  "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+                  soundEnabled ? "bg-emerald-500" : "bg-zinc-300",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                    soundEnabled ? "translate-x-5" : "translate-x-0.5",
+                  ].join(" ")}
+                />
+              </button>
+            </div>
+
+            <h3 className="mb-2 text-sm font-semibold text-zinc-700">クラウド同期</h3>
             <SyncButton
               stats={stats}
               unlockedPoolSize={unlockedPoolSize}
