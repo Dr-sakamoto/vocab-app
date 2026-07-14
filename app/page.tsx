@@ -742,11 +742,8 @@ export default function Page() {
     const current = encounterRef.current;
     const collection = monsterCollectionRef.current;
 
-    // 非遭遇中: 遭遇率を参照し、1問ごとに現在地のテーブルから遭遇を抽選する
+    // 非遭遇中: 遭遇抽選は10問セッションの終了時にまとめて行うため、ここでは何もしない
     if (!current || current.status !== "active") {
-      if (rollWildEncounter()) {
-        spawnEncounter(unlockedPoolSize, collection);
-      }
       return;
     }
 
@@ -832,8 +829,6 @@ export default function Page() {
     enqueueToast,
     persistEncounter,
     persistProgress,
-    spawnEncounter,
-    unlockedPoolSize,
   ]);
 
   // ── 10問区切りの締め（プール解放 + XP 付与）───────────────────────────────
@@ -912,6 +907,16 @@ export default function Page() {
       nextCollection,
       nextPoolSize,
     });
+
+    // 遭遇抽選: 10問セッションが終わるごとに1回、次の野生エティモンの出現を抽選する
+    // （遭遇中の場合はそのまま次のセッションへ持ち越すため抽選しない）
+    const currentEncounter = encounterRef.current;
+    if (!currentEncounter || currentEncounter.status !== "active") {
+      if (rollWildEncounter()) {
+        spawnEncounter(nextPoolSize, nextCollection);
+      }
+    }
+
     setPhase("result");
   }, [
     bestStreak,
@@ -923,6 +928,7 @@ export default function Page() {
     score,
     setLastUnlockCount,
     setUnlockedPoolSize,
+    spawnEncounter,
     syncGiftProgress,
     unlockedPoolSize,
   ]);
@@ -983,17 +989,13 @@ export default function Page() {
     setLastUnlockCount(0);
     resultUnlockAppliedRef.current = false;
     processedAnswerCountRef.current = 0;
-    if (!encounterRef.current || encounterRef.current.status !== "active") {
-      spawnEncounter(unlockedPoolSize, monsterCollectionRef.current);
-    }
+    // 遭遇抽選はセッション終了時（finishSet）に済んでいるため、ここでは行わない
     setPhase("quiz");
   }, [
     markDailyPlay,
     pickNextQuestionIndex,
     resetSession,
     setLastUnlockCount,
-    spawnEncounter,
-    unlockedPoolSize,
   ]);
 
   const addApprovedAnswer = useCallback((wordId: string, normalizedAnswer: string) => {
