@@ -120,10 +120,10 @@ export default function EtymonDock({
 
         {/* 攻撃力（1正解あたりのダメージ）: 真鍮のプレート */}
         <div
-          className="brass-btn flex w-10 shrink-0 flex-col items-center justify-center rounded-md text-center sm:w-14"
+          className="brass-btn flex w-12 shrink-0 flex-col items-center justify-center rounded-md text-center sm:w-16"
           title="1正解ごとに出現エティモンへ与えるダメージ"
         >
-          <span className="font-fantasy fantasy-title text-[9px] font-bold sm:text-[10px]">
+          <span className="font-fantasy text-[9px] font-bold text-[#ffcf4a] sm:text-[10px]">
             ATK
           </span>
           <span className="font-fantasy text-base font-bold tabular-nums sm:text-lg">
