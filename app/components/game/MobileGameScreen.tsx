@@ -23,13 +23,15 @@ export interface MobileGameScreenProps {
 }
 
 /**
- * スマホ版スクリーン。上から「手持ち → 問題 → 敵とミッション」の順。
- * - 最上段はエティモンウィンドウ（手持ち編成）。最下段ではなく最上段に
- *   固定配置し、常にパーティが視界に入るようにする
+ * スマホ版スクリーン。上から「敵とミッション → 問題 → 手持ち」の順。
+ * - 最上段はワールドウィンドウ（敵エティモン＋ミッション帯）。今後
+ *   tips・フレーバーテキスト・ストーリー表示など情報量が増える予定の
+ *   エリアなので、視線の起点になる最上段に置く
  * - 問題ウィンドウは中段（残り全部）。文字盤が画面最下端に張り付くと
  *   打ちにくいため、タップ操作は中段に集める
- * - 最下段はワールドウィンドウ（敵エティモン＋ミッション帯）。閲覧が
- *   主で操作頻度が低いため、固定高の帯として画面端に置く
+ * - 最下段はエティモンウィンドウ（手持ち編成）。タップ頻度・表示の
+ *   変化がもっとも少ないため画面端に置く。持ち手の上方向ドラッグで
+ *   編成ドロワーが開く設計とも整合する
  * - 問題ウィンドウは上詰め固定。判定後に選択肢が消えても問題カードの
  *   位置がズレない（正解時の視覚的なジャンプを防ぐ）
  * - 回答は文字盤（みんはや式・1文字ずつタップ）固定。キーボードは一切出さない
@@ -48,14 +50,11 @@ export default function MobileGameScreen({
       <div className="scene-vignette" aria-hidden />
 
       <div className="relative z-10 flex h-full w-full flex-col gap-2 p-2">
-        {/* ── 1. エティモンウィンドウ（手持ち編成。最上段に固定配置） ── */}
-        <header className="relative z-20 h-28 shrink-0">
-          <EtymonDock
-            collection={dock.collection}
-            onSelect={dock.onSelect}
-            onOpenDrawer={dock.onOpenDrawer}
-          />
-        </header>
+        {/* ── 1. ワールドウィンドウ（敵エティモン＋ミッション帯。
+             マップのマス=正方形を基準にした高さ） ── */}
+        <div className="h-32 shrink-0">
+          <WorldWindow {...world} />
+        </div>
 
         {/* ── 2. 問題ウィンドウ（残り全部。判定後に選択肢が消えても
              問題カードの位置がズレないよう上詰めで固定する） ── */}
@@ -124,11 +123,15 @@ export default function MobileGameScreen({
           </div>
         </main>
 
-        {/* ── 3. ワールドウィンドウ（敵エティモン＋ミッション帯。
-             マップのマス=正方形を基準にした高さ） ── */}
-        <div className="h-32 shrink-0">
-          <WorldWindow {...world} />
-        </div>
+        {/* ── 3. エティモンウィンドウ（手持ち編成。最下段に固定配置。
+             持ち手の上方向ドラッグで編成ドロワーを開く） ── */}
+        <footer className="relative z-20 h-28 shrink-0">
+          <EtymonDock
+            collection={dock.collection}
+            onSelect={dock.onSelect}
+            onOpenDrawer={dock.onOpenDrawer}
+          />
+        </footer>
       </div>
     </div>
   );
