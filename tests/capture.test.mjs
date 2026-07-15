@@ -48,13 +48,13 @@ test("encounter rates from absorbed routes are summed when they share a line and
   ]);
 });
 
-test("encounter levels follow the original FRLG ranges carried over from absorbed routes", () => {
+test("encounter levels follow the stage's level band", () => {
   const greatFireflyCity = HABITATS.find(habitat => habitat.id === "great-firefly-city");
   const encounters = normalizeEncounters(greatFireflyCity.encounters);
 
   assert.deepEqual(
     encounters.find(encounter => encounter.lineId === "magnemite"),
-    { lineId: "magnemite", weight: 30, minLevel: 22, maxLevel: 25 },
+    { lineId: "magnemite", weight: 40, minLevel: 31, maxLevel: 38 },
   );
 });
 
@@ -144,6 +144,42 @@ test("all habitat encounter lines are defined monster lines", () => {
     for (const encounter of encounters) {
       assert.equal(getMonsterLine(encounter.lineId).id, encounter.lineId);
     }
+  }
+});
+
+test("confirmed etymon lines only appear in their designated habitats", () => {
+  const expectedHabitatsByLine = {
+    pikachu: ["elmuria", "everstep"],
+    weedle: ["elmuria", "everstep", "eterna-desert", "old-smoke"],
+    pidgey: ["old-smoke"],
+    spearow: ["elmuria", "hoshi-no-kumoi"],
+    sandshrew: ["ultra-blue", "tarasys-temple"],
+    clefairy: ["hoshi-no-kumoi"],
+    oddish: ["elmuria", "everstep", "great-firefly-city", "hoshi-no-kumoi"],
+    seel: ["alb-peak"],
+    rattata: ["kapadra-cave", "la-amaranta"],
+    zubat: ["elmuria", "everstep", "great-firefly-city"],
+    ekans: ["kapadra-cave", "la-amaranta"],
+    hitmonlee: ["apple-town"],
+    onix: ["elmuria"],
+    farfetchd: ["elmuria"],
+  };
+
+  const actualHabitatsByLine = {};
+  for (const habitat of HABITATS) {
+    const lineIds = new Set(normalizeEncounters(habitat.encounters).map(encounter => encounter.lineId));
+    for (const lineId of lineIds) {
+      if (!(lineId in expectedHabitatsByLine)) continue;
+      (actualHabitatsByLine[lineId] ??= []).push(habitat.id);
+    }
+  }
+
+  for (const [lineId, expectedHabitats] of Object.entries(expectedHabitatsByLine)) {
+    assert.deepEqual(
+      (actualHabitatsByLine[lineId] ?? []).sort(),
+      [...expectedHabitats].sort(),
+      `expected ${lineId} to appear only in: ${expectedHabitats.join(", ")}`,
+    );
   }
 });
 
