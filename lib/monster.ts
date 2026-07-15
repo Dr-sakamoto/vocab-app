@@ -808,7 +808,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     lineId: "eevee",
     level: 25,
     trigger: "pool",
-    habitatId: "route-7",
+    habitatId: "great-firefly-city",
+    minPool: 840,
     location: "タマムシシティ",
     message: "タマムシシティでイーブイをもらった！",
   },
@@ -817,7 +818,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     lineId: "porygon",
     level: 26,
     trigger: "pool",
-    habitatId: "route-7",
+    habitatId: "great-firefly-city",
+    minPool: 840,
     location: "タマムシシティ",
     message: "ゲームコーナーでポリゴンをもらった！",
   },
@@ -826,7 +828,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     lineId: "lapras",
     level: 15,
     trigger: "pool",
-    habitatId: "pokemon-tower",
+    habitatId: "great-firefly-city",
+    minPool: 960,
     location: "シルフカンパニー",
     message: "シルフカンパニーでラプラスをもらった！",
   },
@@ -850,7 +853,8 @@ export interface FossilGiftGroup {
 export const FOSSIL_GIFT_GROUP: FossilGiftGroup = {
   id: "cinnabar-fossil",
   trigger: "pool",
-  habitatId: "pokemon-mansion",
+  habitatId: "la-amaranta",
+  minPool: 1500,
   location: "グレン島",
   level: 30,
   choices: [
@@ -929,6 +933,47 @@ export function createMonsterInstance({
   };
 }
 
+// PR-IP1（ステージのEtymonリスキン）で旧ポケモン準拠のルートidを14の新ステージidへ
+// 統合したことに伴う、セーブデータ内の旧id参照の移行マップ（旧id→新id）。
+// habitatVisits のキーと monster.acquiredAt に残る旧idをここで新idへ読み替える。
+const HABITAT_ID_MIGRATIONS: Record<string, string> = {
+  "route-1": "elmuria",
+  "route-22": "elmuria",
+  "route-2": "elmuria",
+  "viridian-forest": "elmuria",
+  "route-3": "everstep",
+  "route-4": "everstep",
+  "route-5": "everstep",
+  "routes-16-18": "everstep",
+  "safari-zone": "apple-town",
+  "route-6": "old-smoke",
+  "route-11": "old-smoke",
+  "routes-12-15": "old-smoke",
+  "digletts-cave": "kapadra-cave",
+  "rock-tunnel": "kapadra-cave",
+  "seafoam-islands": "alb-peak",
+  "mt-moon": "hoshi-no-kumoi",
+  "route-9": "eterna-desert",
+  "route-10": "eterna-desert",
+  "pokemon-tower": "great-firefly-city",
+  "power-plant": "great-firefly-city",
+  "route-7": "great-firefly-city",
+  "route-8": "great-firefly-city",
+  "route-24": "ultra-blue",
+  "route-25": "ultra-blue",
+  "sea-routes-19-21": "ultra-blue",
+  "old-rod": "ultra-blue",
+  "good-rod": "ultra-blue",
+  "super-rod": "tarasys-temple",
+  "pokemon-mansion": "la-amaranta",
+  "victory-road": "schwanburg-castle",
+  "cerulean-cave": "kapadra-underground",
+};
+
+function migrateHabitatId(id: string): string {
+  return HABITAT_ID_MIGRATIONS[id] ?? id;
+}
+
 export function normalizeMonsterCollection(collection: unknown, legacy: { lineId?: string | null; totalXP?: number } = {}): MonsterCollection {
   const c = (collection && typeof collection === "object" ? collection : {}) as Record<string, unknown>;
   const legacyLineId = normalizeMonsterLineId(legacy.lineId);
@@ -943,11 +988,12 @@ export function normalizeMonsterCollection(collection: unknown, legacy: { lineId
   const byId = new Map<string, MonsterInstance>();
   for (const monster of sourceMonsters) {
     if (!monster || typeof monster !== "object") continue;
+    const rawAcquiredAt = monster.acquiredAt ?? null;
     const instance = createMonsterInstance({
       id: typeof monster.id === "string" && monster.id ? monster.id : undefined,
       lineId: monster.lineId,
       totalXP: monster.totalXP,
-      acquiredAt: monster.acquiredAt ?? null,
+      acquiredAt: typeof rawAcquiredAt === "string" ? migrateHabitatId(rawAcquiredAt) : rawAcquiredAt,
       heldItemType: monster.heldItemType ?? null,
       heldItemName: monster.heldItemName ?? null,
       forcedSpeciesId: monster.forcedSpeciesId ?? null,
@@ -1020,7 +1066,8 @@ export function normalizeMonsterCollection(collection: unknown, legacy: { lineId
     for (const [habitatId, visits] of Object.entries(c.habitatVisits)) {
       const safeVisits = Number(visits);
       if (Number.isFinite(safeVisits) && safeVisits > 0) {
-        habitatVisits[habitatId] = Math.floor(safeVisits);
+        const migratedId = migrateHabitatId(habitatId);
+        habitatVisits[migratedId] = (habitatVisits[migratedId] ?? 0) + Math.floor(safeVisits);
       }
     }
   }

@@ -27,10 +27,10 @@ test("battle progress accuracy is based on play limit", () => {
   assert.equal(getBattleProgressAccuracy(5, 0), 0);
 });
 
-test("rival battle triggers at route-1 pool milestone", () => {
+test("rival battle triggers at elmuria pool milestone", () => {
   const battle = pickNextBattleTrigger(DEFAULT_STORY_PROGRESS, {
     unlockedPoolSize: 60,
-    habitatId: "route-1",
+    habitatId: "elmuria",
   });
   assert.equal(battle?.id, "rival-1");
 });
@@ -83,7 +83,7 @@ test("trainer battle uses higher play limits for endurance fights", () => {
       ...DEFAULT_STORY_PROGRESS,
       defeated: { morty: true, zapdos: true },
     }),
-    { unlockedPoolSize: 1080, habitatId: "power-plant" },
+    { unlockedPoolSize: 1080, habitatId: "great-firefly-city" },
   );
   assert.equal(battle?.id, "voltorb-trap");
   assert.equal(getBattlePlayLimit(battle), 80);
@@ -102,11 +102,11 @@ test("battle victory awards badges and clears pending challenge", () => {
 
 test("battle defeat relocates optional trainers but keeps boss pending", () => {
   const progress = startBattleSession(DEFAULT_STORY_PROGRESS, "rocket-scout");
-  const defeat = resolveBattleDefeat(progress, "rocket-scout", { habitatId: "route-24" });
+  const defeat = resolveBattleDefeat(progress, "rocket-scout", { habitatId: "ultra-blue" });
   assert.equal(defeat.progress.pendingChallengeId, null);
-  assert.equal(defeat.relocatedHabitatId, "route-24");
+  assert.equal(defeat.relocatedHabitatId, "ultra-blue");
 
-  const bossDefeat = resolveBattleDefeat(progress, "brock", { habitatId: "route-2" });
+  const bossDefeat = resolveBattleDefeat(progress, "brock", { habitatId: "elmuria" });
   assert.equal(bossDefeat.progress.pendingChallengeId, "brock");
   assert.equal(bossDefeat.persistsOnStart, true);
 });

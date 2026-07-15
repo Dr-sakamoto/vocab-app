@@ -69,7 +69,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "オーキド研究所",
     tier: "normal",
     minPool: 60,
-    habitatId: "route-1",
+    habitatId: "elmuria",
     party: [{ lineId: RIVAL_STARTER_MARKER, level: 5 }],
     preMessage: "…おまえが　エティモンを　えらぶのか",
   },
@@ -80,7 +80,7 @@ export const STORY_BATTLES: Battle[] = [
     tier: "normal",
     minPool: 90,
     maxPool: 239,
-    habitatId: "route-22",
+    habitatId: "elmuria",
     optional: true,
     party: [
       { lineId: "pidgey", level: 9 },
@@ -94,7 +94,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "ニビジム",
     tier: "gym",
     minPool: 120,
-    habitatId: "route-2",
+    habitatId: "elmuria",
     boss: true,
     requiresDefeat: ["rival-1"],
     party: [
@@ -109,7 +109,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "おつきみやま",
     tier: "rocket",
     minPool: 240,
-    habitatId: "mt-moon",
+    habitatId: "hoshi-no-kumoi",
     requiresDefeat: ["brock"],
     party: [
       { lineId: "ekans", level: 11 },
@@ -123,7 +123,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "おつきみやま",
     tier: "normal",
     minPool: 240,
-    habitatId: "mt-moon",
+    habitatId: "hoshi-no-kumoi",
     requiresDefeat: ["rocket-mt-moon"],
     party: [
       { lineId: "kabuto", level: 15 },
@@ -138,7 +138,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "ハナダシティ",
     tier: "normal",
     minPool: 420,
-    habitatId: "route-25",
+    habitatId: "ultra-blue",
     requiresDefeat: ["brock"],
     party: [
       { lineId: "pidgey", level: 18 },
@@ -152,7 +152,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "24ばんどうろ",
     tier: "chain",
     minPool: 360,
-    habitatId: "route-24",
+    habitatId: "ultra-blue",
     requiresDefeat: ["brock"],
     party: [
       { lineId: "mankey", level: 16 },
@@ -168,7 +168,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "24ばんどうろ",
     tier: "rocket",
     minPool: 360,
-    habitatId: "route-24",
+    habitatId: "ultra-blue",
     requiresDefeat: ["bridge-five"],
     party: [
       { lineId: "rattata", level: 17 },
@@ -182,7 +182,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "ハナダジム",
     tier: "gym",
     minPool: 480,
-    habitatId: "route-5",
+    habitatId: "everstep",
     boss: true,
     requiresDefeat: ["rocket-scout"],
     party: [
@@ -198,7 +198,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "ハナダシティ",
     tier: "rocket",
     minPool: 540,
-    habitatId: "route-6",
+    habitatId: "old-smoke",
     requiresDefeat: ["misty"],
     party: [
       { lineId: "grimer", level: 22 },
@@ -212,7 +212,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "サント・アンヌ号",
     tier: "normal",
     minPool: 660,
-    habitatId: "route-11",
+    habitatId: "old-smoke",
     requiresDefeat: ["misty"],
     requiresBadges: ["cascade"],
     party: [
@@ -227,7 +227,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "クチバジム",
     tier: "gym",
     minPool: 720,
-    habitatId: "route-9",
+    habitatId: "eterna-desert",
     boss: true,
     requiresDefeat: ["rival-4"],
     party: [
@@ -243,7 +243,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "タマムシジム",
     tier: "gym",
     minPool: 840,
-    habitatId: "route-7",
+    habitatId: "great-firefly-city",
     boss: true,
     requiresDefeat: ["surge"],
     party: [
@@ -259,7 +259,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "タマムシ地下アジト",
     tier: "rocket",
     minPool: 840,
-    habitatId: "route-7",
+    habitatId: "great-firefly-city",
     requiresDefeat: ["erika"],
     party: [
       { lineId: "ekans", level: 25 },
@@ -273,7 +273,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "タマムシ地下アジト",
     tier: "gym",
     minPool: 840,
-    habitatId: "route-7",
+    habitatId: "great-firefly-city",
     requiresDefeat: ["rocket-celadon"],
     party: [
       { lineId: "rhyhorn", level: 25 },
@@ -287,7 +287,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "エティモンタワー3かい",
     tier: "normal",
     minPool: 960,
-    habitatId: "pokemon-tower",
+    habitatId: "great-firefly-city",
     requiresDefeat: ["giovanni-1"],
     party: [
       { lineId: "pidgey", level: 25 },
@@ -301,7 +301,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "エティモンタワー最上階",
     tier: "chain",
     minPool: 960,
-    habitatId: "pokemon-tower",
+    habitatId: "great-firefly-city",
     requiresDefeat: ["rival-5"],
     party: [
       { lineId: "gastly", level: 24 },
@@ -317,7 +317,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "12・16ばんどうろ",
     tier: "symbol",
     minPool: 1140,
-    habitatId: "routes-12-15",
+    habitatId: "old-smoke",
     requiresBadges: ["rainbow"],
     party: [{ lineId: "snorlax", level: 30 }],
     preMessage: "ネボスケをふしぎなふえで起こした！",
@@ -328,7 +328,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "ヤマブキ格闘道場",
     tier: "chain",
     minPool: 1200,
-    habitatId: "routes-16-18",
+    habitatId: "everstep",
     requiresBadges: ["rainbow"],
     party: [
       { lineId: "mankey", level: 28 },
@@ -345,7 +345,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "シルフカンパニー11かい",
     tier: "rocket",
     minPool: 960,
-    habitatId: "pokemon-tower",
+    habitatId: "great-firefly-city",
     requiresDefeat: ["rocket-tower"],
     party: [
       { lineId: "ekans", level: 30 },
@@ -359,7 +359,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "シルフカンパニー11かい",
     tier: "normal",
     minPool: 960,
-    habitatId: "pokemon-tower",
+    habitatId: "great-firefly-city",
     requiresDefeat: ["rocket-silph"],
     party: [
       { lineId: "pidgey", level: 32 },
@@ -374,7 +374,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "シルフカンパニー社長室",
     tier: "gym",
     minPool: 960,
-    habitatId: "pokemon-tower",
+    habitatId: "great-firefly-city",
     boss: true,
     requiresDefeat: ["rival-6"],
     party: [
@@ -390,7 +390,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "ヤマブキジム",
     tier: "gym",
     minPool: 1020,
-    habitatId: "route-10",
+    habitatId: "eterna-desert",
     boss: true,
     requiresDefeat: ["giovanni-2"],
     party: [
@@ -406,7 +406,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "セキチクジム",
     tier: "gym",
     minPool: 1200,
-    habitatId: "routes-16-18",
+    habitatId: "everstep",
     boss: true,
     requiresDefeat: ["sabrina"],
     party: [
@@ -422,7 +422,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "むじんはつでんしょ",
     tier: "endurance",
     minPool: 1080,
-    habitatId: "power-plant",
+    habitatId: "great-firefly-city",
     requiresDefeat: ["morty"],
     optional: true,
     reappearOnHabitat: true,
@@ -435,7 +435,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "むじんはつでんしょ",
     tier: "legendary",
     minPool: 1080,
-    habitatId: "power-plant",
+    habitatId: "great-firefly-city",
     requiresDefeat: ["morty"],
     optional: true,
     firstEncounterGuaranteed: true,
@@ -448,7 +448,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "ふたごじま",
     tier: "legendary",
     minPool: 1620,
-    habitatId: "seafoam-islands",
+    habitatId: "alb-peak",
     requiresDefeat: ["morty"],
     optional: true,
     firstEncounterGuaranteed: true,
@@ -461,7 +461,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "グレンジム",
     tier: "gym",
     minPool: 1500,
-    habitatId: "pokemon-mansion",
+    habitatId: "la-amaranta",
     boss: true,
     requiresDefeat: ["morty"],
     party: [
@@ -477,7 +477,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "トキワジム",
     tier: "gym",
     minPool: 1500,
-    habitatId: "pokemon-mansion",
+    habitatId: "la-amaranta",
     boss: true,
     requiresDefeat: ["blaine"],
     party: [
@@ -493,7 +493,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "チャンピオンロード",
     tier: "legendary",
     minPool: 1800,
-    habitatId: "victory-road",
+    habitatId: "schwanburg-castle",
     requiresBadges: ["boulder", "cascade", "thunder", "rainbow", "marsh", "storm", "volcano", "earth"],
     optional: true,
     firstEncounterGuaranteed: true,
@@ -506,7 +506,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "22ばんどうろ",
     tier: "normal",
     minPool: 1800,
-    habitatId: "victory-road",
+    habitatId: "schwanburg-castle",
     requiresBadges: ["boulder", "cascade", "thunder", "rainbow", "marsh", "storm", "volcano", "earth"],
     party: [
       { lineId: "pidgey", level: 47 },
@@ -520,7 +520,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "セキエイ高原",
     tier: "elite",
     minPool: 1800,
-    habitatId: "victory-road",
+    habitatId: "schwanburg-castle",
     requiresDefeat: ["rival-7"],
     party: [
       { lineId: "seel", level: 54 },
@@ -534,7 +534,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "セキエイ高原",
     tier: "elite",
     minPool: 1800,
-    habitatId: "victory-road",
+    habitatId: "schwanburg-castle",
     requiresDefeat: ["elite-lorelei"],
     party: [
       { lineId: "onix", level: 53 },
@@ -548,7 +548,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "セキエイ高原",
     tier: "elite",
     minPool: 1800,
-    habitatId: "victory-road",
+    habitatId: "schwanburg-castle",
     requiresDefeat: ["elite-bruno"],
     party: [
       { lineId: "gastly", level: 56 },
@@ -562,7 +562,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "セキエイ高原",
     tier: "elite",
     minPool: 1800,
-    habitatId: "victory-road",
+    habitatId: "schwanburg-castle",
     requiresDefeat: ["elite-agatha"],
     party: [
       { lineId: "dratini", level: 58 },
@@ -576,7 +576,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "えいゆうのへや",
     tier: "champion",
     minPool: 1800,
-    habitatId: "victory-road",
+    habitatId: "schwanburg-castle",
     boss: true,
     requiresDefeat: ["elite-lance"],
     party: [
@@ -592,7 +592,7 @@ export const STORY_BATTLES: Battle[] = [
     location: "ハナダのどうくつ",
     tier: "legendary",
     minPool: 2200,
-    habitatId: "cerulean-cave",
+    habitatId: "kapadra-underground",
     requiresHallOfFame: true,
     optional: true,
     firstEncounterGuaranteed: true,

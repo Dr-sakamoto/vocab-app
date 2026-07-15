@@ -5,7 +5,7 @@ import {
   HABITATS,
   applyCaptureResultToCollection,
   getUnlockedHabitats,
-  normalizeVersionedEncounters,
+  normalizeEncounters,
   pickHabitat,
   rollCaptureEncounter,
 } from "../lib/capture.js";
@@ -18,42 +18,39 @@ import {
   getXpForLevel,
   updatePartyXP,
   getMonsterDisplayState,
+  normalizeMonsterCollection,
 } from "../lib/monster.js";
 
-test("Route 1 is unlocked at the initial pool size", () => {
+test("Elmuria is unlocked at the initial pool size", () => {
   assert.deepEqual(
     getUnlockedHabitats(60).map(habitat => habitat.id),
-    ["route-1"],
+    ["elmuria"],
   );
   assert.deepEqual(getUnlockedHabitats(59), []);
 });
 
-test("version encounter rates are averaged by version", () => {
-  const encounters = normalizeVersionedEncounters({
-    fireRed: [
-      { lineId: "a", rate: 40 },
-      { lineId: "b", rate: 30 },
-      { lineId: "c", rate: 30 },
-    ],
-    leafGreen: [
-      { lineId: "d", rate: 40 },
-      { lineId: "e", rate: 30 },
-      { lineId: "c", rate: 30 },
-    ],
-  });
+test("encounter rates from absorbed routes are summed when they share a line and level range", () => {
+  const encounters = normalizeEncounters([
+    { lineId: "a", rate: 40, minLevel: 1, maxLevel: 1 },
+    { lineId: "b", rate: 30, minLevel: 1, maxLevel: 1 },
+    { lineId: "c", rate: 30, minLevel: 1, maxLevel: 1 },
+    { lineId: "d", rate: 40, minLevel: 1, maxLevel: 1 },
+    { lineId: "e", rate: 30, minLevel: 1, maxLevel: 1 },
+    { lineId: "c", rate: 30, minLevel: 1, maxLevel: 1 },
+  ]);
 
   assert.deepEqual(encounters, [
-    { lineId: "a", weight: 20, minLevel: 1, maxLevel: 1 },
-    { lineId: "b", weight: 15, minLevel: 1, maxLevel: 1 },
-    { lineId: "c", weight: 30, minLevel: 1, maxLevel: 1 },
-    { lineId: "d", weight: 20, minLevel: 1, maxLevel: 1 },
-    { lineId: "e", weight: 15, minLevel: 1, maxLevel: 1 },
+    { lineId: "a", weight: 40, minLevel: 1, maxLevel: 1 },
+    { lineId: "b", weight: 30, minLevel: 1, maxLevel: 1 },
+    { lineId: "c", weight: 60, minLevel: 1, maxLevel: 1 },
+    { lineId: "d", weight: 40, minLevel: 1, maxLevel: 1 },
+    { lineId: "e", weight: 30, minLevel: 1, maxLevel: 1 },
   ]);
 });
 
-test("encounter levels follow original FRLG ranges for later pools", () => {
-  const powerPlant = HABITATS.find(habitat => habitat.id === "power-plant");
-  const encounters = normalizeVersionedEncounters(powerPlant.versionEncounters, powerPlant.id);
+test("encounter levels follow the original FRLG ranges carried over from absorbed routes", () => {
+  const greatFireflyCity = HABITATS.find(habitat => habitat.id === "great-firefly-city");
+  const encounters = normalizeEncounters(greatFireflyCity.encounters);
 
   assert.deepEqual(
     encounters.find(encounter => encounter.lineId === "magnemite"),
@@ -62,32 +59,35 @@ test("encounter levels follow original FRLG ranges for later pools", () => {
 });
 
 test("rollCaptureEncounter generates a level within the encounter range", () => {
-  const route1 = HABITATS.find(habitat => habitat.id === "route-1");
+  const elmuria = HABITATS.find(habitat => habitat.id === "elmuria");
   const result = rollCaptureEncounter({
     grade: "S",
     unlockedPoolSize: 60,
-    habitat: route1,
-    seed: "route-1-level-range",
+    habitat: elmuria,
+    seed: "elmuria-level-range",
   });
 
   assert.equal(result.caught, true);
-  const encounter = normalizeVersionedEncounters(route1.versionEncounters)
+  const encounter = normalizeEncounters(elmuria.encounters)
     .find(encounter => encounter.lineId === result.lineId);
-  assert.ok(encounter, "expected route 1 encounter to exist");
+  assert.ok(encounter, "expected an elmuria encounter to exist");
   assert.ok(result.level >= encounter.minLevel && result.level <= encounter.maxLevel);
 });
 
-test("S rank always reaches the route 1 encounter table when only route 1 is unlocked", () => {
+test("S rank always reaches the elmuria encounter table when only elmuria is unlocked", () => {
+  const elmuria = HABITATS.find(habitat => habitat.id === "elmuria");
+  const elmuriaLineIds = normalizeEncounters(elmuria.encounters).map(encounter => encounter.lineId);
+
   const result = rollCaptureEncounter({
     grade: "S",
     unlockedPoolSize: 60,
     habitatVisits: {},
-    seed: "route-1-capture",
+    seed: "elmuria-capture",
   });
 
   assert.equal(result.caught, true);
-  assert.equal(result.habitat.id, "route-1");
-  assert.ok(["pidgey", "rattata"].includes(result.lineId));
+  assert.equal(result.habitat.id, "elmuria");
+  assert.ok(elmuriaLineIds.includes(result.lineId));
 });
 
 test("habitat selection reserves 40 percent for the latest unlocked habitat", () => {
@@ -97,25 +97,25 @@ test("habitat selection reserves 40 percent for the latest unlocked habitat", ()
     rng: () => 0.39,
   });
 
-  assert.equal(habitat.id, "route-3");
+  assert.equal(habitat.id, "apple-town");
 });
 
 test("habitat selection weights non-latest habitats by fewer visits", () => {
   const rolls = [0.4, 0.95];
   const habitat = pickHabitat({
-    unlockedPoolSize: 120,
-    habitatVisits: { "route-1": 9, "route-22": 0 },
+    unlockedPoolSize: 180,
+    habitatVisits: { elmuria: 9, everstep: 0 },
     rng: () => rolls.shift(),
   });
 
-  assert.equal(habitat.id, "route-22");
+  assert.equal(habitat.id, "everstep");
 });
 
 test("capture results are reproducible with the same seed", () => {
   const input = {
     grade: "A",
     unlockedPoolSize: 1200,
-    habitatVisits: { "route-1": 2 },
+    habitatVisits: { elmuria: 2 },
     seed: "same-seed",
   };
 
@@ -123,23 +123,24 @@ test("capture results are reproducible with the same seed", () => {
 });
 
 test("capture can use a habitat chosen before the play starts", () => {
-  const route2 = HABITATS.find(habitat => habitat.id === "route-2");
+  const everstep = HABITATS.find(habitat => habitat.id === "everstep");
+  const eversteplineIds = normalizeEncounters(everstep.encounters).map(encounter => encounter.lineId);
   const result = rollCaptureEncounter({
     grade: "S",
     unlockedPoolSize: 120,
     habitatVisits: {},
     seed: "preselected-habitat",
-    habitat: route2,
+    habitat: everstep,
   });
 
   assert.equal(result.caught, true);
-  assert.equal(result.habitat.id, "route-2");
-  assert.ok(["pidgey", "rattata", "caterpie", "weedle"].includes(result.lineId));
+  assert.equal(result.habitat.id, "everstep");
+  assert.ok(eversteplineIds.includes(result.lineId));
 });
 
 test("all habitat encounter lines are defined monster lines", () => {
   for (const habitat of HABITATS) {
-    const encounters = normalizeVersionedEncounters(habitat.versionEncounters);
+    const encounters = normalizeEncounters(habitat.encounters);
     for (const encounter of encounters) {
       assert.equal(getMonsterLine(encounter.lineId).id, encounter.lineId);
     }
@@ -149,7 +150,7 @@ test("all habitat encounter lines are defined monster lines", () => {
 test("applying a caught result adds a boxed pokemon and increments habitat visits", () => {
   const result = {
     caught: true,
-    habitat: { id: "route-1", name: "Route 1" },
+    habitat: { id: "elmuria", name: "エルムリア" },
     lineId: "pidgey",
     monsterId: "caught-pidgey-test",
   };
@@ -157,14 +158,14 @@ test("applying a caught result adds a boxed pokemon and increments habitat visit
   const next = applyCaptureResultToCollection(DEFAULT_MONSTER_COLLECTION, result);
 
   assert.equal(next.monsters.some(monster => monster.id === "caught-pidgey-test"), true);
-  assert.equal(next.habitatVisits["route-1"], 1);
+  assert.equal(next.habitatVisits["elmuria"], 1);
   assert.equal(next.partyIds.includes("caught-pidgey-test"), false);
 });
 
 test("applying a caught result preserves the intended level", () => {
   const result = {
     caught: true,
-    habitat: { id: "route-1", name: "Route 1" },
+    habitat: { id: "elmuria", name: "エルムリア" },
     lineId: "pidgey",
     monsterId: "caught-pidgey-level-test",
     level: 5,
@@ -251,6 +252,57 @@ test("applying an item pickup result assigns a held item to the selected monster
   assert.ok(monster, "monster should still exist");
   assert.equal(monster.heldItemType, "cable");
   assert.equal(monster.heldItemName, "つうしんケーブル");
+});
+
+test("normalizeMonsterCollection migrates legacy habitat ids in habitatVisits and sums colliding counts", () => {
+  const next = normalizeMonsterCollection({
+    ...DEFAULT_MONSTER_COLLECTION,
+    habitatVisits: {
+      "route-1": 3,
+      "route-22": 2,
+      "route-2": 1,
+      "viridian-forest": 4,
+      "mt-moon": 5,
+    },
+  });
+
+  assert.equal(next.habitatVisits["elmuria"], 10);
+  assert.equal(next.habitatVisits["hoshi-no-kumoi"], 5);
+  assert.equal("route-1" in next.habitatVisits, false);
+  assert.equal("mt-moon" in next.habitatVisits, false);
+});
+
+test("normalizeMonsterCollection migrates legacy habitat ids stored as monster.acquiredAt", () => {
+  const next = normalizeMonsterCollection({
+    ...DEFAULT_MONSTER_COLLECTION,
+    monsters: [
+      { id: "caught-pidgey-legacy", lineId: "pidgey", totalXP: getXpForLevel(5), acquiredAt: "route-1" },
+      { id: "caught-magnemite-legacy", lineId: "magnemite", totalXP: getXpForLevel(22), acquiredAt: "power-plant" },
+    ],
+  });
+
+  const pidgey = next.monsters.find(m => m.id === "caught-pidgey-legacy");
+  const magnemite = next.monsters.find(m => m.id === "caught-magnemite-legacy");
+  assert.equal(pidgey.acquiredAt, "elmuria");
+  assert.equal(magnemite.acquiredAt, "great-firefly-city");
+});
+
+test("normalizeMonsterCollection leaves non-habitat acquiredAt values untouched", () => {
+  const next = normalizeMonsterCollection({
+    ...DEFAULT_MONSTER_COLLECTION,
+    monsters: [
+      { id: "starter-bulbasaur", lineId: "bulbasaur", totalXP: getXpForLevel(5), acquiredAt: "oak-starter" },
+      { id: "reward-dojo-hitmonlee", lineId: "hitmonlee", totalXP: getXpForLevel(30), acquiredAt: "dojo-reward" },
+      { id: "gift-rival-starter-charmander", lineId: "charmander", totalXP: getXpForLevel(61), acquiredAt: "rival-champion-gift" },
+    ],
+  });
+
+  const starter = next.monsters.find(m => m.id === "starter-bulbasaur");
+  const dojoReward = next.monsters.find(m => m.id === "reward-dojo-hitmonlee");
+  const rivalGift = next.monsters.find(m => m.id === "gift-rival-starter-charmander");
+  assert.equal(starter.acquiredAt, "oak-starter");
+  assert.equal(dojoReward.acquiredAt, "dojo-reward");
+  assert.equal(rivalGift.acquiredAt, "rival-champion-gift");
 });
 
 // KNOWN ISSUE: lib/monster.ts currently ships the pre-Etymon-rename species
