@@ -38,5 +38,5 @@ export const ETYMON_NAME_OVERRIDES: Record<string, EtymonNameOverride> = {
   onix: { final: "モスマン" },
   farfetchd: { final: "ユニコーン" },
   paras: { base: "シャルベルム", final: "コーデベルム" },
-  doduo: { final: "オディール" },
+  ditto: { final: "オディール" },
 };
