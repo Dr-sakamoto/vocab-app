@@ -125,7 +125,7 @@ test("professor transfer gifts are awarded at higher thresholds too", () => {
 
 test("pool gifts are awarded when the original-route milestone is reached", () => {
   const result = awardEligibleGiftMonsters(DEFAULT_MONSTER_COLLECTION, {
-    unlockedPoolSize: habitatMinPools["route-7"],
+    unlockedPoolSize: 840,
     trigger: "pool",
     habitatMinPools,
   });
@@ -143,7 +143,7 @@ test("pool gifts are awarded for later story milestones", () => {
       "celadon-porygon": true,
     },
   }, {
-    unlockedPoolSize: habitatMinPools["pokemon-tower"],
+    unlockedPoolSize: 960,
     trigger: "pool",
     habitatMinPools,
   });
@@ -154,13 +154,13 @@ test("pool gifts are awarded for later story milestones", () => {
 
 test("fossil gift waits for player choice and awards only one fossil", () => {
   const pending = getPendingFossilGift(DEFAULT_MONSTER_COLLECTION, {
-    unlockedPoolSize: habitatMinPools["pokemon-mansion"],
+    unlockedPoolSize: 1500,
     habitatMinPools,
   });
   assert.equal(pending?.id, "cinnabar-fossil");
 
   const autoAward = awardEligibleGiftMonsters(DEFAULT_MONSTER_COLLECTION, {
-    unlockedPoolSize: habitatMinPools["pokemon-mansion"],
+    unlockedPoolSize: 1500,
     trigger: "pool",
     habitatMinPools,
   });

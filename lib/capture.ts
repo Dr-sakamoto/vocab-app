@@ -80,425 +80,140 @@ export interface Encounter {
   lineId?: string;
 }
 
-export interface VersionEncounters {
-  fireRed: Encounter[];
-  leafGreen: Encounter[];
-}
-
 export interface Habitat {
   id: string;
   name: string;
   minPool: number;
-  encounterRule: string;
-  versionEncounters: VersionEncounters;
+  encounters: Encounter[];
 }
-
-const both = (encounters: Encounter[]): VersionEncounters => ({ fireRed: encounters, leafGreen: encounters });
-const split = (fireRed: Encounter[], leafGreen: Encounter[]): VersionEncounters => ({ fireRed, leafGreen });
 
 export const HABITATS: Habitat[] = [
   {
-    id: "route-1",
-    name: "1ばんどうろ",
+    id: "elmuria",
+    name: "エルムリア",
     minPool: 60,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
+    encounters: [
       { speciesId: 16, minLevel: 2, maxLevel: 5,  rate: 50 },
       { speciesId: 19, minLevel: 2, maxLevel: 4,  rate: 50 },
-    ]),
-  },
-  {
-    id: "route-22",
-    name: "22ばんどうろ",
-    minPool: 90,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
       { speciesId: 19, minLevel: 2, maxLevel: 5,  rate: 45 },
       { speciesId: 56, minLevel: 2, maxLevel: 5,  rate: 45 },
       { speciesId: 21, minLevel: 3, maxLevel: 5,  rate: 10 },
-    ]),
-  },
-  {
-    id: "route-2",
-    name: "2ばんどうろ",
-    minPool: 120,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
       { speciesId: 16, minLevel: 2, maxLevel: 5,  rate: 45 },
       { speciesId: 19, minLevel: 2, maxLevel: 5,  rate: 45 },
       { speciesId: 10, minLevel: 4, maxLevel: 5,  rate:  5 },
       { speciesId: 13, minLevel: 4, maxLevel: 5,  rate:  5 },
-    ]),
-  },
-  {
-    id: "viridian-forest",
-    name: "トキワのもり",
-    minPool: 150,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
       { speciesId: 10, minLevel: 3, maxLevel: 5,  rate: 40 },
       { speciesId: 11, minLevel: 4, maxLevel: 6,  rate: 7.5 },
       { speciesId: 13, minLevel: 3, maxLevel: 5,  rate: 40 },
       { speciesId: 14, minLevel: 4, maxLevel: 6,  rate:  7.5 },
       { speciesId: 25, minLevel: 3, maxLevel: 5,  rate:  5 },
-    ]),
+    ],
   },
   {
-    id: "route-3",
-    name: "3ばんどうろ",
-    minPool: 180,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
+    id: "everstep",
+    name: "エバーステップ",
+    minPool: 120,
+    encounters: [
       { speciesId: 21, minLevel: 6, maxLevel: 8,  rate: 35 },
       { speciesId: 16, minLevel: 6, maxLevel: 7,  rate: 30 },
       { speciesId: 39, minLevel: 3, maxLevel: 7,  rate: 10 },
       { speciesId: 56, minLevel: 7, maxLevel: 7,  rate: 10 },
       { speciesId: 29, minLevel: 6, maxLevel: 7,  rate: 10 },
       { speciesId: 32, minLevel: 6, maxLevel: 7,  rate:  5 },
-    ]),
-  },
-  {
-    id: "mt-moon",
-    name: "おつきみやま",
-    minPool: 240,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
-      { speciesId: 41, minLevel:  7, maxLevel: 11, rate: 49 },
-      { speciesId: 74, minLevel:  7, maxLevel: 10, rate: 30 },
-      { speciesId: 46, minLevel:  5, maxLevel: 12, rate: 15 },
-      { speciesId: 35, minLevel:  8, maxLevel: 12, rate:  6 },
-    ]),
-  },
-  {
-    id: "route-4",
-    name: "4ばんどうろ",
-    minPool: 300,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
       { speciesId: 19, minLevel:  8, maxLevel: 12, rate: 35 },
       { speciesId: 21, minLevel:  8, maxLevel: 12, rate: 35 },
       { speciesId: 23, minLevel:  6, maxLevel: 12, rate: 15 },
       { speciesId: 27, minLevel:  6, maxLevel: 12, rate: 15 },
-    ]),
-  },
-  {
-    id: "route-24",
-    name: "24ばんどうろ",
-    minPool: 360,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 43, minLevel: 12, maxLevel: 14, rate: 25 },
-        { speciesId: 10, minLevel:  7, maxLevel:  7, rate: 21 },
-        { speciesId: 13, minLevel:  7, maxLevel:  7, rate: 24 },
-        { speciesId: 16, minLevel: 11, maxLevel: 13, rate: 15 },
-        { speciesId: 63, minLevel:  8, maxLevel: 12, rate: 15 },
-      ],
-      [
-        { speciesId: 69, minLevel: 12, maxLevel: 14, rate: 25 },
-        { speciesId: 10, minLevel:  7, maxLevel:  7, rate: 24 },
-        { speciesId: 13, minLevel:  7, maxLevel:  7, rate: 21 },
-        { speciesId: 16, minLevel: 11, maxLevel: 13, rate: 15 },
-        { speciesId: 63, minLevel:  8, maxLevel: 12, rate: 15 },
-      ],
-    ),
-  },
-  {
-    id: "route-25",
-    name: "25ばんどうろ",
-    minPool: 420,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 43, minLevel: 12, maxLevel: 14, rate: 25 },
-        { speciesId: 10, minLevel:  8, maxLevel:  8, rate: 21 },
-        { speciesId: 13, minLevel:  8, maxLevel:  8, rate: 24 },
-        { speciesId: 16, minLevel: 11, maxLevel: 13, rate: 15 },
-        { speciesId: 63, minLevel:  9, maxLevel: 13, rate: 15 },
-      ],
-      [
-        { speciesId: 69, minLevel: 12, maxLevel: 14, rate: 25 },
-        { speciesId: 10, minLevel:  8, maxLevel:  8, rate: 24 },
-        { speciesId: 13, minLevel:  8, maxLevel:  8, rate: 21 },
-        { speciesId: 16, minLevel: 11, maxLevel: 13, rate: 15 },
-        { speciesId: 63, minLevel:  9, maxLevel: 13, rate: 15 },
-      ],
-    ),
-  },
-  {
-    id: "route-5",
-    name: "5ばんどうろ",
-    minPool: 480,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 16, minLevel: 13, maxLevel: 16, rate: 40 },
-        { speciesId: 52, minLevel: 10, maxLevel: 16, rate: 25 },
-        { speciesId: 43, minLevel: 13, maxLevel: 16, rate: 25 },
-        { speciesId: 56, minLevel: 13, maxLevel: 16, rate: 10 },
-      ],
-      [
-        { speciesId: 16, minLevel: 13, maxLevel: 16, rate: 40 },
-        { speciesId: 52, minLevel: 10, maxLevel: 16, rate: 25 },
-        { speciesId: 69, minLevel: 13, maxLevel: 16, rate: 25 },
-        { speciesId: 56, minLevel: 13, maxLevel: 16, rate: 10 },
-      ],
-    ),
-  },
-  {
-    id: "route-6",
-    name: "6ばんどうろ",
-    minPool: 540,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 16, minLevel: 13, maxLevel: 16, rate: 40 },
-        { speciesId: 52, minLevel: 10, maxLevel: 16, rate: 25 },
-        { speciesId: 43, minLevel: 13, maxLevel: 16, rate: 25 },
-        { speciesId: 56, minLevel: 13, maxLevel: 16, rate: 10 },
-      ],
-      [
-        { speciesId: 16, minLevel: 13, maxLevel: 16, rate: 40 },
-        { speciesId: 52, minLevel: 10, maxLevel: 16, rate: 25 },
-        { speciesId: 69, minLevel: 13, maxLevel: 16, rate: 25 },
-        { speciesId: 56, minLevel: 13, maxLevel: 16, rate: 10 },
-      ],
-    ),
-  },
-  {
-    id: "digletts-cave",
-    name: "ディグダのあな",
-    minPool: 600,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
-      { speciesId: 50, minLevel: 15, maxLevel: 31, rate: 95 },
-      { speciesId: 51, minLevel: 26, maxLevel: 29, rate:  5 },
-    ]),
-  },
-  {
-    id: "route-11",
-    name: "11ばんどうろ",
-    minPool: 660,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
-      { speciesId: 21, minLevel: 13, maxLevel: 17, rate: 35 },
-      { speciesId: 96, minLevel: 11, maxLevel: 15, rate: 25 },
-      { speciesId: 23, minLevel: 12, maxLevel: 15, rate: 20 },
-      { speciesId: 27, minLevel: 12, maxLevel: 15, rate: 20 },
-    ]),
-  },
-  {
-    id: "route-9",
-    name: "9ばんどうろ",
-    minPool: 720,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 21, minLevel: 13, maxLevel: 17, rate: 35 },
-        { speciesId: 19, minLevel: 14, maxLevel: 17, rate: 30 },
-        { speciesId: 23, minLevel: 11, maxLevel: 17, rate: 25 },
-        { speciesId: 27, minLevel: 11, maxLevel: 17, rate: 10 },
-      ],
-      [
-        { speciesId: 21, minLevel: 13, maxLevel: 17, rate: 35 },
-        { speciesId: 19, minLevel: 14, maxLevel: 17, rate: 30 },
-        { speciesId: 27, minLevel: 11, maxLevel: 17, rate: 25 },
-        { speciesId: 23, minLevel: 11, maxLevel: 17, rate: 10 },
-      ],
-    ),
-  },
-  {
-    id: "rock-tunnel",
-    name: "イワヤマトンネル",
-    minPool: 780,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
-      { speciesId: 41, minLevel: 15, maxLevel: 16, rate: 35 },
-      { speciesId: 74, minLevel: 15, maxLevel: 17, rate: 35 },
-      { speciesId: 66, minLevel: 16, maxLevel: 17, rate: 15 },
-      { speciesId: 95, minLevel: 13, maxLevel: 17, rate: 10 },
-      { speciesId: 56, minLevel: 16, maxLevel: 17, rate:  5 },
-    ]),
-  },
-  {
-    id: "route-7",
-    name: "7ばんどうろ",
-    minPool: 840,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 16, minLevel: 19, maxLevel: 22, rate: 30 },
-        { speciesId: 43, minLevel: 19, maxLevel: 22, rate: 30 },
-        { speciesId: 52, minLevel: 17, maxLevel: 20, rate: 20 },
-        { speciesId: 58, minLevel: 18, maxLevel: 20, rate: 20 },
-      ],
-      [
-        { speciesId: 16, minLevel: 19, maxLevel: 22, rate: 30 },
-        { speciesId: 69, minLevel: 19, maxLevel: 22, rate: 30 },
-        { speciesId: 52, minLevel: 17, maxLevel: 20, rate: 20 },
-        { speciesId: 37, minLevel: 18, maxLevel: 20, rate: 20 },
-      ],
-    ),
-  },
-  {
-    id: "route-8",
-    name: "8ばんどうろ",
-    minPool: 900,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 16, minLevel: 18, maxLevel: 20, rate: 30 },
-        { speciesId: 52, minLevel: 18, maxLevel: 20, rate: 30 },
-        { speciesId: 58, minLevel: 15, maxLevel: 18, rate: 20 },
-        { speciesId: 23, minLevel: 17, maxLevel: 19, rate: 20 },
-      ],
-      [
-        { speciesId: 16, minLevel: 18, maxLevel: 20, rate: 30 },
-        { speciesId: 52, minLevel: 18, maxLevel: 20, rate: 30 },
-        { speciesId: 37, minLevel: 15, maxLevel: 18, rate: 20 },
-        { speciesId: 27, minLevel: 17, maxLevel: 19, rate: 20 },
-      ],
-    ),
-  },
-  {
-    id: "pokemon-tower",
-    name: "エティモンタワー",
-    minPool: 960,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
-      { speciesId: 92, minLevel: 13, maxLevel: 19, rate: 75 },
-      { speciesId: 93, minLevel: 13, maxLevel: 19, rate: 15 },
-      { speciesId: 104, minLevel: 15, maxLevel: 19, rate: 10 },
-    ]),
-  },
-  {
-    id: "route-10",
-    name: "10ばんどうろ",
-    minPool: 1020,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 100, minLevel: 14, maxLevel: 17, rate: 40 },
-        { speciesId: 21,  minLevel: 13, maxLevel: 17, rate: 35 },
-        { speciesId: 23,  minLevel: 11, maxLevel: 17, rate: 25 },
-      ],
-      [
-        { speciesId: 100, minLevel: 14, maxLevel: 17, rate: 40 },
-        { speciesId: 21,  minLevel: 13, maxLevel: 17, rate: 35 },
-        { speciesId: 27,  minLevel: 11, maxLevel: 17, rate: 25 },
-      ],
-    ),
-  },
-  {
-    id: "power-plant",
-    name: "むじんはつでんしょ",
-    minPool: 1080,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
-      { speciesId: 81,  minLevel: 22, maxLevel: 25, rate: 30},
-      { speciesId: 82,  minLevel: 31, maxLevel: 34, rate: 10 },
-      { speciesId: 100, minLevel: 22, maxLevel: 25, rate: 35 },
-      { speciesId: 25,  minLevel: 22, maxLevel: 26, rate: 20 },
-      { speciesId: 125, minLevel: 32, maxLevel: 35, rate:  5 },
-    ]),
-  },
-  {
-    id: "routes-12-15",
-    name: "12ばんどうろ - 15ばんどうろ",
-    minPool: 1140,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 43, minLevel: 22, maxLevel: 26, rate: 35 },
-        { speciesId: 48, minLevel: 24, maxLevel: 26, rate: 30 },
-        { speciesId: 16, minLevel: 23, maxLevel: 29, rate: 20 },
-        { speciesId: 17, minLevel: 29, maxLevel: 29, rate: 5 },
-        { speciesId: 44, minLevel: 22, maxLevel: 26, rate: 5 },
-        { speciesId: 132, minLevel: 25, maxLevel: 25, rate: 5 },
-      ],
-      [
-        { speciesId: 69, minLevel: 22, maxLevel: 30, rate: 35 },
-        { speciesId: 48, minLevel: 24, maxLevel: 26, rate: 30 },
-        { speciesId: 16, minLevel: 23, maxLevel: 29, rate: 20 },
-        { speciesId: 17, minLevel: 29, maxLevel: 29, rate: 5 },
-        { speciesId: 70, minLevel: 22, maxLevel: 26, rate: 5 },
-        { speciesId: 132, minLevel: 25, maxLevel: 25, rate: 5 },
-      ],
-    ),
-  },
-  {
-    id: "routes-16-18",
-    name: "16ばんどうろ - 18ばんどうろ",
-    minPool: 1200,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
+      { speciesId: 16, minLevel: 13, maxLevel: 16, rate: 40 },
+      { speciesId: 52, minLevel: 10, maxLevel: 16, rate: 25 },
+      { speciesId: 43, minLevel: 13, maxLevel: 16, rate: 25 },
+      { speciesId: 56, minLevel: 13, maxLevel: 16, rate: 10 },
+      { speciesId: 16, minLevel: 13, maxLevel: 16, rate: 40 },
+      { speciesId: 52, minLevel: 10, maxLevel: 16, rate: 25 },
+      { speciesId: 69, minLevel: 13, maxLevel: 16, rate: 25 },
+      { speciesId: 56, minLevel: 13, maxLevel: 16, rate: 10 },
       { speciesId: 21, minLevel: 20, maxLevel: 22, rate: 30 },
       { speciesId: 22, minLevel: 25, maxLevel: 29, rate: 15 },
       { speciesId: 84, minLevel: 24, maxLevel: 28, rate: 35 },
       { speciesId: 19, minLevel: 22, maxLevel: 22, rate: 5 },
       { speciesId: 20, minLevel: 25, maxLevel: 29, rate: 15 },
-    ]),
+    ],
   },
   {
-    id: "safari-zone",
-    name: "サファリゾーン",
-    minPool: 1320,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 32,  minLevel: 22, maxLevel: 30, rate: 20 },
-        { speciesId: 46,  minLevel: 22, maxLevel: 30, rate: 15 },
-        { speciesId: 111, minLevel: 25, maxLevel: 26, rate: 20 },
-        { speciesId: 102, minLevel: 23, maxLevel: 27, rate: 20 },
-        { speciesId: 84,  minLevel: 26, maxLevel: 26, rate:  5 },
-        { speciesId: 113, minLevel: 23, maxLevel: 26, rate:  5 },
-        { speciesId: 115, minLevel: 25, maxLevel: 28, rate:  5 },
-        { speciesId: 128, minLevel: 25, maxLevel: 28, rate:  5 },
-        { speciesId: 123, minLevel: 23, maxLevel: 27, rate:  5 },
-      ],
-      [
-        { speciesId: 29,  minLevel: 22, maxLevel: 30, rate: 20 },
-        { speciesId: 46,  minLevel: 22, maxLevel: 30, rate: 15 },
-        { speciesId: 111, minLevel: 25, maxLevel: 26, rate: 20 },
-        { speciesId: 102, minLevel: 23, maxLevel: 27, rate: 20 },
-        { speciesId: 84,  minLevel: 26, maxLevel: 26, rate:  5 },
-        { speciesId: 113, minLevel: 23, maxLevel: 26, rate:  5 },
-        { speciesId: 115, minLevel: 25, maxLevel: 28, rate:  5 },
-        { speciesId: 128, minLevel: 25, maxLevel: 28, rate:  5 },
-        { speciesId: 127, minLevel: 23, maxLevel: 27, rate:  5 },
-      ],
-    ),
+    id: "apple-town",
+    name: "アップルタウン",
+    minPool: 180,
+    encounters: [
+      { speciesId: 32,  minLevel: 22, maxLevel: 30, rate: 20 },
+      { speciesId: 46,  minLevel: 22, maxLevel: 30, rate: 15 },
+      { speciesId: 111, minLevel: 25, maxLevel: 26, rate: 20 },
+      { speciesId: 102, minLevel: 23, maxLevel: 27, rate: 20 },
+      { speciesId: 84,  minLevel: 26, maxLevel: 26, rate:  5 },
+      { speciesId: 113, minLevel: 23, maxLevel: 26, rate:  5 },
+      { speciesId: 115, minLevel: 25, maxLevel: 28, rate:  5 },
+      { speciesId: 128, minLevel: 25, maxLevel: 28, rate:  5 },
+      { speciesId: 123, minLevel: 23, maxLevel: 27, rate:  5 },
+      { speciesId: 29,  minLevel: 22, maxLevel: 30, rate: 20 },
+      { speciesId: 46,  minLevel: 22, maxLevel: 30, rate: 15 },
+      { speciesId: 111, minLevel: 25, maxLevel: 26, rate: 20 },
+      { speciesId: 102, minLevel: 23, maxLevel: 27, rate: 20 },
+      { speciesId: 84,  minLevel: 26, maxLevel: 26, rate:  5 },
+      { speciesId: 113, minLevel: 23, maxLevel: 26, rate:  5 },
+      { speciesId: 115, minLevel: 25, maxLevel: 28, rate:  5 },
+      { speciesId: 128, minLevel: 25, maxLevel: 28, rate:  5 },
+      { speciesId: 127, minLevel: 23, maxLevel: 27, rate:  5 },
+    ],
   },
   {
-    id: "pokemon-mansion",
-    name: "エティモンやしき",
-    minPool: 1500,
-    encounterRule: "frlg-version-average",
-    versionEncounters: split(
-      [
-        { speciesId: 19,  minLevel: 26, maxLevel: 28, rate: 15 },
-        { speciesId: 20,  minLevel: 32, maxLevel: 36, rate: 30 },
-        { speciesId: 109, minLevel: 28, maxLevel: 28, rate: 35 },
-        { speciesId: 110, minLevel: 32, maxLevel: 32, rate: 5 },
-        { speciesId: 58,  minLevel: 30, maxLevel: 32, rate: 15 },
-        { speciesId: 126, minLevel: 34, maxLevel: 36, rate: 5 },
-      ],
-      [
-        { speciesId: 19,  minLevel: 26, maxLevel: 28, rate: 15 },
-        { speciesId: 20,  minLevel: 32, maxLevel: 36, rate: 30 },
-        { speciesId: 88,  minLevel: 28, maxLevel: 30, rate: 35 },
-        { speciesId: 89,  minLevel: 30, maxLevel: 32, rate: 5 },
-        { speciesId: 37,  minLevel: 30, maxLevel: 32, rate: 15 },
-        { speciesId: 126, minLevel: 34, maxLevel: 36, rate: 5 },
-      ],
-    ),
+    id: "old-smoke",
+    name: "オールドスモーク",
+    minPool: 240,
+    encounters: [
+      { speciesId: 16, minLevel: 13, maxLevel: 16, rate: 40 },
+      { speciesId: 52, minLevel: 10, maxLevel: 16, rate: 25 },
+      { speciesId: 43, minLevel: 13, maxLevel: 16, rate: 25 },
+      { speciesId: 56, minLevel: 13, maxLevel: 16, rate: 10 },
+      { speciesId: 16, minLevel: 13, maxLevel: 16, rate: 40 },
+      { speciesId: 52, minLevel: 10, maxLevel: 16, rate: 25 },
+      { speciesId: 69, minLevel: 13, maxLevel: 16, rate: 25 },
+      { speciesId: 56, minLevel: 13, maxLevel: 16, rate: 10 },
+      { speciesId: 21, minLevel: 13, maxLevel: 17, rate: 35 },
+      { speciesId: 96, minLevel: 11, maxLevel: 15, rate: 25 },
+      { speciesId: 23, minLevel: 12, maxLevel: 15, rate: 20 },
+      { speciesId: 27, minLevel: 12, maxLevel: 15, rate: 20 },
+      { speciesId: 43, minLevel: 22, maxLevel: 26, rate: 35 },
+      { speciesId: 48, minLevel: 24, maxLevel: 26, rate: 30 },
+      { speciesId: 16, minLevel: 23, maxLevel: 29, rate: 20 },
+      { speciesId: 17, minLevel: 29, maxLevel: 29, rate: 5 },
+      { speciesId: 44, minLevel: 22, maxLevel: 26, rate: 5 },
+      { speciesId: 132, minLevel: 25, maxLevel: 25, rate: 5 },
+      { speciesId: 69, minLevel: 22, maxLevel: 30, rate: 35 },
+      { speciesId: 48, minLevel: 24, maxLevel: 26, rate: 30 },
+      { speciesId: 16, minLevel: 23, maxLevel: 29, rate: 20 },
+      { speciesId: 17, minLevel: 29, maxLevel: 29, rate: 5 },
+      { speciesId: 70, minLevel: 22, maxLevel: 26, rate: 5 },
+      { speciesId: 132, minLevel: 25, maxLevel: 25, rate: 5 },
+    ],
   },
   {
-    id: "seafoam-islands",
-    name: "ふたごじま",
-    minPool: 1620,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
+    id: "kapadra-cave",
+    name: "カパドラ洞窟",
+    minPool: 320,
+    encounters: [
+      { speciesId: 50, minLevel: 15, maxLevel: 31, rate: 95 },
+      { speciesId: 51, minLevel: 26, maxLevel: 29, rate:  5 },
+      { speciesId: 41, minLevel: 15, maxLevel: 16, rate: 35 },
+      { speciesId: 74, minLevel: 15, maxLevel: 17, rate: 35 },
+      { speciesId: 66, minLevel: 16, maxLevel: 17, rate: 15 },
+      { speciesId: 95, minLevel: 13, maxLevel: 17, rate: 10 },
+      { speciesId: 56, minLevel: 16, maxLevel: 17, rate:  5 },
+    ],
+  },
+  {
+    id: "alb-peak",
+    name: "アルバピーク",
+    minPool: 400,
+    encounters: [
       { speciesId: 41, minLevel: 22, maxLevel: 30, rate: 10 },
       { speciesId: 42, minLevel: 22, maxLevel: 30, rate: 10 },
       { speciesId: 54, minLevel: 26, maxLevel: 33, rate: 10 },
@@ -507,58 +222,99 @@ export const HABITATS: Habitat[] = [
       { speciesId: 80, minLevel: 26, maxLevel: 33, rate: 7.5 },
       { speciesId: 86, minLevel: 30, maxLevel: 32, rate: 40 },
       { speciesId: 87, minLevel: 32, maxLevel: 34, rate: 15 },
-    ]),
+    ],
   },
   {
-    id: "victory-road",
-    name: "チャンピオンロード",
-    minPool: 1800,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
-      { speciesId: 66, minLevel: 32, maxLevel: 32, rate: 20 },
-      { speciesId: 67, minLevel: 44, maxLevel: 46, rate: 5 },
-      { speciesId: 74, minLevel: 32, maxLevel: 32, rate: 15 },
-      { speciesId: 41, minLevel: 32, maxLevel: 32, rate: 10 },
-      { speciesId: 42, minLevel: 44, maxLevel: 44, rate: 5 },
-      { speciesId: 95, minLevel: 40, maxLevel: 46, rate: 25 },
-      { speciesId: 24, minLevel: 44, maxLevel: 44, rate: 5 },
-      { speciesId: 28, minLevel: 44, maxLevel: 44, rate: 5 },
-      { speciesId: 105, minLevel: 44, maxLevel: 46, rate: 5 },
-      { speciesId: 57, minLevel: 42, maxLevel: 42, rate: 5 },
-    ]),
+    id: "hoshi-no-kumoi",
+    name: "ほしのくもい",
+    minPool: 480,
+    encounters: [
+      { speciesId: 41, minLevel:  7, maxLevel: 11, rate: 49 },
+      { speciesId: 74, minLevel:  7, maxLevel: 10, rate: 30 },
+      { speciesId: 46, minLevel:  5, maxLevel: 12, rate: 15 },
+      { speciesId: 35, minLevel:  8, maxLevel: 12, rate:  6 },
+    ],
   },
   {
-    id: "cerulean-cave",
-    name: "ハナダのどうくつ",
-    minPool: 2200,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
-      { speciesId: 41,  minLevel: 46, maxLevel: 61, rate: 20 },
-      { speciesId: 46,  minLevel: 49, maxLevel: 64, rate: 10 },
-      { speciesId: 63,  minLevel: 55, maxLevel: 67, rate: 10 },
-      { speciesId: 66,  minLevel: 46, maxLevel: 52, rate: 10 },
-      { speciesId: 132, minLevel: 52, maxLevel: 67, rate: 10 },
-      { speciesId: 100, minLevel: 58, maxLevel: 64, rate: 10 },
-      { speciesId: 104, minLevel: 46, maxLevel: 67, rate: 10 },
-      { speciesId: 111, minLevel: 46, maxLevel: 67, rate: 10 },
-      { speciesId: 113, minLevel: 46, maxLevel: 67, rate: 10 },
-    ]),
+    id: "eterna-desert",
+    name: "エテルナ砂漠",
+    minPool: 580,
+    encounters: [
+      { speciesId: 21, minLevel: 13, maxLevel: 17, rate: 35 },
+      { speciesId: 19, minLevel: 14, maxLevel: 17, rate: 30 },
+      { speciesId: 23, minLevel: 11, maxLevel: 17, rate: 25 },
+      { speciesId: 27, minLevel: 11, maxLevel: 17, rate: 10 },
+      { speciesId: 21, minLevel: 13, maxLevel: 17, rate: 35 },
+      { speciesId: 19, minLevel: 14, maxLevel: 17, rate: 30 },
+      { speciesId: 27, minLevel: 11, maxLevel: 17, rate: 25 },
+      { speciesId: 23, minLevel: 11, maxLevel: 17, rate: 10 },
+      { speciesId: 100, minLevel: 14, maxLevel: 17, rate: 40 },
+      { speciesId: 21,  minLevel: 13, maxLevel: 17, rate: 35 },
+      { speciesId: 23,  minLevel: 11, maxLevel: 17, rate: 25 },
+      { speciesId: 100, minLevel: 14, maxLevel: 17, rate: 40 },
+      { speciesId: 21,  minLevel: 13, maxLevel: 17, rate: 35 },
+      { speciesId: 27,  minLevel: 11, maxLevel: 17, rate: 25 },
+    ],
   },
   {
-    id: "old-rod",
-    name: "ボロのつりざお",
-    minPool: 660,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
+    id: "great-firefly-city",
+    name: "大流蛍楼宇",
+    minPool: 700,
+    encounters: [
+      { speciesId: 92, minLevel: 13, maxLevel: 19, rate: 75 },
+      { speciesId: 93, minLevel: 13, maxLevel: 19, rate: 15 },
+      { speciesId: 104, minLevel: 15, maxLevel: 19, rate: 10 },
+      { speciesId: 81,  minLevel: 22, maxLevel: 25, rate: 30},
+      { speciesId: 82,  minLevel: 31, maxLevel: 34, rate: 10 },
+      { speciesId: 100, minLevel: 22, maxLevel: 25, rate: 35 },
+      { speciesId: 25,  minLevel: 22, maxLevel: 26, rate: 20 },
+      { speciesId: 125, minLevel: 32, maxLevel: 35, rate:  5 },
+      { speciesId: 16, minLevel: 19, maxLevel: 22, rate: 30 },
+      { speciesId: 43, minLevel: 19, maxLevel: 22, rate: 30 },
+      { speciesId: 52, minLevel: 17, maxLevel: 20, rate: 20 },
+      { speciesId: 58, minLevel: 18, maxLevel: 20, rate: 20 },
+      { speciesId: 16, minLevel: 19, maxLevel: 22, rate: 30 },
+      { speciesId: 69, minLevel: 19, maxLevel: 22, rate: 30 },
+      { speciesId: 52, minLevel: 17, maxLevel: 20, rate: 20 },
+      { speciesId: 37, minLevel: 18, maxLevel: 20, rate: 20 },
+      { speciesId: 16, minLevel: 18, maxLevel: 20, rate: 30 },
+      { speciesId: 52, minLevel: 18, maxLevel: 20, rate: 30 },
+      { speciesId: 58, minLevel: 15, maxLevel: 18, rate: 20 },
+      { speciesId: 23, minLevel: 17, maxLevel: 19, rate: 20 },
+      { speciesId: 16, minLevel: 18, maxLevel: 20, rate: 30 },
+      { speciesId: 52, minLevel: 18, maxLevel: 20, rate: 30 },
+      { speciesId: 37, minLevel: 15, maxLevel: 18, rate: 20 },
+      { speciesId: 27, minLevel: 17, maxLevel: 19, rate: 20 },
+    ],
+  },
+  {
+    id: "ultra-blue",
+    name: "ウルトラブルー",
+    minPool: 850,
+    encounters: [
+      { speciesId: 43, minLevel: 12, maxLevel: 14, rate: 25 },
+      { speciesId: 10, minLevel:  7, maxLevel:  7, rate: 21 },
+      { speciesId: 13, minLevel:  7, maxLevel:  7, rate: 24 },
+      { speciesId: 16, minLevel: 11, maxLevel: 13, rate: 15 },
+      { speciesId: 63, minLevel:  8, maxLevel: 12, rate: 15 },
+      { speciesId: 69, minLevel: 12, maxLevel: 14, rate: 25 },
+      { speciesId: 10, minLevel:  7, maxLevel:  7, rate: 24 },
+      { speciesId: 13, minLevel:  7, maxLevel:  7, rate: 21 },
+      { speciesId: 16, minLevel: 11, maxLevel: 13, rate: 15 },
+      { speciesId: 63, minLevel:  8, maxLevel: 12, rate: 15 },
+      { speciesId: 43, minLevel: 12, maxLevel: 14, rate: 25 },
+      { speciesId: 10, minLevel:  8, maxLevel:  8, rate: 21 },
+      { speciesId: 13, minLevel:  8, maxLevel:  8, rate: 24 },
+      { speciesId: 16, minLevel: 11, maxLevel: 13, rate: 15 },
+      { speciesId: 63, minLevel:  9, maxLevel: 13, rate: 15 },
+      { speciesId: 69, minLevel: 12, maxLevel: 14, rate: 25 },
+      { speciesId: 10, minLevel:  8, maxLevel:  8, rate: 24 },
+      { speciesId: 13, minLevel:  8, maxLevel:  8, rate: 21 },
+      { speciesId: 16, minLevel: 11, maxLevel: 13, rate: 15 },
+      { speciesId: 63, minLevel:  9, maxLevel: 13, rate: 15 },
+      { speciesId: 72, minLevel: 5,  maxLevel: 40, rate: 95 },
+      { speciesId: 73, minLevel: 30, maxLevel: 40, rate:  5 },
       { speciesId: 129, minLevel: 5, maxLevel: 5, rate: 100 },
-    ]),
-  },
-  {
-    id: "good-rod",
-    name: "いいつりざお",
-    minPool: 1320,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
       { speciesId: 129, minLevel: 10, maxLevel: 20, rate: 35 },
       { speciesId: 118, minLevel: 10, maxLevel: 20, rate: 25 },
       { speciesId: 60,  minLevel: 10, maxLevel: 20, rate: 15 },
@@ -566,24 +322,13 @@ export const HABITATS: Habitat[] = [
       { speciesId: 116, minLevel: 15, maxLevel: 25, rate:  5 },
       { speciesId: 98,  minLevel: 15, maxLevel: 25, rate:  5 },
       { speciesId: 54,  minLevel: 15, maxLevel: 25, rate:  5 },
-    ]),
+    ],
   },
   {
-    id: "sea-routes-19-21",
-    name: "19 - 21ばんすいどう",
-    minPool: 1380,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
-      { speciesId: 72, minLevel: 5,  maxLevel: 40, rate: 95 },
-      { speciesId: 73, minLevel: 30, maxLevel: 40, rate:  5 },
-    ]),
-  },
-  {
-    id: "super-rod",
-    name: "すごいつりざお",
-    minPool: 1380,
-    encounterRule: "frlg-version-average",
-    versionEncounters: both([
+    id: "tarasys-temple",
+    name: "タラシス海底神殿",
+    minPool: 1000,
+    encounters: [
       { speciesId: 130, minLevel: 20, maxLevel: 40, rate: 15 },
       { speciesId: 119, minLevel: 33, maxLevel: 45, rate: 15 },
       { speciesId: 61,  minLevel: 25, maxLevel: 40, rate: 15 },
@@ -595,7 +340,59 @@ export const HABITATS: Habitat[] = [
       { speciesId: 54,  minLevel: 25, maxLevel: 35, rate:  6 },
       { speciesId: 79,  minLevel: 25, maxLevel: 35, rate:  6 },
       { speciesId: 148, minLevel: 30, maxLevel: 40, rate:  1 },
-    ]),
+    ],
+  },
+  {
+    id: "la-amaranta",
+    name: "ラ・アマランタ",
+    minPool: 1150,
+    encounters: [
+      { speciesId: 19,  minLevel: 26, maxLevel: 28, rate: 15 },
+      { speciesId: 20,  minLevel: 32, maxLevel: 36, rate: 30 },
+      { speciesId: 109, minLevel: 28, maxLevel: 28, rate: 35 },
+      { speciesId: 110, minLevel: 32, maxLevel: 32, rate: 5 },
+      { speciesId: 58,  minLevel: 30, maxLevel: 32, rate: 15 },
+      { speciesId: 126, minLevel: 34, maxLevel: 36, rate: 5 },
+      { speciesId: 19,  minLevel: 26, maxLevel: 28, rate: 15 },
+      { speciesId: 20,  minLevel: 32, maxLevel: 36, rate: 30 },
+      { speciesId: 88,  minLevel: 28, maxLevel: 30, rate: 35 },
+      { speciesId: 89,  minLevel: 30, maxLevel: 32, rate: 5 },
+      { speciesId: 37,  minLevel: 30, maxLevel: 32, rate: 15 },
+      { speciesId: 126, minLevel: 34, maxLevel: 36, rate: 5 },
+    ],
+  },
+  {
+    id: "schwanburg-castle",
+    name: "シュヴァンブルク城",
+    minPool: 1280,
+    encounters: [
+      { speciesId: 66, minLevel: 32, maxLevel: 32, rate: 20 },
+      { speciesId: 67, minLevel: 44, maxLevel: 46, rate: 5 },
+      { speciesId: 74, minLevel: 32, maxLevel: 32, rate: 15 },
+      { speciesId: 41, minLevel: 32, maxLevel: 32, rate: 10 },
+      { speciesId: 42, minLevel: 44, maxLevel: 44, rate: 5 },
+      { speciesId: 95, minLevel: 40, maxLevel: 46, rate: 25 },
+      { speciesId: 24, minLevel: 44, maxLevel: 44, rate: 5 },
+      { speciesId: 28, minLevel: 44, maxLevel: 44, rate: 5 },
+      { speciesId: 105, minLevel: 44, maxLevel: 46, rate: 5 },
+      { speciesId: 57, minLevel: 42, maxLevel: 42, rate: 5 },
+    ],
+  },
+  {
+    id: "kapadra-underground",
+    name: "カパドラ地下帝国",
+    minPool: 1380,
+    encounters: [
+      { speciesId: 41,  minLevel: 46, maxLevel: 61, rate: 20 },
+      { speciesId: 46,  minLevel: 49, maxLevel: 64, rate: 10 },
+      { speciesId: 63,  minLevel: 55, maxLevel: 67, rate: 10 },
+      { speciesId: 66,  minLevel: 46, maxLevel: 52, rate: 10 },
+      { speciesId: 132, minLevel: 52, maxLevel: 67, rate: 10 },
+      { speciesId: 100, minLevel: 58, maxLevel: 64, rate: 10 },
+      { speciesId: 104, minLevel: 46, maxLevel: 67, rate: 10 },
+      { speciesId: 111, minLevel: 46, maxLevel: 67, rate: 10 },
+      { speciesId: 113, minLevel: 46, maxLevel: 67, rate: 10 },
+    ],
   },
 ];
 
@@ -636,40 +433,37 @@ export interface WeightedEncounter {
   maxLevel: number;
 }
 
-export function normalizeVersionedEncounters(versionEncounters: VersionEncounters | undefined): WeightedEncounter[] {
-  const versions = Object.values(versionEncounters ?? {}).filter(Array.isArray);
-  if (versions.length === 0) return [];
+export function normalizeEncounters(encounters: Encounter[] | undefined): WeightedEncounter[] {
+  if (!Array.isArray(encounters)) return [];
 
   const merged = new Map<string, WeightedEncounter>();
-  for (const encounters of versions) {
-    for (const encounter of encounters) {
-      const rate = Number(encounter.rate);
-      if (!Number.isFinite(rate) || rate <= 0) continue;
+  for (const encounter of encounters) {
+    const rate = Number(encounter.rate);
+    if (!Number.isFinite(rate) || rate <= 0) continue;
 
-      const lineId = encounter.lineId ?? getLineIdBySpeciesId(encounter.speciesId);
-      if (!lineId) continue;
+    const lineId = encounter.lineId ?? getLineIdBySpeciesId(encounter.speciesId);
+    if (!lineId) continue;
 
-      const line = getMonsterLine(lineId);
-      const defaultMinLevel = line?.species?.[0]?.minLevel ?? 1;
-      const rawMinLevel = Number(encounter.minLevel);
-      const rawMaxLevel = Number(encounter.maxLevel);
-      const minLevel = Number.isFinite(rawMinLevel) ? rawMinLevel : defaultMinLevel;
-      const maxLevel = Number.isFinite(rawMaxLevel) ? rawMaxLevel : minLevel;
-      const normalizedMin = Math.min(minLevel, maxLevel);
-      const normalizedMax = Math.max(minLevel, maxLevel);
-      const key = `${lineId}:${normalizedMin}:${normalizedMax}`;
-      const current = merged.get(key);
+    const line = getMonsterLine(lineId);
+    const defaultMinLevel = line?.species?.[0]?.minLevel ?? 1;
+    const rawMinLevel = Number(encounter.minLevel);
+    const rawMaxLevel = Number(encounter.maxLevel);
+    const minLevel = Number.isFinite(rawMinLevel) ? rawMinLevel : defaultMinLevel;
+    const maxLevel = Number.isFinite(rawMaxLevel) ? rawMaxLevel : minLevel;
+    const normalizedMin = Math.min(minLevel, maxLevel);
+    const normalizedMax = Math.max(minLevel, maxLevel);
+    const key = `${lineId}:${normalizedMin}:${normalizedMax}`;
+    const current = merged.get(key);
 
-      if (current) {
-        current.weight += rate / versions.length;
-      } else {
-        merged.set(key, {
-          lineId,
-          weight: rate / versions.length,
-          minLevel: normalizedMin,
-          maxLevel: normalizedMax,
-        });
-      }
+    if (current) {
+      current.weight += rate;
+    } else {
+      merged.set(key, {
+        lineId,
+        weight: rate,
+        minLevel: normalizedMin,
+        maxLevel: normalizedMax,
+      });
     }
   }
 
@@ -721,7 +515,7 @@ export function pickHabitat({
 }
 
 export function pickEncounterLine(habitat: Habitat, rng: () => number): WeightedEncounter | null {
-  const encounters = normalizeVersionedEncounters(habitat?.versionEncounters);
+  const encounters = normalizeEncounters(habitat?.encounters);
   return pickWeighted(encounters, encounter => encounter.weight, rng);
 }
 
