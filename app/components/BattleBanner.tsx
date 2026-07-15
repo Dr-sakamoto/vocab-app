@@ -34,18 +34,18 @@ export default function BattleBanner({
   const trainerSprite = getTrainerSprite(battle);
   const capturable = isCapturableBattle(battle);
   const tierLabel = battle.tier === "gym"
-    ? "ジムリーダー"
+    ? "ZONEマスター"
     : battle.tier === "legendary"
-      ? "伝説のエティモン"
+      ? "はじまりの言葉"
       : battle.tier === "symbol"
         ? "シンボル"
         : battle.tier === "rocket"
-          ? "ロケット団"
+          ? "ヤミ団"
           : battle.tier === "elite"
             ? "四天王"
             : battle.tier === "champion"
               ? "チャンピオン"
-              : "トレーナー";
+              : "なかま";
 
   return (
     <div className="mb-4 overflow-hidden rounded-2xl border-2 border-rose-500 bg-gradient-to-r from-rose-50 via-white to-rose-50 shadow-lg shadow-rose-200/50">
@@ -133,7 +133,7 @@ export default function BattleBanner({
             }`}
           >
             <span className="text-base">◎</span>
-            {useMasterBall ? "マスターボールを使う（勝利時100%捕獲）" : "マスターボールを使う"}
+            {useMasterBall ? "FULL SYNCを使う（勝利時100%成功）" : "FULL SYNCを使う"}
           </button>
         </div>
       )}

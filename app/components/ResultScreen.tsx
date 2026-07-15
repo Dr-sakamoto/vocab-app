@@ -62,7 +62,7 @@ export default function ResultScreen({
   const showWildMasterBall = masterBallAvailable && wildCaptureFailed;
 
   // 野生プレイの結果画面のみ、フローを止めないよう一定時間で自動的に次のプレイへ進む。
-  // マスターボールでの再捕獲を選べる間は、その判断を奪わないよう自動継続しない。
+  // FULL SYNCでの再捕獲を選べる間は、その判断を奪わないよう自動継続しない。
   const autoContinueEnabled = !isBattle && !showWildMasterBall;
   const [autoContinueSecondsLeft, setAutoContinueSecondsLeft] = useState(AUTO_CONTINUE_SECONDS);
 
@@ -306,7 +306,7 @@ export default function ResultScreen({
               className="btn-3d [--btn-edge:#4c1d95] flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-400 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-3 text-sm font-bold text-white hover:from-violet-500 hover:to-purple-500"
             >
               <span className="text-lg">◎</span>
-              マスターボールを使って捕獲する
+              FULL SYNCを使って成功させる
             </button>
           )}
 

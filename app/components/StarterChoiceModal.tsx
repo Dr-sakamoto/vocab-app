@@ -24,7 +24,7 @@ export default function StarterChoiceModal({ onSelect }: StarterChoiceModalProps
       >
         <h2 className="gradient-text font-display text-xl font-bold">エティモンを選ぶ</h2>
         <p className="mt-2 text-sm leading-6 text-zinc-600">
-          オーキド博士の研究所。最初のエティモンを1匹選んでください。
+          ナビの研究所。最初のエティモンを1匹選んでください。
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">

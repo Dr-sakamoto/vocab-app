@@ -256,7 +256,7 @@ export function awardMissingProfessorStarters(
       lineId,
       name: getMonsterLine(lineId)!.name,
       sprite: getSpecies(level, lineId).sprite,
-      message: `博士から${getMonsterLine(lineId)!.name}をもらった！`,
+      message: `ナビから${getMonsterLine(lineId)!.name}をもらった！`,
     });
   }
 

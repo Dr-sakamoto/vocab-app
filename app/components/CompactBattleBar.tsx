@@ -84,7 +84,7 @@ export default function CompactBattleBar({
             useMasterBall ? "bg-violet-700 text-white" : "bg-black/10 text-rose-50"
           }`}
         >
-          {useMasterBall ? "◎ マスターボール使用中" : "◎ マスターボールを使う"}
+          {useMasterBall ? "◎ FULL SYNC使用中" : "◎ FULL SYNCを使う"}
         </button>
       )}
     </div>

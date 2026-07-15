@@ -773,8 +773,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     level: 20,
     trigger: "professor-transfer",
     requiredTransfers: 50,
-    location: "クチバシティ",
-    message: "博士からカモネギをもらった！",
+    location: "エテルナ砂漠",
+    message: "ナビからカモネギをもらった！",
   },
   {
     id: "professor-mr-mime-100",
@@ -782,8 +782,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     level: 20,
     trigger: "professor-transfer",
     requiredTransfers: 100,
-    location: "2ばんどうろ",
-    message: "博士からバリヤードをもらった！",
+    location: "エルムリアの旧道",
+    message: "ナビからバリヤードをもらった！",
   },
   {
     id: "professor-lickitung-120",
@@ -791,8 +791,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     level: 25,
     trigger: "professor-transfer",
     requiredTransfers: 120,
-    location: "18ばんどうろ",
-    message: "博士からベロリンガをもらった！",
+    location: "オールドスモーク旧道",
+    message: "ナビからベロリンガをもらった！",
   },
   {
     id: "professor-jynx-150",
@@ -800,8 +800,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     level: 25,
     trigger: "professor-transfer",
     requiredTransfers: 150,
-    location: "ハナダシティ",
-    message: "博士からルージュラをもらった！",
+    location: "ウルトラブルー港町",
+    message: "ナビからルージュラをもらった！",
   },
   {
     id: "celadon-eevee",
@@ -810,8 +810,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     trigger: "pool",
     habitatId: "great-firefly-city",
     minPool: 840,
-    location: "タマムシシティ",
-    message: "タマムシシティでイーブイをもらった！",
+    location: "大流蛍楼宇",
+    message: "大流蛍楼宇でイーブイをもらった！",
   },
   {
     id: "celadon-porygon",
@@ -820,8 +820,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     trigger: "pool",
     habitatId: "great-firefly-city",
     minPool: 840,
-    location: "タマムシシティ",
-    message: "ゲームコーナーでポリゴンをもらった！",
+    location: "大流蛍楼宇",
+    message: "大流蛍楼宇のアーケードでポリゴンをもらった！",
   },
   {
     id: "silph-lapras",
@@ -830,8 +830,8 @@ export const GIFT_MONSTER_EVENTS: GiftMonsterEvent[] = [
     trigger: "pool",
     habitatId: "great-firefly-city",
     minPool: 960,
-    location: "シルフカンパニー",
-    message: "シルフカンパニーでラプラスをもらった！",
+    location: "コトダマ社",
+    message: "コトダマ社でラプラスをもらった！",
   },
 ];
 
@@ -855,12 +855,12 @@ export const FOSSIL_GIFT_GROUP: FossilGiftGroup = {
   trigger: "pool",
   habitatId: "la-amaranta",
   minPool: 1500,
-  location: "グレン島",
+  location: "ラ・アマランタ",
   level: 30,
   choices: [
-    { lineId: "omanyte", message: "グレン島の研究所でオムナイトを復元した！" },
-    { lineId: "kabuto", message: "グレン島の研究所でカブトを復元した！" },
-    { lineId: "aerodactyl", message: "グレン島の研究所でプテラを復元した！" },
+    { lineId: "omanyte", message: "ラ・アマランタの研究所でオムナイトを復元した！" },
+    { lineId: "kabuto", message: "ラ・アマランタの研究所でカブトを復元した！" },
+    { lineId: "aerodactyl", message: "ラ・アマランタの研究所でプテラを復元した！" },
   ],
 };
 
@@ -1476,7 +1476,7 @@ export function awardEligibleGiftMonsters(
 }
 
 export function getGiftToastTitle(gift: AwardedGiftMonster): string {
-  if (gift?.trigger === "professor-transfer") return "博士からもらった！";
+  if (gift?.trigger === "professor-transfer") return "ナビからもらった！";
   return "エティモンをもらった！";
 }
 
