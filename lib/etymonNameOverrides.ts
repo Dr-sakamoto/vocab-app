@@ -37,4 +37,6 @@ export const ETYMON_NAME_OVERRIDES: Record<string, EtymonNameOverride> = {
   hitmonlee: { final: "チュパカブラ" },
   onix: { final: "モスマン" },
   farfetchd: { final: "ユニコーン" },
+  paras: { base: "シャルベルム", final: "コーデベルム" },
+  doduo: { final: "オディール" },
 };
