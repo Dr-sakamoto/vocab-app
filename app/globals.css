@@ -519,9 +519,12 @@ a {
 }
 /* Lv./ATK/HPなど、単語の出題内容とは無関係な「システム表示」の英数字・記号用。
    添付のクロスステッチ見本(Blackletter)に寄せたファンタジー書体。
-   出題本体（.quest-card）には適用しないこと。 */
+   通常のテキストより装飾が強く小さいと読みにくいため、太めのweightで
+   一回り大きく表示する。出題本体（.quest-card）には適用しないこと。 */
 .font-fantasy {
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  font-size: 1.2em;
+  letter-spacing: 0.02em;
 }
 
 .fantasy-shell {
