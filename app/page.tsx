@@ -1103,7 +1103,7 @@ export default function Page() {
       enqueueGiftToasts(awarded);
       enqueueToasts(
         professorStarters.awarded.map((gift) => ({
-          title: "博士からの贈り物！",
+          title: "ナビからの贈り物！",
           message: gift.message,
           image: gift.sprite,
         })),

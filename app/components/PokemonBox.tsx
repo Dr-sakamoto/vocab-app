@@ -165,9 +165,9 @@ interface PieMenuProps {
 
 function PieMenu({ open, transferMode, onToggle, onDexSort, onLevelSort, onTransferMode }: PieMenuProps) {
   const items = [
-    { label: "図鑑No順整列", icon: "No", className: "-left-16 top-0", onClick: onDexSort },
+    { label: "DECK No順整列", icon: "No", className: "-left-16 top-0", onClick: onDexSort },
     { label: "レベル順整列", icon: "Lv", className: "top-16 left-0", onClick: onLevelSort },
-    { label: "博士に送る", icon: "🧪", className: "-left-16 -top-16", onClick: onTransferMode },
+    { label: "ナビに送る", icon: "🧪", className: "-left-16 -top-16", onClick: onTransferMode },
   ];
 
   return (
@@ -182,7 +182,7 @@ function PieMenu({ open, transferMode, onToggle, onDexSort, onLevelSort, onTrans
           className={[
             "absolute flex h-10 w-10 items-center justify-center rounded-full border text-xs font-bold shadow-sm transition",
             item.className,
-            transferMode && item.label === "博士に送る"
+            transferMode && item.label === "ナビに送る"
               ? "border-rose-300 bg-rose-50 text-rose-700"
               : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50",
           ].join(" ")}
@@ -335,7 +335,7 @@ export default function PokemonBox({
               <h2 className="text-lg font-semibold text-zinc-950">エティモン管理</h2>
               <p className={overLimit ? "text-sm font-semibold text-rose-600" : "text-xs text-zinc-500"}>
                 ボックス {boxMonsters.length} / {limit}
-                {totalTransferred > 0 && ` ・博士に送った数 ${totalTransferred}`}
+                {totalTransferred > 0 && ` ・ナビに送った数 ${totalTransferred}`}
               </p>
             </div>
           </div>
@@ -365,7 +365,7 @@ export default function PokemonBox({
             <input
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
-              placeholder="名前・図鑑Noで検索"
+              placeholder="名前・DECK Noで検索"
               className="h-10 min-w-[200px] rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-sky-300"
             />
           </div>
@@ -373,7 +373,7 @@ export default function PokemonBox({
 
         {overLimit && (
           <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-900">
-            ボックスが上限を超えています。{boxMonsters.length - limit}匹以上を博士に送ってください。
+            ボックスが上限を超えています。{boxMonsters.length - limit}匹以上をナビに送ってください。
           </div>
         )}
 
@@ -411,7 +411,7 @@ export default function PokemonBox({
               <div className="text-sm font-semibold text-zinc-700">ボックス</div>
               <div className="text-xs text-zinc-500">
                 通常表示
-                {transferMode && ` ・博士に送る ${transferIds.size}匹選択中`}
+                {transferMode && ` ・ナビに送る ${transferIds.size}匹選択中`}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -422,7 +422,7 @@ export default function PokemonBox({
                   disabled={transferIds.size === 0}
                   className="inline-flex h-10 items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-medium text-white hover:bg-rose-500 disabled:opacity-40"
                 >
-                  博士に送る
+                  ナビに送る
                 </button>
               )}
             </div>
@@ -475,7 +475,7 @@ export default function PokemonBox({
       {confirmOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/50 p-4">
           <div className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-xl">
-            <h3 className="text-lg font-semibold text-zinc-950">博士に送りますか？</h3>
+            <h3 className="text-lg font-semibold text-zinc-950">ナビに送りますか？</h3>
             <p className="mt-2 text-sm text-zinc-600">
               選択した{selectedTransferMonsters.length}匹はボックスからいなくなります。
             </p>

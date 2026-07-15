@@ -46,7 +46,7 @@ export function applyMasterBallCapture(
     masterBall: true,
     lineId: capturePreview.lineId,
     level: capturePreview.level ?? 1,
-    habitat: capturePreview.habitat ?? { id: "master-ball", name: "マスターボール" },
+    habitat: capturePreview.habitat ?? { id: "master-ball", name: "FULL SYNC" },
     monsterId: capturePreview.monsterId ?? `master-${capturePreview.lineId}-${Date.now().toString(36)}`,
     captureRate: 1,
     captureRoll: 0,
@@ -142,7 +142,7 @@ export function processBattleEnd({
           masterBall: true,
         };
         toasts.push({
-          title: "マスターボール！",
+          title: "FULL SYNC！",
           message: `${battle.name}を捕まえた！`,
           image: getOpponentPokemon(battle, 1, playLimit).sprite,
           duration: 2000,

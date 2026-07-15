@@ -51,13 +51,13 @@ export interface BattleTierConfig {
 }
 
 export const BATTLE_TIERS: Record<string, BattleTierConfig> = {
-  normal: { label: "トレーナー", winAccuracy: 0.6, xpMultiplier: 1.5, playLimit: 10 },
-  rocket: { label: "ロケット団", winAccuracy: 0.55, xpMultiplier: 1.5, playLimit: 10, questionMode: "weakness" },
-  gym: { label: "ジムリーダー", winAccuracy: 0.7, xpMultiplier: 1.8, playLimit: 10, blocksProgress: true },
+  normal: { label: "なかま", winAccuracy: 0.6, xpMultiplier: 1.5, playLimit: 10 },
+  rocket: { label: "ヤミ団", winAccuracy: 0.55, xpMultiplier: 1.5, playLimit: 10, questionMode: "weakness" },
+  gym: { label: "ZONEマスター", winAccuracy: 0.7, xpMultiplier: 1.8, playLimit: 10, blocksProgress: true },
   elite: { label: "四天王", winAccuracy: 0.75, xpMultiplier: 2.0, playLimit: 12, blocksProgress: true },
   champion: { label: "チャンピオン", winAccuracy: 0.8, xpMultiplier: 2.5, playLimit: 15, blocksProgress: true },
   symbol: { label: "シンロール", winAccuracy: 0.65, xpMultiplier: 1.6, playLimit: 10 },
-  legendary: { label: "伝説", winAccuracy: 0.7, xpMultiplier: 2.2, playLimit: 12 },
+  legendary: { label: "はじまりの言葉", winAccuracy: 0.7, xpMultiplier: 2.2, playLimit: 12 },
   endurance: { label: "トラップ", winAccuracy: 0.55, xpMultiplier: 1.4, playLimit: 80 },
   chain: { label: "連戦", winAccuracy: 0.6, xpMultiplier: 1.5, playLimit: 50 },
 };
@@ -66,7 +66,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "rival-1",
     name: "ライバル",
-    location: "オーキド研究所",
+    location: "ナビの研究所",
     tier: "normal",
     minPool: 60,
     habitatId: "elmuria",
@@ -76,7 +76,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "rival-2",
     name: "ライバル",
-    location: "22ばんどうろ",
+    location: "エルムリアの旧道",
     tier: "normal",
     minPool: 90,
     maxPool: 239,
@@ -90,8 +90,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "brock",
-    name: "タケシ",
-    location: "ニビジム",
+    name: "イワオ",
+    location: "エルムリア・ガンセキZONE",
     tier: "gym",
     minPool: 120,
     habitatId: "elmuria",
@@ -105,8 +105,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "rocket-mt-moon",
-    name: "ムサシ＆コジロウ",
-    location: "おつきみやま",
+    name: "リョウ＆マオ",
+    location: "つきみの霊嶺",
     tier: "rocket",
     minPool: 240,
     habitatId: "hoshi-no-kumoi",
@@ -120,7 +120,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "fossil-brother",
     name: "りかけいのおとこ",
-    location: "おつきみやま",
+    location: "つきみの霊嶺",
     tier: "normal",
     minPool: 240,
     habitatId: "hoshi-no-kumoi",
@@ -135,7 +135,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "rival-3",
     name: "ライバル",
-    location: "ハナダシティ",
+    location: "ウルトラブルー港町",
     tier: "normal",
     minPool: 420,
     habitatId: "ultra-blue",
@@ -148,8 +148,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "bridge-five",
-    name: "ゴールデンボールブリッジの5人",
-    location: "24ばんどうろ",
+    name: "黄金橋の5人",
+    location: "ウルトラブルー沿岸路",
     tier: "chain",
     minPool: 360,
     habitatId: "ultra-blue",
@@ -164,8 +164,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "rocket-scout",
-    name: "ロケット団スカウト員",
-    location: "24ばんどうろ",
+    name: "ヤミ団の見張り",
+    location: "ウルトラブルー沿岸路",
     tier: "rocket",
     minPool: 360,
     habitatId: "ultra-blue",
@@ -178,8 +178,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "misty",
-    name: "カスミ",
-    location: "ハナダジム",
+    name: "ミズキ",
+    location: "エバーステップ・アクアZONE",
     tier: "gym",
     minPool: 480,
     habitatId: "everstep",
@@ -194,8 +194,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "rocket-thief",
-    name: "泥棒ロケット団員",
-    location: "ハナダシティ",
+    name: "ヤミ団の盗賊",
+    location: "オールドスモーク周辺",
     tier: "rocket",
     minPool: 540,
     habitatId: "old-smoke",
@@ -209,7 +209,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "rival-4",
     name: "ライバル",
-    location: "サント・アンヌ号",
+    location: "はじまり号",
     tier: "normal",
     minPool: 660,
     habitatId: "old-smoke",
@@ -223,8 +223,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "surge",
-    name: "マチス",
-    location: "クチバジム",
+    name: "ライデン",
+    location: "エテルナ砂漠・ライデンZONE",
     tier: "gym",
     minPool: 720,
     habitatId: "eterna-desert",
@@ -239,8 +239,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "erika",
-    name: "エリカ",
-    location: "タマムシジム",
+    name: "サツキ",
+    location: "大流蛍楼宇・グリーンZONE",
     tier: "gym",
     minPool: 840,
     habitatId: "great-firefly-city",
@@ -255,8 +255,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "rocket-celadon",
-    name: "ムサシ＆コジロウ",
-    location: "タマムシ地下アジト",
+    name: "リョウ＆マオ",
+    location: "大流蛍楼宇地下アジト",
     tier: "rocket",
     minPool: 840,
     habitatId: "great-firefly-city",
@@ -269,8 +269,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "giovanni-1",
-    name: "サカキ",
-    location: "タマムシ地下アジト",
+    name: "クロヌシ",
+    location: "大流蛍楼宇地下アジト",
     tier: "gym",
     minPool: 840,
     habitatId: "great-firefly-city",
@@ -297,7 +297,7 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "rocket-tower",
-    name: "ロケット団員",
+    name: "ヤミ団員",
     location: "エティモンタワー最上階",
     tier: "chain",
     minPool: 960,
@@ -314,7 +314,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "snorlax",
     name: "ネボスケ",
-    location: "12・16ばんどうろ",
+    location: "オールドスモーク旧道",
     tier: "symbol",
     minPool: 1140,
     habitatId: "old-smoke",
@@ -325,7 +325,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "dojo",
     name: "からておう",
-    location: "ヤマブキ格闘道場",
+    location: "エバーステップ格闘道場",
     tier: "chain",
     minPool: 1200,
     habitatId: "everstep",
@@ -341,8 +341,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "rocket-silph",
-    name: "ムサシ＆コジロウ",
-    location: "シルフカンパニー11かい",
+    name: "リョウ＆マオ",
+    location: "コトダマ社11かい",
     tier: "rocket",
     minPool: 960,
     habitatId: "great-firefly-city",
@@ -356,7 +356,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "rival-6",
     name: "ライバル",
-    location: "シルフカンパニー11かい",
+    location: "コトダマ社11かい",
     tier: "normal",
     minPool: 960,
     habitatId: "great-firefly-city",
@@ -370,8 +370,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "giovanni-2",
-    name: "サカキ",
-    location: "シルフカンパニー社長室",
+    name: "クロヌシ",
+    location: "コトダマ社社長室",
     tier: "gym",
     minPool: 960,
     habitatId: "great-firefly-city",
@@ -386,8 +386,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "sabrina",
-    name: "ナツメ",
-    location: "ヤマブキジム",
+    name: "レイナ",
+    location: "エテルナ砂漠・ミラーZONE",
     tier: "gym",
     minPool: 1020,
     habitatId: "eterna-desert",
@@ -402,8 +402,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "morty",
-    name: "キョウ",
-    location: "セキチクジム",
+    name: "オボロ",
+    location: "エバーステップ・オボロZONE",
     tier: "gym",
     minPool: 1200,
     habitatId: "everstep",
@@ -419,7 +419,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "voltorb-trap",
     name: "ビリリダマ",
-    location: "むじんはつでんしょ",
+    location: "大流蛍楼宇の廃発電所",
     tier: "endurance",
     minPool: 1080,
     habitatId: "great-firefly-city",
@@ -432,7 +432,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "zapdos",
     name: "イカヅチ",
-    location: "むじんはつでんしょ",
+    location: "大流蛍楼宇の廃発電所",
     tier: "legendary",
     minPool: 1080,
     habitatId: "great-firefly-city",
@@ -445,7 +445,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "articuno",
     name: "イテハ",
-    location: "ふたごじま",
+    location: "ふたごの氷峰",
     tier: "legendary",
     minPool: 1620,
     habitatId: "alb-peak",
@@ -457,8 +457,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "blaine",
-    name: "カツラ",
-    location: "グレンジム",
+    name: "アカネ",
+    location: "ラ・アマランタ・エンZONE",
     tier: "gym",
     minPool: 1500,
     habitatId: "la-amaranta",
@@ -473,8 +473,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "giovanni-3",
-    name: "サカキ",
-    location: "トキワジム",
+    name: "クロヌシ",
+    location: "ラ・アマランタ・オウZONE",
     tier: "gym",
     minPool: 1500,
     habitatId: "la-amaranta",
@@ -490,7 +490,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "moltres",
     name: "ホムラ",
-    location: "チャンピオンロード",
+    location: "エイコウの道",
     tier: "legendary",
     minPool: 1800,
     habitatId: "schwanburg-castle",
@@ -503,7 +503,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "rival-7",
     name: "ライバル",
-    location: "22ばんどうろ",
+    location: "シュヴァンブルク街道",
     tier: "normal",
     minPool: 1800,
     habitatId: "schwanburg-castle",
@@ -516,8 +516,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "elite-lorelei",
-    name: "カンナ",
-    location: "セキエイ高原",
+    name: "セツナ",
+    location: "エイコウ高原",
     tier: "elite",
     minPool: 1800,
     habitatId: "schwanburg-castle",
@@ -530,8 +530,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "elite-bruno",
-    name: "シバ",
-    location: "セキエイ高原",
+    name: "リキオ",
+    location: "エイコウ高原",
     tier: "elite",
     minPool: 1800,
     habitatId: "schwanburg-castle",
@@ -544,8 +544,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "elite-agatha",
-    name: "キクコ",
-    location: "セキエイ高原",
+    name: "オリン",
+    location: "エイコウ高原",
     tier: "elite",
     minPool: 1800,
     habitatId: "schwanburg-castle",
@@ -558,8 +558,8 @@ export const STORY_BATTLES: Battle[] = [
   },
   {
     id: "elite-lance",
-    name: "ワタル",
-    location: "セキエイ高原",
+    name: "リュウガ",
+    location: "エイコウ高原",
     tier: "elite",
     minPool: 1800,
     habitatId: "schwanburg-castle",
@@ -589,7 +589,7 @@ export const STORY_BATTLES: Battle[] = [
   {
     id: "mewtwo",
     name: "ウツシ",
-    location: "ハナダのどうくつ",
+    location: "カパドラ深部",
     tier: "legendary",
     minPool: 2200,
     habitatId: "kapadra-underground",
@@ -1131,8 +1131,8 @@ function awardFossilItem(progress: StoryProgress, collection: MonsterCollection)
   rewardSprite: string;
 } {
   const items = [
-    { lineId: "omanyte", label: "かいの化石" },
-    { lineId: "kabuto", label: "こうらの化石" },
+    { lineId: "omanyte", label: "らせん貝の化石" },
+    { lineId: "kabuto", label: "とがった甲殻の化石" },
   ];
   const item = items[Math.floor(Math.random() * items.length)];
   return {
@@ -1182,7 +1182,7 @@ export function resolveBattleVictory(
   }
   if (battle.rewards?.masterBall) {
     nextProgress = { ...nextProgress, masterBall: true };
-    rewards.push({ type: "item", message: "マスターボールを手に入れた！" });
+    rewards.push({ type: "item", message: "FULL SYNCを手に入れた！" });
   }
   if (battle.rewards?.hallOfFame) {
     nextProgress = { ...nextProgress, hallOfFame: true };

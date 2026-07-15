@@ -49,7 +49,7 @@ export function evaluateBattlePlay({
     breakdown: [
       ...base.breakdown,
       {
-        label: "⚔️ トレーナー戦ボーナス",
+        label: "⚔️ なかま戦ボーナス",
         points: boostedXp - (base.xp ?? 0),
         max: null,
         detail: `×${battleMultiplier}（${tierConfig.label}）`,
