@@ -15,6 +15,9 @@ export interface TileAnswerBoardProps {
   normalizedAnswers: string[];
   onSubmit: (text: string) => void;
   onNext: () => void;
+  /** 未回答のときだけ渡す。回答済みなら undefined にしてボタンを隠す */
+  onSkip?: () => void;
+  skipDisabled?: boolean;
 }
 
 /**
@@ -41,6 +44,8 @@ export default function TileAnswerBoard({
   normalizedAnswers,
   onSubmit,
   onNext,
+  onSkip,
+  skipDisabled = false,
 }: TileAnswerBoardProps) {
   const [picked, setPicked] = useState<string[]>([]);
   const submittedRef = useRef<boolean>(false);
@@ -135,6 +140,17 @@ export default function TileAnswerBoard({
       <div className="mt-2.5 min-h-[3rem]">
         {!checked ? (
           <div className="flex items-center justify-center gap-2">
+            {onSkip && (
+              <button
+                type="button"
+                onClick={onSkip}
+                disabled={skipDisabled}
+                aria-label="この問題をわからないとして次へ"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border-2 border-[#ff5a5a] text-xl font-bold text-[#ff5a5a] transition hover:bg-[#ff5a5a]/15 disabled:opacity-40"
+              >
+                ?
+              </button>
+            )}
             <button
               type="button"
               disabled={picked.length === 0 || isCheckingAnswer}

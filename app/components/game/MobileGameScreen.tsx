@@ -108,15 +108,17 @@ export default function MobileGameScreen({
                       questionKey={quiz.questionKey}
                       partOfSpeech={quiz.partOfSpeech}
                       word={quiz.word}
-                      onSkip={quiz.onSkip}
-                      skipDisabled={quiz.skipDisabled}
                       dense
                     />
                   </div>
 
-                  {/* 回答（文字盤固定） */}
+                  {/* 回答（文字盤固定。「わからない」は操作列で戻すボタンの左に置く） */}
                   <div className="mt-2.5">
-                    <TileAnswerBoard {...tiles} />
+                    <TileAnswerBoard
+                      {...tiles}
+                      onSkip={quiz.onSkip}
+                      skipDisabled={quiz.skipDisabled}
+                    />
                   </div>
                 </div>
               </div>
