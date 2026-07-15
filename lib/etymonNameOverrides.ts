@@ -26,8 +26,8 @@ export const ETYMON_NAME_OVERRIDES: Record<string, EtymonNameOverride> = {
   pikachu: { base: "ベロロ", final: "ベロベロロ" },
   weedle: { base: "アンヨ", final: "イダテン" },
   pidgey: { base: "ハナスケ", final: "テングバナ" },
-  spearow: { base: "ホタル", final: "ゴコウ" },
-  sandshrew: { base: "オテテ", final: "センジュ" },
+  spearow: { base: "ケイ", final: "ゴコウ" },
+  sandshrew: { base: "シュシュ", final: "センジュ" },
   clefairy: { base: "ホシノコ", final: "アマノガワ" },
   oddish: { base: "ハル", middle: "ハルサメ", final: "ハルイチバン" },
   seel: { base: "シモ", final: "シモバシラ" },
@@ -37,4 +37,6 @@ export const ETYMON_NAME_OVERRIDES: Record<string, EtymonNameOverride> = {
   hitmonlee: { final: "チュパカブラ" },
   onix: { final: "モスマン" },
   farfetchd: { final: "ユニコーン" },
+  paras: { base: "シャルベルム", final: "コーデベルム" },
+  ditto: { final: "オディール" },
 };
