@@ -69,13 +69,16 @@ UMA枠（モスマン＝onix／チュパカブラ＝hitmonlee／ユニコーン�
 
 | 現行地名（参考・削除予定） | 種別 | habitatId | 独自案 | status | memo |
 |---|---|---|---|---|---|
-| オーキド研究所 | 開始地点の施設 | elmuria | — | pending | 博士→ナビ（まるいマスコット）というキャラ変更（`IP_CONCEPT.md`§5）と連動する施設名 |
+| （はじまりの町） | 開始地点の町 | 未定（要新規habitat検討） | アップルタウン | confirmed | ドラクエ的イメージ。`WORLD_STORY_GUIDE.md`§2.4a。現行`rival-1`の`habitatId: "elmuria"`との対応関係は実装時に整理する |
+| オーキド研究所 | ナビの拠点施設 | great-firefly-city | — | pending | 開始地点（アップルタウン）には置かず、大流蛍楼宇内の施設として再配置することが確定（§2.4a）。施設名自体は未定 |
 | ニビジム | ZONE関門施設 | elmuria | — | pending | |
 | 22ばんどうろ | ルート | elmuria | — | pending | |
+| おつきみやま | 山 | hoshi-no-kumoi | — | pending | 現行`fossil-brother`（化石復元）の舞台。化石サブプロットはエテルナピラミッド（下記）へ移転が確定（§2.4b）。`rocket-mt-moon`（UMA探索サークルの遭遇イベント）をこの地に残すかは未定 |
 | 24ばんどうろ | ルート | ultra-blue | — | pending | |
 | ハナダシティ／ハナダジム | 街／ZONE関門施設 | everstep / old-smoke | — | pending | |
 | サント・アンヌ号 | 移動施設（客船） | old-smoke | — | pending | |
 | クチバジム | ZONE関門施設 | eterna-desert | — | pending | |
+| （新規：化石サブプロットの移転先） | ピラミッド（多階層） | eterna-desert | エテルナピラミッド | confirmed | `WORLD_STORY_GUIDE.md`§2.4b。最深部で「スーパーソウル」の魂系アイテムを使い「ひつぎの姫」を蘇らせる単一の筋。現行の化石二択は廃止。ひつぎの姫自体は新規キャラのため、確定後`ETYMON_NAMES.md`側にも登録が必要。詳細ストーリーは追って共有予定 |
 | タマムシジム | ZONE関門施設 | great-firefly-city | — | pending | |
 | タマムシ地下アジト | 敵対組織拠点 | great-firefly-city | — | pending | 「地下アジト」は犯罪組織前提の語感。応援団の拠点として無害な形に作り直す（§2の方針） |
 | エティモンタワー3かい／最上階 | 施設 | great-firefly-city | Etymonタワー | confirmed | 既にポケモンタワーから改名済み。追加変更なし |
