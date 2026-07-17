@@ -23,6 +23,26 @@ function hpBarColor(ratio: number): string {
   return "bg-[#ff5a5a]";
 }
 
+/** 収集済み単語プールの進捗を表すドーナツ（正方形の札に収まるリング表示） */
+function PoolDonut({ percent }: { percent: number }) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  return (
+    <svg viewBox="0 0 36 36" className="h-full max-h-12 w-full max-w-12 -rotate-90 sm:max-h-14 sm:max-w-14">
+      <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#9a9a9a" strokeOpacity="0.35" strokeWidth="3" />
+      <circle
+        cx="18"
+        cy="18"
+        r="15.9155"
+        fill="none"
+        stroke="#ffcf4a"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeDasharray={`${clamped} ${100 - clamped}`}
+      />
+    </svg>
+  );
+}
+
 /**
  * ブロック1: ワールドウィンドウ（ハイファンタジースキン）。
  * 左から「出現エティモン／進捗の正方形の羊皮紙札（タップで表示切替）」
@@ -105,7 +125,7 @@ export default function WorldWindow({
         className="parchment relative flex h-full aspect-square min-w-0 shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg px-1.5 py-1 text-left"
         aria-label={
           showProgress
-            ? "タップでエティモン表示に戻す"
+            ? "タップで現在地の表示に戻す"
             : "タップで学習の進捗を表示"
         }
       >
@@ -117,26 +137,33 @@ export default function WorldWindow({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 16 }}
               transition={{ duration: 0.3 }}
-              className="flex h-full w-full flex-col justify-between"
+              className="flex h-full w-full flex-col items-center justify-between"
             >
-              <div className="min-w-0">
-                <div className="truncate text-[11px] font-bold sm:text-sm">
+              <div className="w-full min-w-0">
+                <div className="truncate text-center text-[10px] font-bold sm:text-xs">
                   {habitatName}
                 </div>
               </div>
-              <div>
-                <div className="text-[9px] font-semibold sm:text-[10px]">
-                  {tier.label} <span className="font-fantasy">×{tier.multiplier}</span>
+              <div
+                className="relative flex flex-1 items-center justify-center"
+                role="progressbar"
+                aria-label={`収集済み単語 ${unlockedPoolSize} / ${totalWords}`}
+                aria-valuenow={Math.round(poolPct)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <PoolDonut percent={poolPct} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+                  <span className="font-fantasy text-[10px] font-bold tabular-nums sm:text-xs">
+                    {unlockedPoolSize}
+                  </span>
+                  <span className="font-fantasy text-[7px] tabular-nums text-[#7d7d7d] sm:text-[8px]">
+                    /{totalWords}
+                  </span>
                 </div>
-                <div className="gauge-track mt-0.5 h-1.5 w-full overflow-hidden rounded-full">
-                  <div
-                    className="h-full rounded-full bg-[#ffcf4a]"
-                    style={{ width: `${poolPct}%` }}
-                  />
-                </div>
-                <div className="font-fantasy mt-0.5 text-right text-[9px] tabular-nums sm:text-[10px]">
-                  {unlockedPoolSize} / {totalWords}
-                </div>
+              </div>
+              <div className="text-[9px] font-semibold sm:text-[10px]">
+                {tier.label} <span className="font-fantasy">×{tier.multiplier}</span>
               </div>
             </motion.div>
           ) : encounter ? (
@@ -184,14 +211,17 @@ export default function WorldWindow({
               </div>
             </motion.div>
           ) : (
-            <motion.p
+            <motion.div
               key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-lg font-bold text-[#7d7d7d]"
+              className="flex h-full w-full flex-col items-center justify-center gap-1 text-center"
             >
-              空
-            </motion.p>
+              <span className="text-[9px] text-[#7d7d7d] sm:text-[10px]">現在地</span>
+              <span className="truncate px-1 text-sm font-bold sm:text-base">
+                {habitatName}
+              </span>
+            </motion.div>
           )}
         </AnimatePresence>
       </button>
