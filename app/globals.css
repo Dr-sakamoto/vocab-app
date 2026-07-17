@@ -511,7 +511,9 @@ a {
 }
 
 /* 画面全体：黒地＋ドット（ビットマップ）フォント DotGothic16。
-   日本語・英字ともにドットで表示され、EGA/レトロPCの質感になる。 */
+   日本語・英字ともにドットで表示され、EGA/レトロPCの質感になる。
+   ただし出題本体の英単語（.quest-card内の語）は視認性のため
+   font-display（Space Grotesk）で上書きする（QuestionCard.tsx参照）。 */
 .fantasy-shell,
 .font-dot {
   font-family:
