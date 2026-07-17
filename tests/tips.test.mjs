@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getMissionTip } from "../lib/tips.js";
+import { AREA_FLAVOR_TIPS, getMissionTip } from "../lib/tips.js";
 import { HABITATS } from "../lib/capture.js";
 
 test("2問正解するまでは同じTipsを表示し続ける", () => {
@@ -28,24 +28,31 @@ test("エリア指定時はそのエリアのフレーバーテキストも表�
     seen.add(getMissionTip("elmuria", i * 2));
   }
   assert.ok(
-    seen.has(
-      "エルムリアの森は、遥か北の頂きから落ちる大瀑布の水に、幾世紀も潤されてきた古い原生林。",
-    ),
+    seen.has("エルムリアは、北の滝の水に育まれた古く広大な森。"),
   );
 });
 
-test("表示されるフレーバーテキストには学習・勉強を連想させる語を含めない", () => {
-  const studyWords = ["勉強", "単語", "覚え", "暗記"];
-  for (const habitat of HABITATS) {
-    for (let i = 0; i < 30; i += 1) {
-      const tip = getMissionTip(habitat.id, i * 2);
-      for (const word of studyWords) {
+test("エリアフレーバーには学習・勉強を連想させる語や未実装の固有伝承を含めない", () => {
+  const bannedWords = ["勉強", "単語", "覚え", "暗記", "エテルナ7世", "王国"];
+  for (const [habitatId, tips] of Object.entries(AREA_FLAVOR_TIPS)) {
+    for (const tip of tips) {
+      for (const word of bannedWords) {
         assert.ok(
           !tip.includes(word),
-          `habitat ${habitat.id} tip "${tip}" が学習用語 "${word}" を含んでいる`,
+          `habitat ${habitatId} tip "${tip}" が禁止語 "${word}" を含んでいる`,
         );
       }
     }
+  }
+});
+
+test("HABITATS の全生息地にエリアフレーバーが用意されている", () => {
+  for (const habitat of HABITATS) {
+    assert.ok(
+      Array.isArray(AREA_FLAVOR_TIPS[habitat.id]) &&
+        AREA_FLAVOR_TIPS[habitat.id].length > 0,
+      `habitat ${habitat.id} にエリアフレーバーがない`,
+    );
   }
 });
 
