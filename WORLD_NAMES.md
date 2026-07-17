@@ -78,7 +78,7 @@ UMA枠（モスマン＝onix／チュパカブラ＝hitmonlee／ユニコーン�
 | ハナダシティ／ハナダジム | 街／ZONE関門施設 | everstep / old-smoke | — | pending | |
 | サント・アンヌ号 | 移動施設（客船） | old-smoke | — | pending | |
 | クチバジム | ZONE関門施設 | eterna-desert | — | pending | |
-| （新規：化石サブプロットの移転先） | ピラミッド（多階層） | eterna-desert | エテルナピラミッド | confirmed | 確定稿は[`WORLD_STORY_ETERNA_PYRAMID.md`](./WORLD_STORY_ETERNA_PYRAMID.md)。最深部で「スーパーソウル」の魂系アイテムを使い**タマテ**（王女、称号なしの単独キャラとして確定）を蘇らせる単一の筋。現行の化石二択は廃止。`ETYMON_NAMES.md`に登録済み |
+| （新規：化石サブプロットの移転先） | ピラミッド（多階層） | eterna-desert | エテルナピラミッド | confirmed | 確定稿は[`WORLD_STORY_ETERNA_PYRAMID.md`](./WORLD_STORY_ETERNA_PYRAMID.md)。最深部で「スーパーソウル」の魂系アイテムを使い**タマテ**（王女、称号なし）を完全治癒の上で蘇らせる単一の筋。現行の化石二択は廃止。タマテはパーティメンバーにはならず、エテルナ王国再興を志して現地に残る人間NPC（`ETYMON_NAMES.md`への登録は撤回済み）。跡地は「育て屋／研究所」相当の常駐施設になる想定（機能は未設計） |
 | タマムシジム | ZONE関門施設 | great-firefly-city | — | pending | |
 | タマムシ地下アジト | 敵対組織拠点 | great-firefly-city | — | pending | 「地下アジト」は犯罪組織前提の語感。応援団の拠点として無害な形に作り直す（§2の方針） |
 | エティモンタワー3かい／最上階 | 施設 | great-firefly-city | Etymonタワー | confirmed | 既にポケモンタワーから改名済み。追加変更なし |
