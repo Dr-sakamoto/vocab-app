@@ -16,6 +16,10 @@ export const FANTASY_AURORA: [string, string, string] = [
 export interface WorldBlockProps {
   encounter: WildEncounterState | null;
   fallbackHabitatName: string;
+  /** エンカウント不在時、Tipsのフレーバーテキストを引くための現在地ID */
+  fallbackHabitatId: string | null;
+  /** Tipsの切り替えタイミング算出に使う累計正解数 */
+  correctCount: number;
   tier: PoolTier;
   unlockedPoolSize: number;
   totalWords: number;

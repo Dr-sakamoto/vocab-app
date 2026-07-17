@@ -4,11 +4,16 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WildEncounterState } from "@/lib/wildEncounter";
 import { PoolTier } from "@/lib/types";
+import { getMissionTip } from "@/lib/tips";
 
 interface WorldWindowProps {
   encounter: WildEncounterState | null;
   /** エンカウント不在時に表示する現在地 */
   fallbackHabitatName?: string;
+  /** エンカウント不在時、Tipsのフレーバーテキストを引くための現在地ID */
+  fallbackHabitatId?: string | null;
+  /** Tipsの切り替えタイミング算出に使う累計正解数 */
+  correctCount?: number;
   tier: PoolTier;
   unlockedPoolSize: number;
   totalWords: number;
@@ -32,6 +37,8 @@ function hpBarColor(ratio: number): string {
 export default function WorldWindow({
   encounter,
   fallbackHabitatName,
+  fallbackHabitatId = null,
+  correctCount = 0,
   tier,
   unlockedPoolSize,
   totalWords,
@@ -42,6 +49,9 @@ export default function WorldWindow({
   const hpRatio = encounter ? encounter.hp / encounter.maxHP : 0;
   const habitatName = encounter?.habitatName || fallbackHabitatName || "—";
   const poolPct = Math.min(100, (unlockedPoolSize / Math.max(1, totalWords)) * 100);
+  const missionTip = encounter
+    ? ""
+    : getMissionTip(fallbackHabitatId, correctCount);
 
   if (compact) {
     const doneCount = encounter
@@ -88,9 +98,7 @@ export default function WorldWindow({
             </span>
           </>
         ) : (
-          <span className="truncate text-[11px] text-[#7d7d7d]">
-            つぎのエティモンをさがしている…
-          </span>
+          <span className="truncate text-[11px] text-[#7d7d7d]">{missionTip}</span>
         )}
       </div>
     );
@@ -238,8 +246,8 @@ export default function WorldWindow({
             ))}
           </ul>
         ) : (
-          <div className="flex h-full items-center justify-center text-[10px] text-[#7d7d7d]">
-            —
+          <div className="flex h-full items-center px-0.5 text-center text-[10px] leading-tight text-[#7d7d7d] sm:text-xs">
+            {missionTip}
           </div>
         )}
       </div>

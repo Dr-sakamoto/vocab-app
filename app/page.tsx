@@ -1131,10 +1131,11 @@ export default function Page() {
 
   const currentTier = getPoolTier(unlockedPoolSize);
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
-  const fallbackHabitatName = useMemo(
-    () => getUnlockedHabitats(unlockedPoolSize).at(-1)?.name ?? "",
+  const fallbackHabitat = useMemo(
+    () => getUnlockedHabitats(unlockedPoolSize).at(-1) ?? null,
     [unlockedPoolSize],
   );
+  const fallbackHabitatName = fallbackHabitat?.name ?? "";
 
   const progressPct = Math.max(0, Math.min(100, (total / GAME.PLAY_LIMIT) * 100));
   const shouldOpenDrawer = isDrawerOpen || isBoxOverLimit;
@@ -1143,6 +1144,8 @@ export default function Page() {
   const worldProps = {
     encounter: encounter?.status === "active" ? encounter : null,
     fallbackHabitatName,
+    fallbackHabitatId: fallbackHabitat?.id ?? null,
+    correctCount: score,
     tier: currentTier,
     unlockedPoolSize,
     totalWords: VOCAB_ITEMS.length,
