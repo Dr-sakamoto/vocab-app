@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Grenze_Gotisch } from "next/font/google";
+import { Space_Grotesk, MedievalSharp } from "next/font/google";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -10,12 +10,12 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 // Lv./ATK/HPなど、単語問題とは無関係な「システム表示」の英数字・記号用。
-// ブラックレター調のファンタジー書体。Jacquard 12は装飾が強く極小サイズでは
-// 視認性が落ちるため、直線的で読みやすいGrenze Gotischに変更（太めのweightで
-// さらに視認性を確保）。出題本体（.quest-card）には適用しない。
-const grenzeGotisch = Grenze_Gotisch({
+// 中世写本風のファンタジー書体。Grenze Gotisch（ブラックレター）は装飾が強く
+// 極小サイズのLv.表示等で潰れて読みにくいため、装飾は残しつつ判読性の高い
+// MedievalSharpに変更。出題本体（.quest-card）には適用しない。
+const medievalSharp = MedievalSharp({
   subsets: ["latin"],
-  weight: ["600", "700"],
+  weight: ["400"],
   variable: "--font-fantasy",
   display: "swap",
 });
@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`h-full antialiased ${spaceGrotesk.variable} ${grenzeGotisch.variable}`}>
+    <html lang="ja" className={`h-full antialiased ${spaceGrotesk.variable} ${medievalSharp.variable}`}>
       <head>
         {/* EGAレトロRPGスキンのビットマップ（ドット）フォント DotGothic16。
             日本語（漢字・かな）と英字をドットで表示。実行時に unicode-range で

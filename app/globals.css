@@ -518,11 +518,11 @@ a {
     "DotGothic16", "MS Gothic", "Osaka-Mono", ui-monospace, monospace;
 }
 /* Lv./ATK/HPなど、単語の出題内容とは無関係な「システム表示」の英数字・記号用。
-   添付のクロスステッチ見本(Blackletter)に寄せたファンタジー書体。
-   通常のテキストより装飾が強く小さいと読みにくいため、太めのweightで
-   一回り大きく表示する。出題本体（.quest-card）には適用しないこと。 */
+   中世写本風のファンタジー書体（MedievalSharp）。ウェイトは400のみのため
+   太字指定は行わず（合成ボールドで字形が崩れるため）、フォントサイズを
+   一回り大きくして視認性を確保する。出題本体（.quest-card）には適用しないこと。 */
 .font-fantasy {
-  font-weight: 600;
+  font-weight: 400;
   font-size: 1.2em;
   letter-spacing: 0.02em;
 }
