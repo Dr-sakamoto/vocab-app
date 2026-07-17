@@ -51,6 +51,10 @@
 - [ ] **P2.5 ワールド層の用語中立化**（モンスター名以外の残存IP）
   - 地名（クチバシティ等）、博士、ジムリーダー/トレーナー名、バッジ名、「ポケモン」表記、
     `capture.ts` 等のコード内コメントが未対応。`lib/branding.js` の用語表に沿って置換する。
+  - **ストーリー・世界の再設計に着手済み（設計段階、コード未着手）**。方針は
+    [`WORLD_STORY_GUIDE.md`](./WORLD_STORY_GUIDE.md)、名称の確定/保留一覧は
+    [`WORLD_NAMES.md`](./WORLD_NAMES.md) を参照。`lib/storyBattles.ts` の実装は
+    名称が confirmed になってから一括更新する（`lib/monster.ts` の運用と同じ流れ）。
 - [ ] **P3. オリジナルアート/音源の用意と自前ホスティング**
   - モンスター画像・対戦相手画像・進化音をオリジナル素材で用意し `/public/` 配下へ。
   - `ASSET_SOURCES.*.migrated` を `true` に更新。
