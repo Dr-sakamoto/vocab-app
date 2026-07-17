@@ -27,7 +27,26 @@ test("エリア指定時はそのエリアのフレーバーテキストも表�
   for (let i = 0; i < 40; i += 1) {
     seen.add(getMissionTip("elmuria", i * 2));
   }
-  assert.ok(seen.has("エルムリアの森は、遥か北の滝の水に育まれた古い原生林。"));
+  assert.ok(
+    seen.has(
+      "エルムリアの森は、遥か北の頂きから落ちる大瀑布の水に、幾世紀も潤されてきた古い原生林。",
+    ),
+  );
+});
+
+test("表示されるフレーバーテキストには学習・勉強を連想させる語を含めない", () => {
+  const studyWords = ["勉強", "単語", "覚え", "暗記"];
+  for (const habitat of HABITATS) {
+    for (let i = 0; i < 30; i += 1) {
+      const tip = getMissionTip(habitat.id, i * 2);
+      for (const word of studyWords) {
+        assert.ok(
+          !tip.includes(word),
+          `habitat ${habitat.id} tip "${tip}" が学習用語 "${word}" を含んでいる`,
+        );
+      }
+    }
+  }
 });
 
 test("未知のエリアIDでもクラッシュせず一般Tipsにフォールバックする", () => {
