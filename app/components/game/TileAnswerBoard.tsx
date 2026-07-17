@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AnswerRoundsBoard } from "@/lib/tileQuiz";
+import { ReviewResultState } from "./TypingAnswerRow";
 
 export interface TileAnswerBoardProps {
   board: AnswerRoundsBoard | null;
@@ -10,9 +11,13 @@ export interface TileAnswerBoardProps {
   resetKey: string;
   checked: boolean;
   isCorrect: boolean;
+  answerStatus: string | null;
   isCheckingAnswer: boolean;
   /** 不正解時に表示する正答（別解含む表示用） */
   normalizedAnswers: string[];
+  reviewResult: ReviewResultState | null;
+  isRequestingReview: boolean;
+  onRequestAiReview: () => void;
   onSubmit: (text: string) => void;
   onNext: () => void;
   /** 未回答のときだけ渡す。回答済みなら undefined にしてボタンを隠す */
@@ -40,8 +45,12 @@ export default function TileAnswerBoard({
   resetKey,
   checked,
   isCorrect,
+  answerStatus,
   isCheckingAnswer,
   normalizedAnswers,
+  reviewResult,
+  isRequestingReview,
+  onRequestAiReview,
   onSubmit,
   onNext,
   onSkip,
@@ -68,13 +77,16 @@ export default function TileAnswerBoard({
     onSubmit(picked.join(""));
   };
 
-  // 判定後は自動で次へ（正解はすぐ／不正解は3秒待ってから）
+  // 判定後は自動で次へ（正解はすぐ／不正解は3秒待ってから）。
+  // AI審議をリクエスト中は結果を待つため自動送りを止める。審議結果が
+  // 届いたら（承認なら正解扱いに切り替わり／非承認ならそのまま）
+  // 改めて3秒（または正解なら即時）のカウントダウンを始める。
   useEffect(() => {
-    if (!checked) return;
+    if (!checked || isRequestingReview) return;
     const delay = isCorrect ? CORRECT_ADVANCE_DELAY_MS : WRONG_ADVANCE_DELAY_MS;
     const timer = window.setTimeout(onNext, delay);
     return () => window.clearTimeout(timer);
-  }, [checked, isCorrect, onNext]);
+  }, [checked, isCorrect, isRequestingReview, reviewResult, onNext]);
 
   // 入力欄は幅固定。文字が増えたら実物の入力欄同様、末尾（カーソル側）が
   // 見えるように自動で右へスクロールする。
@@ -187,6 +199,40 @@ export default function TileAnswerBoard({
                     <span className="text-sm font-bold text-[#ff5a5a]">
                       {normalizedAnswers.join(" / ") || board.answer}
                     </span>
+                    {!reviewResult && answerStatus !== "skipped" && (
+                      <div className="mt-2 flex flex-col items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={onRequestAiReview}
+                          disabled={isRequestingReview}
+                          className="brass-btn flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition disabled:opacity-50"
+                        >
+                          {isRequestingReview && (
+                            <span className="ios-spinner" aria-hidden="true">
+                              {Array.from({ length: 12 }).map((_, i) => (
+                                <span
+                                  key={i}
+                                  className="ios-spinner-bar"
+                                  style={{
+                                    transform: `rotate(${i * 30}deg)`,
+                                    animationDelay: `${-((12 - i) % 12) / 12}s`,
+                                  }}
+                                />
+                              ))}
+                            </span>
+                          )}
+                          {isRequestingReview ? "賢者が審議中..." : "賢者（AI）に審議してもらう"}
+                        </button>
+                        {isRequestingReview && (
+                          <p className="text-xs text-[#7d7d7d]">審議には少し時間がかかります。そのままお待ちください。</p>
+                        )}
+                      </div>
+                    )}
+                    {reviewResult && !reviewResult.approved && (
+                      <div className="mt-2 rounded-lg border border-[#9a9a9a]/50 bg-[#0a0a0a] px-3 py-2 text-xs text-[#e6e6e6]">
+                        AI審議: 不承認（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
+                      </div>
+                    )}
                   </div>
                   <button
                     type="button"

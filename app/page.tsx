@@ -1195,9 +1195,16 @@ export default function Page() {
     resetKey: `${index}:${total}:${flowPlayCount}`,
     checked,
     isCorrect,
+    answerStatus,
     isCheckingAnswer,
     normalizedAnswers,
-    onSubmit: (text: string) => checkAnswer(text, { skipApi: true }),
+    reviewResult,
+    isRequestingReview,
+    onRequestAiReview: requestAiReview,
+    onSubmit: (text: string) => {
+      setInput(text);
+      checkAnswer(text, { skipApi: true });
+    },
     onNext: next,
   };
   const dockProps = {
