@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-fantasy: "FantasyUI", serif;
 }
 
 @theme inline {
@@ -517,10 +518,29 @@ a {
   font-family:
     "DotGothic16", "MS Gothic", "Osaka-Mono", ui-monospace, monospace;
 }
+/* 「FantasyUI」= 文字はMedievalSharp・数字はMetamorphousの合成書体。
+   同じfont-familyに2つの@font-faceをunicode-rangeで振り分けて登録することで、
+   1つのテキストの中でも文字種ごとに自動で書体が切り替わる（JSX側の分割は不要）。
+   ウェイトはどちらも400のみのため太字指定はしない（合成ボールドで崩れるため）。 */
+@font-face {
+  font-family: "FantasyUI";
+  src: url("/fonts/medievalsharp-latin-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+00-2F, U+3A-FF;
+}
+@font-face {
+  font-family: "FantasyUI";
+  src: url("/fonts/metamorphous-latin-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+30-39;
+}
+
 /* Lv./ATK/HPなど、単語の出題内容とは無関係な「システム表示」の英数字・記号用。
-   中世写本風のファンタジー書体（MedievalSharp）。ウェイトは400のみのため
-   太字指定は行わず（合成ボールドで字形が崩れるため）、フォントサイズを
-   一回り大きくして視認性を確保する。出題本体（.quest-card）には適用しないこと。 */
+   出題本体（.quest-card）には適用しないこと。 */
 .font-fantasy {
   font-weight: 400;
   font-size: 1.2em;

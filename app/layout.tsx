@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, MedievalSharp } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -9,17 +9,9 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
-// Lv./ATK/HPなど、単語問題とは無関係な「システム表示」の英数字・記号用。
-// 中世写本風のファンタジー書体。Grenze Gotisch（ブラックレター）は装飾が強く
-// 極小サイズのLv.表示等で潰れて読みにくいため、装飾は残しつつ判読性の高い
-// MedievalSharpに変更。出題本体（.quest-card）には適用しない。
-const medievalSharp = MedievalSharp({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-fantasy",
-  display: "swap",
-});
-
+// font-fantasy（Lv./ATK/HPなどのシステム表示用）は文字がMedievalSharp、
+// 数字だけMetamorphousになる合成書体。unicode-rangeで文字種を振り分ける
+// 自前の@font-face（globals.css）で構成するため、next/fontでは読み込まない。
 
 export const metadata: Metadata = {
   title: "Etymon ― 単語が、まるい生き物になる。英単語学習RPG",
@@ -38,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`h-full antialiased ${spaceGrotesk.variable} ${medievalSharp.variable}`}>
+    <html lang="ja" className={`h-full antialiased ${spaceGrotesk.variable}`}>
       <head>
         {/* EGAレトロRPGスキンのビットマップ（ドット）フォント DotGothic16。
             日本語（漢字・かな）と英字をドットで表示。実行時に unicode-range で
