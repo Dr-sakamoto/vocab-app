@@ -244,11 +244,11 @@ export default function WorldWindow({
           </div>
         )}
         {encounter ? (
-          <ul className="space-y-1 sm:space-y-1.5">
+          <ul className="min-h-[92px] divide-y divide-[#9a9a9a]/25 sm:min-h-[116px]">
             {encounter.missions.map((mission) => (
               <li
                 key={mission.id}
-                className="flex items-start gap-1.5 text-[10px] leading-tight sm:text-sm"
+                className="flex items-start gap-1.5 py-1 text-[10px] leading-tight sm:py-1.5 sm:text-sm"
               >
                 <span
                   aria-hidden
