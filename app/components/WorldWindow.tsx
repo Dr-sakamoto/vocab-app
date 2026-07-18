@@ -244,7 +244,7 @@ export default function WorldWindow({
           </div>
         )}
         {encounter ? (
-          <ul className="min-h-[92px] divide-y divide-[#9a9a9a]/25 sm:min-h-[116px]">
+          <ul className="min-h-[92px] divide-y divide-[#9a9a9a]/60 sm:min-h-[116px]">
             {encounter.missions.map((mission) => (
               <li
                 key={mission.id}
