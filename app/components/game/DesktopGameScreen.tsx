@@ -24,7 +24,9 @@ export interface DesktopGameScreenProps {
 
 /**
  * PC版スクリーン。物理キーボードがあるので回答は常にタイピング。
- * 3ブロックを比率配分（37/41/22）で縦に積み、中央に最大幅で寄せる。
+ * 3ブロックを比率配分（44/31/25）で縦に積み、中央に最大幅で寄せる。
+ * 問題欄はゲージのみに絞った分だけ縮め、その余白をワールド（ミッション
+ * を全部見せる）と手持ちウィンドウ（大きく見せる）へ回している。
  */
 export default function DesktopGameScreen({
   world,
@@ -40,12 +42,12 @@ export default function DesktopGameScreen({
 
       <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col gap-3 p-3">
         {/* ── 1. ワールドウィンドウ ── */}
-        <header className="min-h-0 basis-0 grow-[37]">
+        <header className="min-h-0 basis-0 grow-[44]">
           <WorldWindow {...world} />
         </header>
 
         {/* ── 2. 問題ウィンドウ ── */}
-        <main className="min-h-0 basis-0 grow-[41]">
+        <main className="min-h-0 basis-0 grow-[31]">
           <div className="parchment flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
             {quiz.phase === "result" ? (
               <InlineResult
@@ -58,34 +60,19 @@ export default function DesktopGameScreen({
             ) : (
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                 <div className="my-auto w-full px-6 py-4">
-                  {/* プログレス行 */}
-                  <div className="flex items-center gap-3">
+                  {/* プログレス行（ゲージのみ。正解数・問題数・tierの数値表示は
+                      ワールド／手持ちウィンドウにスペースを譲るため撤去） */}
+                  <div
+                    className="gauge-track h-1.5 w-full overflow-hidden rounded-full"
+                    role="progressbar"
+                    aria-valuenow={quiz.total}
+                    aria-valuemin={1}
+                    aria-valuemax={quiz.playLimit}
+                  >
                     <div
-                      className="gauge-track h-1.5 flex-1 overflow-hidden rounded-full"
-                      role="progressbar"
-                      aria-valuenow={quiz.total}
-                      aria-valuemin={1}
-                      aria-valuemax={quiz.playLimit}
-                    >
-                      <div
-                        className="h-full rounded-full bg-[#f5f5f5] transition-all duration-300"
-                        style={{ width: `${quiz.progressPct}%` }}
-                      />
-                    </div>
-                    <span className="font-fantasy shrink-0 text-xs font-medium tabular-nums text-[#7d7d7d]">
-                      {quiz.total} / {quiz.playLimit}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-3 text-xs text-[#7d7d7d]">
-                    <span className="font-fantasy">{quiz.score} 正解</span>
-                    {quiz.bestStreak > 1 && (
-                      <span className="font-fantasy font-semibold text-[#ffcf4a]">
-                        🔥 {quiz.bestStreak}連続
-                      </span>
-                    )}
-                    <span className="font-fantasy ml-auto rounded-full border border-[#6d5228] px-2 py-0.5 text-xs font-bold text-[#7d7d7d]">
-                      ×{quiz.tierMultiplier}
-                    </span>
+                      className="h-full rounded-full bg-[#f5f5f5] transition-all duration-300"
+                      style={{ width: `${quiz.progressPct}%` }}
+                    />
                   </div>
 
                   {/* 問題カード */}
@@ -110,7 +97,7 @@ export default function DesktopGameScreen({
         </main>
 
         {/* ── 3. エティモンウィンドウ ── */}
-        <footer className="relative z-20 min-h-0 basis-0 grow-[22]">
+        <footer className="relative z-20 min-h-0 basis-0 grow-[25]">
           <EtymonDock
             collection={dock.collection}
             onSelect={dock.onSelect}

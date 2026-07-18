@@ -98,20 +98,16 @@ export default function EtymonDock({
                   }
                 }}
                 className="min-h-0 w-auto flex-1 object-contain"
-                style={{ imageRendering: "pixelated", maxHeight: "62%" }}
+                style={{ imageRendering: "pixelated", maxHeight: "70%" }}
               />
               <span
-                className={`max-w-full truncate text-[10px] font-medium sm:text-xs ${
+                className={`max-w-full truncate text-[10px] font-medium leading-tight sm:text-xs ${
                   isActive ? "text-[#f5f5f5]" : "text-[#e6e6e6]"
                 }`}
               >
                 {state.species.name}
               </span>
-              <span
-                className={`font-fantasy text-[9px] tabular-nums sm:text-[11px] ${
-                  isActive ? "text-[#7d7d7d]" : "text-[#7d7d7d]"
-                }`}
-              >
+              <span className="font-fantasy text-[8px] leading-tight tabular-nums text-[#7d7d7d] sm:text-[9px]">
                 Lv.{state.level}
               </span>
             </motion.button>

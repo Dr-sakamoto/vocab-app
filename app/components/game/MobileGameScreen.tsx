@@ -51,8 +51,9 @@ export default function MobileGameScreen({
 
       <div className="relative z-10 flex h-full w-full flex-col gap-2 p-2">
         {/* ── 1. ワールドウィンドウ（敵エティモン＋ミッション帯。
-             マップのマス=正方形を基準にした高さ） ── */}
-        <div className="h-32 shrink-0">
+             ミッションを全部スクロールなしで見せるため、問題欄をゲージ
+             のみに絞って空いた分だけ縦を広げている） ── */}
+        <div className="h-40 shrink-0">
           <WorldWindow {...world} />
         </div>
 
@@ -71,34 +72,19 @@ export default function MobileGameScreen({
             ) : (
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                 <div className="w-full px-3 py-3">
-                  {/* プログレス行 */}
-                  <div className="flex items-center gap-2">
+                  {/* プログレス行（ゲージのみ。正解数・問題数・tierの数値表示は
+                      ワールド／手持ちウィンドウにスペースを譲るため撤去） */}
+                  <div
+                    className="gauge-track h-1.5 w-full overflow-hidden rounded-full"
+                    role="progressbar"
+                    aria-valuenow={quiz.total}
+                    aria-valuemin={1}
+                    aria-valuemax={quiz.playLimit}
+                  >
                     <div
-                      className="gauge-track h-1.5 flex-1 overflow-hidden rounded-full"
-                      role="progressbar"
-                      aria-valuenow={quiz.total}
-                      aria-valuemin={1}
-                      aria-valuemax={quiz.playLimit}
-                    >
-                      <div
-                        className="h-full rounded-full bg-[#f5f5f5] transition-all duration-300"
-                        style={{ width: `${quiz.progressPct}%` }}
-                      />
-                    </div>
-                    <span className="font-fantasy shrink-0 text-xs font-medium tabular-nums text-[#7d7d7d]">
-                      {quiz.total} / {quiz.playLimit}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-[#7d7d7d]">
-                    <span className="font-fantasy">{quiz.score} 正解</span>
-                    {quiz.bestStreak > 1 && (
-                      <span className="font-fantasy font-semibold text-[#ffcf4a]">
-                        🔥 {quiz.bestStreak}連続
-                      </span>
-                    )}
-                    <span className="font-fantasy ml-auto rounded-full border border-[#9a9a9a] px-2 py-0.5 text-[10px] font-bold text-[#f5f5f5]">
-                      ×{quiz.tierMultiplier}
-                    </span>
+                      className="h-full rounded-full bg-[#f5f5f5] transition-all duration-300"
+                      style={{ width: `${quiz.progressPct}%` }}
+                    />
                   </div>
 
                   {/* 問題カード */}
@@ -127,7 +113,7 @@ export default function MobileGameScreen({
 
         {/* ── 3. エティモンウィンドウ（手持ち編成。最下段に固定配置。
              持ち手の上方向ドラッグで編成ドロワーを開く） ── */}
-        <footer className="relative z-20 h-28 shrink-0">
+        <footer className="relative z-20 h-32 shrink-0">
           <EtymonDock
             collection={dock.collection}
             onSelect={dock.onSelect}
