@@ -244,36 +244,34 @@ export default function WorldWindow({
           </div>
         )}
         {encounter ? (
-          <ul className="min-h-[92px] sm:min-h-[116px]">
-            {encounter.missions.map((mission, index) => (
-              <li key={mission.id}>
-                {index > 0 && (
-                  <div aria-hidden className="ml-5 h-px w-8 bg-[#9a9a9a]/30 sm:ml-6 sm:w-10" />
-                )}
-                <div className="flex items-start gap-1.5 py-1 text-[10px] leading-tight sm:py-1.5 sm:text-sm">
-                  <span
-                    aria-hidden
-                    className={`mt-px flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[9px] font-bold sm:h-4 sm:w-4 ${
-                      mission.done
-                        ? "border-[#f5f5f5] bg-[#f5f5f5] text-[#0a0a0a]"
-                        : "border-[#9a9a9a] bg-transparent text-transparent"
-                    }`}
-                  >
-                    ✓
-                  </span>
-                  <span
-                    className={
-                      mission.done ? "text-[#7d7d7d] line-through" : "text-[#e6e6e6]"
-                    }
-                  >
-                    {mission.label}
-                    {mission.goal > 1 && !mission.done && (
-                      <span className="font-fantasy ml-1 tabular-nums text-[#ffcf4a]">
-                        {mission.progress}/{mission.goal}
-                      </span>
-                    )}
-                  </span>
-                </div>
+          <ul className="min-h-[92px] divide-y divide-[#9a9a9a]/60 sm:min-h-[116px]">
+            {encounter.missions.map((mission) => (
+              <li
+                key={mission.id}
+                className="flex items-start gap-1.5 py-1 text-[10px] leading-tight sm:py-1.5 sm:text-sm"
+              >
+                <span
+                  aria-hidden
+                  className={`mt-px flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[9px] font-bold sm:h-4 sm:w-4 ${
+                    mission.done
+                      ? "border-[#f5f5f5] bg-[#f5f5f5] text-[#0a0a0a]"
+                      : "border-[#9a9a9a] bg-transparent text-transparent"
+                  }`}
+                >
+                  ✓
+                </span>
+                <span
+                  className={
+                    mission.done ? "text-[#7d7d7d] line-through" : "text-[#e6e6e6]"
+                  }
+                >
+                  {mission.label}
+                  {mission.goal > 1 && !mission.done && (
+                    <span className="font-fantasy ml-1 tabular-nums text-[#ffcf4a]">
+                      {mission.progress}/{mission.goal}
+                    </span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
