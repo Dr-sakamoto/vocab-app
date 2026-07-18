@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { WildEncounterState } from "@/lib/wildEncounter";
 import { PoolTier } from "@/lib/types";
 import { getMissionTip } from "@/lib/tips";
+import { getHabitatSprite } from "@/lib/habitatSprites";
 
 interface WorldWindowProps {
   encounter: WildEncounterState | null;
@@ -68,6 +69,8 @@ export default function WorldWindow({
   const [showProgress, setShowProgress] = useState(false);
   const hpRatio = encounter ? encounter.hp / encounter.maxHP : 0;
   const habitatName = encounter?.habitatName || fallbackHabitatName || "—";
+  const activeHabitatId = encounter?.habitatId ?? fallbackHabitatId ?? null;
+  const habitatSprite = getHabitatSprite(activeHabitatId);
   const poolPct = Math.min(100, (unlockedPoolSize / Math.max(1, totalWords)) * 100);
   const missionTip = encounter
     ? ""
@@ -137,6 +140,26 @@ export default function WorldWindow({
             : "タップで学習の進捗を表示"
         }
       >
+        {/* エリア（ハビタット）スプライト。進捗表示中以外で、現在地の背景／
+            出現エティモンの背景レイヤーとして敷く。未設定エリアでは描画しない */}
+        {!showProgress && habitatSprite && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={habitatSprite.sprite}
+            alt=""
+            aria-hidden
+            onError={(e) => {
+              const fallback = habitatSprite.fallbackSprite;
+              if (fallback && e.currentTarget.src !== fallback) {
+                e.currentTarget.src = fallback;
+              } else {
+                e.currentTarget.style.display = "none";
+              }
+            }}
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-40"
+            style={{ imageRendering: "pixelated" }}
+          />
+        )}
         <AnimatePresence mode="wait">
           {showProgress ? (
             <motion.div
@@ -181,7 +204,7 @@ export default function WorldWindow({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 16 }}
               transition={{ duration: 0.3 }}
-              className="flex h-full w-full min-h-0 flex-col items-center justify-center"
+              className="relative z-10 flex h-full w-full min-h-0 flex-col items-center justify-center"
             >
               <div className="flex w-full items-baseline justify-center gap-1 text-[10px] font-bold sm:text-xs">
                 <span className="font-fantasy shrink-0 tabular-nums text-[#ffcf4a]">
@@ -223,7 +246,7 @@ export default function WorldWindow({
               key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex h-full w-full flex-col items-center justify-center gap-1 text-center"
+              className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-1 text-center"
             >
               <span className="text-[9px] text-[#7d7d7d] sm:text-[10px]">現在地</span>
               <span className="truncate px-1 text-sm font-bold sm:text-base">
