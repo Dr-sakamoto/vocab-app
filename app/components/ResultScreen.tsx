@@ -111,9 +111,7 @@ export default function ResultScreen({
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`glass-panel relative z-10 w-full max-w-2xl rounded-3xl p-4 sm:p-6 shadow-xl shadow-indigo-100/60 space-y-5 my-auto ${
-          isVictory ? "neon-glow" : ""
-        }`}
+        className="glass-panel relative z-10 w-full max-w-2xl rounded-3xl p-4 sm:p-6 shadow-xl shadow-indigo-100/60 space-y-5 my-auto"
       >
         {isBattle && (
           <motion.div

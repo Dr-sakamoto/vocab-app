@@ -42,7 +42,7 @@ export default function FossilChoiceModal({ group, onSelect }: FossilChoiceModal
                 transition={{ duration: 0.25, delay: 0.1 + i * 0.06 }}
                 whileHover={{ scale: 1.04, y: -2 }}
                 whileTap={{ scale: 0.97 }}
-                className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-center transition-colors hover:border-sky-300 hover:bg-sky-50 hover:shadow-lg hover:shadow-sky-200/50"
+                className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-center transition-colors hover:border-sky-300 hover:bg-sky-50"
               >
                 <div className="mx-auto h-20 w-20 overflow-hidden rounded-2xl bg-white shadow-inner">
                   <img

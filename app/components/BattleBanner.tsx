@@ -128,7 +128,7 @@ export default function BattleBanner({
             onClick={onToggleMasterBall}
             className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
               useMasterBall
-                ? "border-violet-500 bg-violet-600 text-white shadow-md shadow-violet-300/60"
+                ? "border-violet-500 bg-violet-600 text-white"
                 : "border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
             }`}
           >
