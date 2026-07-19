@@ -121,7 +121,7 @@ export default function WorldWindow({
             </span>
           </>
         ) : (
-          <span className="truncate text-[11px] text-[#7d7d7d]">{missionTip}</span>
+          <span className="truncate text-[11px] text-[#f5f5f5]">{missionTip}</span>
         )}
       </div>
     );
@@ -300,7 +300,7 @@ export default function WorldWindow({
           </ul>
         ) : (
           <div className="flex h-full min-h-0 flex-1 items-center justify-center px-1 text-center">
-            <p className="line-clamp-4 text-[10px] leading-snug text-[#7d7d7d] sm:text-xs">
+            <p className="line-clamp-4 text-[10px] leading-snug text-[#f5f5f5] sm:text-xs">
               {missionTip}
             </p>
           </div>
