@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WildEncounterState } from "@/lib/wildEncounter";
 import { PoolTier } from "@/lib/types";
-import { getMissionTip, getMissionTips } from "@/lib/tips";
+import { getMissionTip } from "@/lib/tips";
 import { getHabitatSprite } from "@/lib/habitatSprites";
 
 interface WorldWindowProps {
@@ -75,9 +75,6 @@ export default function WorldWindow({
   const missionTip = encounter
     ? ""
     : getMissionTip(fallbackHabitatId, correctCount);
-  const missionTips = encounter
-    ? []
-    : getMissionTips(fallbackHabitatId, correctCount);
 
   if (compact) {
     const doneCount = encounter
@@ -100,7 +97,7 @@ export default function WorldWindow({
               className="h-7 w-7 shrink-0 object-contain"
               style={{ imageRendering: "pixelated" }}
             />
-            <span className="font-fantasy shrink-0 text-[9px] font-bold tabular-nums text-[#7d7d7d]">
+            <span className="font-fantasy shrink-0 text-[10px] font-bold tabular-nums text-[#7d7d7d]">
               Lv.{encounter.level}
             </span>
             <span className="min-w-0 truncate text-[11px] font-bold">
@@ -124,7 +121,7 @@ export default function WorldWindow({
             </span>
           </>
         ) : (
-          <span className="truncate text-[11px] text-[#7d7d7d]">{missionTip}</span>
+          <span className="truncate text-[11px] text-[#f5f5f5]">{missionTip}</span>
         )}
       </div>
     );
@@ -210,7 +207,7 @@ export default function WorldWindow({
               className="relative z-10 flex h-full w-full min-h-0 flex-col items-center justify-center"
             >
               <div className="flex w-full items-baseline justify-center gap-1 text-[10px] font-bold sm:text-xs">
-                <span className="font-fantasy shrink-0 text-[8px] tabular-nums text-[#ffcf4a] sm:text-[10px]">
+                <span className="font-fantasy shrink-0 text-[9px] tabular-nums text-[#ffcf4a] sm:text-[11px]">
                   Lv.{encounter.level}
                 </span>
                 <span className="truncate">{encounter.name}</span>
@@ -302,13 +299,11 @@ export default function WorldWindow({
             ))}
           </ul>
         ) : (
-          <ul className="flex h-full min-h-0 flex-1 flex-col justify-around gap-0.5 px-0.5 text-[10px] leading-tight text-[#7d7d7d] sm:text-xs">
-            {missionTips.map((tip, index) => (
-              <li key={`${tip}-${index}`} className="truncate text-center">
-                {tip}
-              </li>
-            ))}
-          </ul>
+          <div className="flex h-full min-h-0 flex-1 items-center justify-center px-1 text-center">
+            <p className="line-clamp-4 text-[10px] leading-snug text-[#f5f5f5] sm:text-xs">
+              {missionTip}
+            </p>
+          </div>
         )}
       </div>
     </div>
