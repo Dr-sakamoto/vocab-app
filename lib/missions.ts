@@ -104,7 +104,7 @@ const MISSION_BLUEPRINTS: MissionBlueprint[] = [
       return {
         type: "weak-word",
         goal,
-        label: `苦手な単語に${goal}回正解する`,
+        label: `苦手な単語に${goal}回正解`,
       };
     },
   },
@@ -115,7 +115,7 @@ const MISSION_BLUEPRINTS: MissionBlueprint[] = [
       return {
         type: "new-word",
         goal,
-        label: `新しい単語に${goal}回正解する`,
+        label: `新しい単語に${goal}回正解`,
       };
     },
   },
@@ -126,7 +126,7 @@ const MISSION_BLUEPRINTS: MissionBlueprint[] = [
       return {
         type: "streak",
         goal,
-        label: `${goal}問連続で正解する`,
+        label: `${goal}問連続で正解`,
       };
     },
   },
@@ -143,7 +143,7 @@ const MISSION_BLUEPRINTS: MissionBlueprint[] = [
         goal,
         lineId,
         lineName,
-        label: `${lineName}を手持ちに入れて${goal}回正解する`,
+        label: `${lineName}を入れて${goal}回正解`,
       };
     },
   },
@@ -162,7 +162,7 @@ const MISSION_BLUEPRINTS: MissionBlueprint[] = [
         type: "party-level",
         goal,
         minLevel,
-        label: `Lv.${minLevel}以上を手持ちに入れて${goal}回正解する`,
+        label: `Lv.${minLevel}以上を入れて${goal}回正解`,
       };
     },
   },
@@ -188,7 +188,7 @@ export function generateMissions({
   missions.push({
     id: "m-attempts",
     type: "attempts",
-    label: `問題に${attemptGoal}回挑戦する`,
+    label: `問題に${attemptGoal}回挑戦`,
     goal: attemptGoal,
     progress: 0,
     done: false,

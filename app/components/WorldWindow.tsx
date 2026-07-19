@@ -236,23 +236,23 @@ export default function WorldWindow({
 
       {/* ミッションの巻物（横長・ラベルなし）。冒頭に連続プレイ日数（ストリーク）、
           続けてエンカウントのチェックリスト */}
-      <div className="parchment min-w-0 flex-1 overflow-y-auto rounded-lg px-2.5 py-1.5">
+      <div className="parchment flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg px-2.5 py-1.5">
         {streakDays > 0 && (
-          <div className="mb-1 flex items-center gap-1.5 border-b border-[#9a9a9a]/30 pb-1 text-[10px] font-bold sm:text-sm">
+          <div className="mb-1 flex shrink-0 items-center gap-1.5 border-b border-[#9a9a9a]/30 pb-1 text-[10px] font-bold sm:text-sm">
             <span aria-hidden>🔥</span>
             <span className="font-fantasy text-[#ffcf4a]">{streakDays}日連続の冒険</span>
           </div>
         )}
         {encounter ? (
-          <ul className="min-h-[92px] divide-y divide-[#9a9a9a]/60 sm:min-h-[116px]">
+          <ul className="flex min-h-0 flex-1 flex-col justify-around divide-y divide-[#9a9a9a]/60">
             {encounter.missions.map((mission) => (
               <li
                 key={mission.id}
-                className="flex items-start gap-1.5 py-1 text-[10px] leading-tight sm:py-1.5 sm:text-sm"
+                className="flex items-center gap-1.5 py-0.5 text-[10px] leading-tight sm:text-sm"
               >
                 <span
                   aria-hidden
-                  className={`mt-px flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[9px] font-bold sm:h-4 sm:w-4 ${
+                  className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border text-[9px] font-bold sm:h-4 sm:w-4 ${
                     mission.done
                       ? "border-[#f5f5f5] bg-[#f5f5f5] text-[#0a0a0a]"
                       : "border-[#9a9a9a] bg-transparent text-transparent"
