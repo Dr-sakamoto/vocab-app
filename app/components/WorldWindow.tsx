@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WildEncounterState } from "@/lib/wildEncounter";
 import { PoolTier } from "@/lib/types";
-import { getMissionTip } from "@/lib/tips";
+import { getMissionTip, getMissionTips } from "@/lib/tips";
 import { getHabitatSprite } from "@/lib/habitatSprites";
 
 interface WorldWindowProps {
@@ -75,6 +75,9 @@ export default function WorldWindow({
   const missionTip = encounter
     ? ""
     : getMissionTip(fallbackHabitatId, correctCount);
+  const missionTips = encounter
+    ? []
+    : getMissionTips(fallbackHabitatId, correctCount);
 
   if (compact) {
     const doneCount = encounter
@@ -97,7 +100,7 @@ export default function WorldWindow({
               className="h-7 w-7 shrink-0 object-contain"
               style={{ imageRendering: "pixelated" }}
             />
-            <span className="font-fantasy shrink-0 text-[11px] font-bold">
+            <span className="font-fantasy shrink-0 text-[9px] font-bold tabular-nums text-[#7d7d7d]">
               Lv.{encounter.level}
             </span>
             <span className="min-w-0 truncate text-[11px] font-bold">
@@ -207,7 +210,7 @@ export default function WorldWindow({
               className="relative z-10 flex h-full w-full min-h-0 flex-col items-center justify-center"
             >
               <div className="flex w-full items-baseline justify-center gap-1 text-[10px] font-bold sm:text-xs">
-                <span className="font-fantasy shrink-0 tabular-nums text-[#ffcf4a]">
+                <span className="font-fantasy shrink-0 text-[8px] tabular-nums text-[#ffcf4a] sm:text-[10px]">
                   Lv.{encounter.level}
                 </span>
                 <span className="truncate">{encounter.name}</span>
@@ -299,9 +302,13 @@ export default function WorldWindow({
             ))}
           </ul>
         ) : (
-          <div className="flex h-full items-center px-0.5 text-center text-[10px] leading-tight text-[#7d7d7d] sm:text-xs">
-            {missionTip}
-          </div>
+          <ul className="flex h-full min-h-0 flex-1 flex-col justify-around gap-0.5 px-0.5 text-[10px] leading-tight text-[#7d7d7d] sm:text-xs">
+            {missionTips.map((tip, index) => (
+              <li key={`${tip}-${index}`} className="truncate text-center">
+                {tip}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>

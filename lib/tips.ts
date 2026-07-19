@@ -94,6 +94,18 @@ export const AREA_FLAVOR_TIPS: Readonly<Record<string, readonly string[]>> = {
 /** 正解2回ごとに表示を切り替える単位 */
 const SWITCH_EVERY_N_CORRECT = 2;
 
+/** ミッション欄にまとめて表示するフレーバーテキストの行数 */
+const TIPS_PER_GROUP = 4;
+
+function buildPool(habitatId: string | null | undefined): readonly string[] {
+  const areaTips = habitatId ? (AREA_FLAVOR_TIPS[habitatId] ?? []) : [];
+  return [...SYSTEM_TIPS, ...areaTips];
+}
+
+function safeCorrectCount(correctCount: number): number {
+  return Number.isFinite(correctCount) ? Math.max(0, Math.floor(correctCount)) : 0;
+}
+
 /**
  * 非遭遇中にミッション欄へ表示するフレーバーテキストを1件返す。
  * システムTips（全エリア共通）と現在地のフレーバーを結合したプールから、
@@ -103,13 +115,29 @@ export function getMissionTip(
   habitatId: string | null | undefined,
   correctCount: number,
 ): string {
-  const areaTips = habitatId ? (AREA_FLAVOR_TIPS[habitatId] ?? []) : [];
-  const pool = [...SYSTEM_TIPS, ...areaTips];
+  const pool = buildPool(habitatId);
   if (pool.length === 0) return "";
 
-  const safeCount = Number.isFinite(correctCount)
-    ? Math.max(0, Math.floor(correctCount))
-    : 0;
-  const index = Math.floor(safeCount / SWITCH_EVERY_N_CORRECT) % pool.length;
+  const index = Math.floor(safeCorrectCount(correctCount) / SWITCH_EVERY_N_CORRECT) % pool.length;
   return pool[index];
+}
+
+/**
+ * 非遭遇中にミッション欄へ表示するフレーバーテキストを、
+ * TIPS_PER_GROUP行単位のまとまりで返す。正解数に応じてまとまりごと切り替わる。
+ */
+export function getMissionTips(
+  habitatId: string | null | undefined,
+  correctCount: number,
+): readonly string[] {
+  const pool = buildPool(habitatId);
+  if (pool.length === 0) return [];
+
+  const groups: string[][] = [];
+  for (let i = 0; i < pool.length; i += TIPS_PER_GROUP) {
+    groups.push(pool.slice(i, i + TIPS_PER_GROUP));
+  }
+
+  const index = Math.floor(safeCorrectCount(correctCount) / SWITCH_EVERY_N_CORRECT) % groups.length;
+  return groups[index];
 }
