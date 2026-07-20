@@ -539,6 +539,21 @@ a {
   unicode-range: U+30-39;
 }
 
+/* 非遭遇時のフレーバーテキスト用「明朝ドット」。Zen Old Mincho(OFL) を
+   ビットマップ化した自作サブセット（フレーバーで使う文字のみ収録）。
+   生成: scripts/gen-mincho-dot.py（tips.ts を編集したら再生成してwoff2更新）。 */
+@font-face {
+  font-family: "MinchoDot";
+  src: url("/fonts/mincho-dot.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+.font-mincho-dot {
+  font-family: "MinchoDot", "DotGothic16", serif;
+  letter-spacing: 0.04em;
+}
+
 /* Lv./ATK/HPなど、単語の出題内容とは無関係な「システム表示」の英数字・記号用。
    出題本体（.quest-card）には適用しないこと。 */
 .font-fantasy {
