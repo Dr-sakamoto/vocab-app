@@ -42,3 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# 明朝ドット生成の元フォントキャッシュ（コミットしない）
+scripts/.cache-*.ttf
