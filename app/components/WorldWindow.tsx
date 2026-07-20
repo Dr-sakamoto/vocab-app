@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WildEncounterState } from "@/lib/wildEncounter";
 import { PoolTier } from "@/lib/types";
-import { getMissionTip } from "@/lib/tips";
+import { getMissionTip, splitFlavorLines } from "@/lib/tips";
 import { getHabitatSprite } from "@/lib/habitatSprites";
 
 interface WorldWindowProps {
@@ -75,6 +75,7 @@ export default function WorldWindow({
   const missionTip = encounter
     ? ""
     : getMissionTip(fallbackHabitatId, correctCount);
+  const missionTipLines = missionTip ? splitFlavorLines(missionTip) : [];
 
   if (compact) {
     const doneCount = encounter
@@ -301,11 +302,16 @@ export default function WorldWindow({
             ))}
           </ul>
         ) : (
-          <div className="flex h-full min-h-0 flex-1 items-center justify-center px-1 text-center">
-            <p className="font-mincho-dot line-clamp-4 text-[10px] leading-snug text-[#f5f5f5] sm:text-xs">
-              {missionTip}
-            </p>
-          </div>
+          <ul className="flex min-h-0 flex-1 flex-col justify-around divide-y divide-[#9a9a9a]/60">
+            {missionTipLines.map((line, index) => (
+              <li
+                key={index}
+                className="font-mincho-dot py-0.5 text-[10px] leading-snug text-[#f5f5f5] sm:text-xs"
+              >
+                {line}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
