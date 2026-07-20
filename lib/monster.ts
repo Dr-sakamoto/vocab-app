@@ -7,6 +7,7 @@ import {
   StoryProgress,
 } from "./types.js";
 import { ETYMON_NAME_OVERRIDES } from "./etymonNameOverrides";
+import { getEtymonSpriteOverride } from "./etymonSprites";
 
 // プール倍率ティア（全3400語対応）
 export const POOL_TIERS: PoolTier[] = [
@@ -738,7 +739,23 @@ function applyEtymonNameOverride(line: MonsterLine): MonsterLine {
   };
 }
 
-export const MONSTER_LINES: MonsterLine[] = RAW_MONSTER_LINES.map(applyEtymonNameOverride);
+/**
+ * etymonSprites.jsonに登録された系統・段階だけスプライトを差し替える。
+ * 元のスプライトはfallbackSpriteに残すので、差し替えPNGが読めない場合は
+ * 従来の画像に自動で戻る。未登録の系統・段階は元のまま。
+ */
+function applyEtymonSpriteOverride(line: MonsterLine): MonsterLine {
+  const species = line.species.map((sp, i) => {
+    const override = getEtymonSpriteOverride(line.id, i);
+    if (!override) return sp;
+    return { ...sp, sprite: override, fallbackSprite: sp.sprite };
+  });
+  return { ...line, species };
+}
+
+export const MONSTER_LINES: MonsterLine[] = RAW_MONSTER_LINES.map(applyEtymonNameOverride).map(
+  applyEtymonSpriteOverride
+);
 
 export const DEFAULT_MONSTER_LINE_ID = "bulbasaur";
 export const BULBASAUR_LINE = MONSTER_LINES.find(line => line.id === DEFAULT_MONSTER_LINE_ID)!.species;
