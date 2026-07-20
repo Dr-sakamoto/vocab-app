@@ -91,6 +91,44 @@ export const AREA_FLAVOR_TIPS: Readonly<Record<string, readonly string[]>> = {
   ],
 };
 
+/** 非遭遇時のフレーバーを折り返す最大行数 */
+export const FLAVOR_MAX_LINES = 4;
+
+/**
+ * フレーバーテキストを句読点（。、）の切れ目で最大 maxLines 行に分割する。
+ * 無理に4分割せず、意味の切れ目でまとめて折り返す（適切な分割量に留める）。
+ * 句読点は行末に残し、区切りが無い短文は1行のまま返す。
+ */
+export function splitFlavorLines(
+  text: string,
+  maxLines: number = FLAVOR_MAX_LINES,
+): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  // 句読点（、。）の直後を最小の区切り単位とする（句読点は各単位の末尾に残す）。
+  const units = trimmed.match(/[^、。]*[、。]|[^、。]+/g) ?? [trimmed];
+  if (units.length <= 1) return [trimmed];
+
+  // 全体を maxLines 行に収められる程度の1行あたり目安長。極端な細切れは防ぐ。
+  const target = Math.max(Math.ceil(trimmed.length / maxLines), 8);
+
+  const lines: string[] = [];
+  let current = "";
+  for (const unit of units) {
+    const wouldOverflow = current.length + unit.length > target;
+    // 残り行数がある間だけ改行する。上限に達したら以降は最終行へまとめる。
+    if (current && wouldOverflow && lines.length < maxLines - 1) {
+      lines.push(current);
+      current = unit;
+    } else {
+      current += unit;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
 /** 正解2回ごとに表示を切り替える単位 */
 const SWITCH_EVERY_N_CORRECT = 2;
 

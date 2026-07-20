@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { AREA_FLAVOR_TIPS, getMissionTip } from "../lib/tips.js";
+import {
+  AREA_FLAVOR_TIPS,
+  FLAVOR_MAX_LINES,
+  SYSTEM_TIPS,
+  getMissionTip,
+  splitFlavorLines,
+} from "../lib/tips.js";
 import { HABITATS } from "../lib/capture.js";
 
 test("2問正解するまでは同じTipsを表示し続ける", () => {
@@ -70,4 +76,39 @@ test("HABITATS の全生息地IDに対してTipsが取得できる", () => {
 test("負の値やNaNでも安全に動作する", () => {
   assert.doesNotThrow(() => getMissionTip(null, -5));
   assert.doesNotThrow(() => getMissionTip(null, NaN));
+});
+
+test("フレーバーは句読点の切れ目で複数行に分割される", () => {
+  const lines = splitFlavorLines(
+    "エルムリアは、北の滝の水に育まれた古く広大な森。",
+  );
+  assert.ok(lines.length >= 2, "1行に収まらず改行される");
+  assert.equal(lines.join(""), "エルムリアは、北の滝の水に育まれた古く広大な森。");
+});
+
+test("フレーバーの分割は最大行数を超えない", () => {
+  const allTips = [
+    ...SYSTEM_TIPS,
+    ...Object.values(AREA_FLAVOR_TIPS).flat(),
+  ];
+  for (const tip of allTips) {
+    const lines = splitFlavorLines(tip);
+    assert.ok(
+      lines.length <= FLAVOR_MAX_LINES,
+      `"${tip}" が ${FLAVOR_MAX_LINES} 行を超えて分割された（${lines.length}行）`,
+    );
+    // 分割しても全文が保たれる（欠落・重複なし）
+    assert.equal(lines.join(""), tip.trim());
+    // 空行は生まれない
+    assert.ok(lines.every((line) => line.length > 0));
+  }
+});
+
+test("区切りの無い短文は1行のまま返す", () => {
+  assert.deepEqual(splitFlavorLines("森が広がる"), ["森が広がる"]);
+});
+
+test("空文字は空配列になる", () => {
+  assert.deepEqual(splitFlavorLines(""), []);
+  assert.deepEqual(splitFlavorLines("   "), []);
 });
