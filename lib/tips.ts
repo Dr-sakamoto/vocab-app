@@ -1,8 +1,8 @@
 /**
  * モンスター非遭遇時にミッション欄へ流すフレーバーテキスト。
  * 「システムTips」（全エリア共通・ゲームの遊び方を直接説明する）と、
- * 現在地（生息地）ごとの世界観フレーバーを1つのプールに混ぜてローテーションする。
- * 2問正解するごとに表示を切り替える。
+ * 現在地（生息地）ごとの世界観フレーバーを、固有60%・共通40%の比率で
+ * ローテーションする。2問正解するごとに表示を切り替える。
  *
  * システムTipsは遠回しな比喩を避け、率直でわかりやすい言い方にする。
  * エリアフレーバーは学習・勉強を連想させる言葉や、未実装のストーリー設定
@@ -134,9 +134,22 @@ export function splitFlavorLines(
 /** 正解2回ごとに表示を切り替える単位 */
 const SWITCH_EVERY_N_CORRECT = 2;
 
-function buildPool(habitatId: string | null | undefined): readonly string[] {
-  const areaTips = habitatId ? (AREA_FLAVOR_TIPS[habitatId] ?? []) : [];
-  return [...SYSTEM_TIPS, ...areaTips];
+/**
+ * エリア固有フレーバーとシステムTipsの出現比率（固有60% : 共通40%）。
+ * 5枠のうち3枠を固有、2枠を共通に均等配分する。
+ */
+const AREA_TIP_WEIGHT = 3;
+const SYSTEM_TIP_WEIGHT = 2;
+const TIP_CYCLE_LENGTH = AREA_TIP_WEIGHT + SYSTEM_TIP_WEIGHT;
+
+/** 0始まりのstepまで（inclusive）にエリア固有枠が何回訪れたかの累積数 */
+function areaSlotCountUpTo(step: number): number {
+  const fullCycles = Math.floor(step / TIP_CYCLE_LENGTH);
+  const remainder = step % TIP_CYCLE_LENGTH;
+  return (
+    fullCycles * AREA_TIP_WEIGHT +
+    Math.floor(((remainder + 1) * AREA_TIP_WEIGHT) / TIP_CYCLE_LENGTH)
+  );
 }
 
 function safeCorrectCount(correctCount: number): number {
@@ -145,16 +158,32 @@ function safeCorrectCount(correctCount: number): number {
 
 /**
  * 非遭遇中にミッション欄へ表示するフレーバーテキストを1件返す。
- * システムTips（全エリア共通）と現在地のフレーバーを結合したプールから、
- * 正解数に応じて順送りで選ぶ。表示側は4行までの枠に折り返して全文を見せる。
+ * エリアフレーバーがある場合は、固有60%・共通40%の比率になるよう
+ * 5枠周期（固有3枠・共通2枠）で均等に振り分けて順送りする。
+ * エリア未指定・フレーバー未定義の場合はシステムTipsのみを順送りする。
+ * 表示側は4行までの枠に折り返して全文を見せる。
  */
 export function getMissionTip(
   habitatId: string | null | undefined,
   correctCount: number,
 ): string {
-  const pool = buildPool(habitatId);
-  if (pool.length === 0) return "";
+  const areaTips = habitatId ? (AREA_FLAVOR_TIPS[habitatId] ?? []) : [];
+  const step = Math.floor(safeCorrectCount(correctCount) / SWITCH_EVERY_N_CORRECT);
 
-  const index = Math.floor(safeCorrectCount(correctCount) / SWITCH_EVERY_N_CORRECT) % pool.length;
-  return pool[index];
+  if (areaTips.length === 0) {
+    if (SYSTEM_TIPS.length === 0) return "";
+    return SYSTEM_TIPS[step % SYSTEM_TIPS.length];
+  }
+
+  const areaCountUpToStep = areaSlotCountUpTo(step);
+  const areaCountUpToPrev = step === 0 ? 0 : areaSlotCountUpTo(step - 1);
+  const isAreaSlot = areaCountUpToStep > areaCountUpToPrev;
+
+  if (isAreaSlot) {
+    const occurrence = areaCountUpToStep - 1;
+    return areaTips[occurrence % areaTips.length];
+  }
+
+  const systemOccurrence = step - areaCountUpToStep;
+  return SYSTEM_TIPS[systemOccurrence % SYSTEM_TIPS.length];
 }
