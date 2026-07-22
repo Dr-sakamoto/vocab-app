@@ -81,7 +81,7 @@
     {
       "id": "kapadra-underground",
       "name": "カパドラ地下帝国",
-      "sprite": "",
+      "sprite": "/areas/kapadra-underground.jpg",
       "fallbackSprite": ""
     }
   ]
