@@ -505,6 +505,7 @@ a {
   --ega-bright: #f5f5f5;   /* 強調（EGA明白） */
   --ega-amber: #ffcf4a;    /* 見出し・地図 */
   --ega-red: #ff5a5a;      /* 不正解・危険 */
+  --ega-green: #4ade80;    /* HPゲージ・安全 */
   --ega-cyan: #58d0ff;
   --ega-dim: #7d7d7d;      /* 補助テキスト */
   --ega-line: #9a9a9a;     /* 枠線（白） */

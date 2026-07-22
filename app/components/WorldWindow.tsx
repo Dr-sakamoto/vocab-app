@@ -24,7 +24,7 @@ interface WorldWindowProps {
 }
 
 function hpBarColor(ratio: number): string {
-  if (ratio > 0.5) return "bg-[#f5f5f5]";
+  if (ratio > 0.5) return "bg-[#4ade80]";
   if (ratio > 0.25) return "bg-[#ffcf4a]";
   return "bg-[#ff5a5a]";
 }
