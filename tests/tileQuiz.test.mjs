@@ -57,6 +57,20 @@ test("正答文字を順に選ぶと answer に一致する", () => {
   assert.equal(built, board.answer);
 });
 
+test("答えが複数ある単語は、シードによってどちらの答えにもなり得る（片方に偏らない）", () => {
+  const seen = new Set();
+  for (let i = 0; i < 50; i++) {
+    const board = buildAnswerRounds({
+      items: ITEMS,
+      index: 0, // mainly: 主に / 主として
+      unlockedPoolSize: ITEMS.length,
+      seed: `variety-${i}`,
+    });
+    seen.add(board.answer);
+  }
+  assert.deepEqual(seen, new Set(["主に", "主として"]));
+});
+
 test("同じシードなら同じラウンド構成（再レンダーで揺れない）", () => {
   const a = buildAnswerRounds({ items: ITEMS, index: 2, unlockedPoolSize: 6, seed: "fix" });
   const b = buildAnswerRounds({ items: ITEMS, index: 2, unlockedPoolSize: 6, seed: "fix" });
@@ -70,8 +84,8 @@ test("プールが極端に小さくても各ラウンド8択を維持する（�
     unlockedPoolSize: 1,
     seed: "tiny",
   });
-  assert.equal(board.answer, "主に");
-  assert.equal(board.rounds.length, 2);
+  assert.ok(ITEMS[0].answers.includes(board.answer));
+  assert.equal(board.rounds.length, board.answer.length);
   for (const round of board.rounds) {
     assert.equal(round.length, 8);
     assert.equal(new Set(round.map((t) => t.char)).size, 8, "重複のない8文字");

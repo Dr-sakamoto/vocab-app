@@ -65,7 +65,7 @@ export interface AnswerTile {
 }
 
 export interface AnswerRoundsBoard {
-  /** 正答（answers[0]） */
+  /** 正答（answersの中からシードに基づき1つ選んだもの） */
   answer: string;
   /** 正答を1文字ずつ分解したもの（内部判定用。UIには文字数を出さない） */
   answerChars: string[];
@@ -100,11 +100,21 @@ export function buildAnswerRounds({
   optionsPerRound = OPTIONS_PER_ROUND,
 }: BuildAnswerRoundsParams): AnswerRoundsBoard | null {
   const q = items[index];
-  const answer = q?.answers?.[0]?.trim();
-  if (!answer) return null;
+  const candidateAnswers = (q?.answers ?? [])
+    .map((a) => a?.trim())
+    .filter((a): a is string => Boolean(a));
+  if (candidateAnswers.length === 0) return null;
+
+  const rng = createSeededRng(seed);
+  // 答えが複数ある単語は、そのうちどれか1つに偏って覚えてしまわないよう
+  // 出題のたびにシードに基づいてランダムに選ぶ（rngの最初の呼び出しなので、
+  // 同じseedなら毎回同じ答えが選ばれ、盤面の再現性は保たれる）
+  const answer =
+    candidateAnswers.length > 1
+      ? candidateAnswers[Math.floor(rng() * candidateAnswers.length)]
+      : candidateAnswers[0];
 
   const answerChars = [...answer];
-  const rng = createSeededRng(seed);
   const poolLimit = Math.max(1, Math.min(unlockedPoolSize, items.length));
 
   // ダミー文字の候補: 解放済みプールの他の単語の訳の文字
