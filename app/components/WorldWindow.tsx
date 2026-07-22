@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WildEncounterState } from "@/lib/wildEncounter";
 import { PoolTier } from "@/lib/types";
-import { FLAVOR_MAX_LINES, getMissionTip, splitFlavorLines } from "@/lib/tips";
+import { FLAVOR_MAX_LINES, getMissionTip } from "@/lib/tips";
 import { getHabitatSprite } from "@/lib/habitatSprites";
 
 interface WorldWindowProps {
@@ -23,14 +23,14 @@ interface WorldWindowProps {
   compact?: boolean;
 }
 
-/** フレーバーテキストの実際の行数（1〜FLAVOR_MAX_LINES）ごとの文字サイズ。
- *  行数が少ないほど枠に余裕ができるため、大きく表示して読みやすくする。 */
-const MISSION_TIP_SIZE_CLASSES = [
-  "text-sm sm:text-base",
-  "text-xs sm:text-sm",
-  "text-[11px] sm:text-sm",
-  "text-[10px] sm:text-xs",
-] as const;
+/** 非遭遇時フレーバーは1つの段落として中央に見せる。文字数が少ないほど
+ *  枠に余裕ができるため大きく、長文は枠に収まるよう控えめのサイズにする。
+ *  行を機械的に分割しないので、読点・句点の位置に関わらず自然に折り返す。 */
+function flavorTipSizeClass(length: number): string {
+  if (length <= 24) return "text-lg leading-relaxed sm:text-xl";
+  if (length <= 40) return "text-base leading-relaxed sm:text-lg";
+  return "text-sm leading-relaxed sm:text-base";
+}
 
 function hpBarColor(ratio: number): string {
   if (ratio > 0.5) return "bg-[#4ade80]";
@@ -84,17 +84,8 @@ export default function WorldWindow({
   const missionTip = encounter
     ? ""
     : getMissionTip(fallbackHabitatId, correctCount);
-  const missionTipLines = missionTip ? splitFlavorLines(missionTip) : [];
-  // ミッション欄の区切り線を遭遇時と同じ4本構成で常設するため、
-  // 実際の行数に関わらず空欄を含めて4スロット分埋める
-  const missionTipSlots = Array.from(
-    { length: FLAVOR_MAX_LINES },
-    (_, index) => missionTipLines[index] ?? "",
-  );
-  // 実際の行数が少ないほど枠に余裕が生まれるため、行数に応じて文字を大きくする
-  const missionTipSizeClass = MISSION_TIP_SIZE_CLASSES[
-    Math.min(Math.max(missionTipLines.length, 1), FLAVOR_MAX_LINES) - 1
-  ];
+  // 文字数に応じて段落全体のサイズを決める（機械的な行分割はしない）
+  const missionTipSizeClass = flavorTipSizeClass(missionTip.length);
 
   if (compact) {
     const doneCount = encounter
@@ -334,16 +325,15 @@ export default function WorldWindow({
             ))}
           </ul>
         ) : (
-          <ul className="flex min-h-0 flex-1 flex-col justify-around divide-y divide-[#9a9a9a]/60">
-            {missionTipSlots.map((line, index) => (
-              <li
-                key={index}
-                className={`font-mincho-dot py-0.5 leading-snug text-[#f5f5f5] ${missionTipSizeClass}`}
-              >
-                {line || " "}
-              </li>
-            ))}
-          </ul>
+          // フレーバーは区切り線で分割せず、1つの段落として枠の中央に見せる。
+          // 折り返しはブラウザ任せ（句読点ごとの機械的な行分割はしない）。
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto py-1">
+            <p
+              className={`font-mincho-dot text-center text-[#f5f5f5] ${missionTipSizeClass}`}
+            >
+              {missionTip}
+            </p>
+          </div>
         )}
       </div>
     </div>
