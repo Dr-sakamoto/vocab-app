@@ -60,10 +60,10 @@ function MonsterTile({
         onClick={() => canReceive && onPick(location)}
         disabled={!canReceive}
         className={[
-          "flex aspect-square items-center justify-center rounded-lg border border-dashed text-2xl font-light transition",
+          "flex aspect-square items-center justify-center rounded-md border border-dashed text-2xl font-light transition",
           canReceive
-            ? "border-sky-300 bg-sky-50 text-sky-400 ring-2 ring-sky-200"
-            : "border-emerald-200 bg-emerald-50/70 text-emerald-200",
+            ? "border-[#58d0ff] bg-[#58d0ff]/10 text-[#58d0ff] ring-2 ring-[#58d0ff]/40"
+            : "border-[#9a9a9a]/40 bg-black/30 text-[#9a9a9a]/50",
         ].join(" ")}
         aria-label="empty"
       >
@@ -84,16 +84,20 @@ function MonsterTile({
       aria-pressed={!!isSelected || !!selectedForTransfer}
       aria-label={`${current!.species.name} Lv. ${current!.level}`}
       className={[
-        "relative flex aspect-square flex-col items-center justify-center rounded-lg border-2 p-2 transition",
-        boxTile ? "bg-zinc-50 hover:bg-white" : "bg-emerald-50 hover:bg-emerald-100/70",
-        buddySlot ? "border-zinc-950" : active ? "border-zinc-700" : "border-transparent",
-        isSelected ? "ring-4 ring-sky-300 ring-offset-2" : "",
-        selectedForTransfer ? "border-rose-500 ring-4 ring-rose-200 ring-offset-2" : "",
+        "relative flex aspect-square flex-col items-center justify-center rounded-md border p-2 transition",
+        boxTile ? "bg-black/30 hover:bg-black/15" : "bg-black/30 hover:bg-black/15",
+        buddySlot
+          ? "parchment shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+          : active
+          ? "border-[#f5f5f5]"
+          : "border-[#9a9a9a]/25 hover:border-[#f5f5f5]/60",
+        isSelected ? "ring-2 ring-[#58d0ff] ring-offset-2 ring-offset-black" : "",
+        selectedForTransfer ? "border-[#ff5a5a] ring-2 ring-[#ff5a5a]/60 ring-offset-2 ring-offset-black" : "",
       ].join(" ")}
     >
       {buddySlot && (
         <span
-          className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950 text-[11px] font-black text-white"
+          className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-[#9a9a9a] bg-black text-[11px] font-black text-[#ffcf4a]"
           aria-hidden="true"
         >
           ★
@@ -101,7 +105,7 @@ function MonsterTile({
       )}
       {selectedForTransfer && (
         <span
-          className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-rose-600 text-[11px] font-black text-white"
+          className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#ff5a5a] text-[11px] font-black text-black"
           aria-hidden="true"
         >
           ✓
@@ -120,10 +124,10 @@ function MonsterTile({
         className="h-14 w-14 object-contain sm:h-16 sm:w-16"
         style={{ imageRendering: "pixelated" }}
       />
-      <span className={["mt-1 max-w-full truncate text-[11px] font-medium", isHoldingItem ? "text-sky-600" : "text-zinc-700"].join(" ")}>
+      <span className={["mt-1 max-w-full truncate text-[11px] font-medium", isHoldingItem ? "text-[#58d0ff]" : "text-[#e6e6e6]"].join(" ")}>
         {current!.species.name}
       </span>
-      <span className="font-fantasy text-[10px] tabular-nums text-zinc-400">Lv. {current!.level}</span>
+      <span className="font-fantasy text-[10px] tabular-nums text-[#7d7d7d]">Lv. {current!.level}</span>
     </button>
   );
 }
@@ -143,10 +147,10 @@ function BoxDropTarget({ selected, disabled, onPick }: BoxDropTargetProps) {
       disabled={!active}
       aria-label="send to box"
       className={[
-        "mt-3 flex h-14 w-full items-center justify-center rounded-xl border-2 border-dashed transition",
+        "mt-3 flex h-14 w-full items-center justify-center rounded-md border-2 border-dashed transition",
         active
-          ? "border-sky-300 bg-sky-50 text-sky-600 ring-2 ring-sky-200"
-          : "border-zinc-200 bg-white text-zinc-300",
+          ? "border-[#58d0ff] bg-[#58d0ff]/10 text-[#58d0ff] ring-2 ring-[#58d0ff]/40"
+          : "border-[#9a9a9a]/30 bg-black/30 text-[#9a9a9a]/40",
       ].join(" ")}
     >
       <span className="text-2xl leading-none">↓▭</span>
@@ -183,8 +187,8 @@ function PieMenu({ open, transferMode, onToggle, onDexSort, onLevelSort, onTrans
             "absolute flex h-10 w-10 items-center justify-center rounded-full border text-xs font-bold shadow-sm transition",
             item.className,
             transferMode && item.label === "ナビに送る"
-              ? "border-rose-300 bg-rose-50 text-rose-700"
-              : "border-zinc-200 bg-white text-zinc-800 hover:bg-zinc-50",
+              ? "border-[#ff5a5a] bg-[#1f0a0a] text-[#ff5a5a]"
+              : "border-[#9a9a9a] bg-black text-[#e6e6e6] hover:bg-[#1e1e1e]",
           ].join(" ")}
         >
           {item.icon}
@@ -196,7 +200,7 @@ function PieMenu({ open, transferMode, onToggle, onDexSort, onLevelSort, onTrans
         aria-label="ボックスメニュー"
         aria-expanded={open}
         onClick={onToggle}
-        className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950 text-lg font-black text-white shadow-sm hover:bg-zinc-800"
+        className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#9a9a9a] bg-black text-lg font-black text-[#ffcf4a] shadow-sm hover:bg-[#1e1e1e]"
       >
         ◌
       </button>
@@ -324,16 +328,16 @@ export default function PokemonBox({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/45 p-4">
-      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl border bg-white p-4 shadow-xl sm:p-5">
+    <div className="font-dot fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="parchment max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-lg p-4 shadow-xl sm:p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-950 text-sm font-black text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-[#9a9a9a] bg-black text-sm font-black text-[#ffcf4a]">
               ★
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-zinc-950">エティモン管理</h2>
-              <p className={overLimit ? "text-sm font-semibold text-rose-600" : "text-xs text-zinc-500"}>
+              <h2 className="fantasy-title text-lg font-semibold text-[#ffcf4a]">エティモン管理</h2>
+              <p className={overLimit ? "text-sm font-semibold text-[#ff5a5a]" : "text-xs text-[#7d7d7d]"}>
                 ボックス {boxMonsters.length} / {limit}
                 {totalTransferred > 0 && ` ・ナビに送った数 ${totalTransferred}`}
               </p>
@@ -344,7 +348,7 @@ export default function PokemonBox({
               <button
                 type="button"
                 onClick={onOpenSync}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 text-lg leading-none text-zinc-500 hover:bg-zinc-50"
+                className="brass-btn flex h-10 w-10 items-center justify-center rounded-md text-lg leading-none"
                 aria-label="設定"
                 title="設定"
               >
@@ -355,7 +359,7 @@ export default function PokemonBox({
               type="button"
               onClick={requestClose}
               disabled={forceManage || overLimit}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 text-xl leading-none text-zinc-500 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-30"
+              className="brass-btn flex h-10 w-10 items-center justify-center rounded-md text-xl leading-none disabled:cursor-not-allowed disabled:opacity-30"
               aria-label="close"
             >
               ×
@@ -366,23 +370,23 @@ export default function PokemonBox({
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
               placeholder="名前・DECK Noで検索"
-              className="h-10 min-w-[200px] rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-sky-300"
+              className="slot-box h-10 min-w-[200px] rounded-md px-3 text-sm outline-none placeholder:text-[#7d7d7d] focus:ring-2 focus:ring-[#58d0ff]/50"
             />
           </div>
         </div>
 
         {overLimit && (
-          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-900">
+          <div className="mb-4 rounded-lg border-2 border-[#ff5a5a] bg-[#1f0a0a] px-4 py-3 text-sm font-medium text-[#ff8a8a]">
             ボックスが上限を超えています。{boxMonsters.length - limit}匹以上をナビに送ってください。
           </div>
         )}
 
-        <section className="rounded-xl border border-emerald-200 bg-emerald-100/50 p-3">
+        <section className="wood-panel rounded-lg p-3">
           <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950 text-[11px] font-black text-white">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#9a9a9a] bg-black text-[11px] font-black text-[#ffcf4a]">
               ★
             </span>
-            <span className="text-sm font-semibold text-emerald-950">手持ち</span>
+            <span className="text-sm font-semibold text-[#f5f5f5]">手持ち</span>
           </div>
           <div className="grid grid-cols-4 gap-3">
             {partySlots.map((monster, index) => (
@@ -405,11 +409,11 @@ export default function PokemonBox({
           />
         </section>
 
-        <section className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+        <section className="parchment mt-4 rounded-lg p-3">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-zinc-700">ボックス</div>
-              <div className="text-xs text-zinc-500">
+              <div className="text-sm font-semibold text-[#e6e6e6]">ボックス</div>
+              <div className="text-xs text-[#7d7d7d]">
                 通常表示
                 {transferMode && ` ・ナビに送る ${transferIds.size}匹選択中`}
               </div>
@@ -420,7 +424,7 @@ export default function PokemonBox({
                   type="button"
                   onClick={() => setConfirmOpen(true)}
                   disabled={transferIds.size === 0}
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-medium text-white hover:bg-rose-500 disabled:opacity-40"
+                  className="inline-flex h-10 items-center justify-center rounded-md border-2 border-[#ff5a5a] bg-[#ff5a5a] px-4 text-sm font-bold text-black transition hover:brightness-110 disabled:border-[#ff5a5a]/40 disabled:bg-transparent disabled:text-[#ff5a5a]/40"
                 >
                   ナビに送る
                 </button>
@@ -443,7 +447,7 @@ export default function PokemonBox({
               />
             ))}
             {visibleBoxMonsters.length === 0 && (
-              <div className="col-span-3 rounded-lg border border-dashed border-zinc-200 bg-white px-4 py-8 text-center text-sm text-zinc-400 sm:col-span-6">
+              <div className="col-span-3 rounded-md border border-dashed border-[#9a9a9a]/30 bg-black/30 px-4 py-8 text-center text-sm text-[#7d7d7d] sm:col-span-6">
                 Empty
               </div>
             )}
@@ -473,13 +477,13 @@ export default function PokemonBox({
       </div>
 
       {confirmOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-xl">
-            <h3 className="text-lg font-semibold text-zinc-950">ナビに送りますか？</h3>
-            <p className="mt-2 text-sm text-zinc-600">
+        <div className="font-dot fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+          <div className="parchment w-full max-w-md rounded-lg p-5 shadow-xl">
+            <h3 className="fantasy-title text-lg font-semibold text-[#ffcf4a]">ナビに送りますか？</h3>
+            <p className="mt-2 text-sm text-[#e6e6e6]">
               選択した{selectedTransferMonsters.length}匹はボックスからいなくなります。
             </p>
-            <div className="mt-4 rounded-xl bg-zinc-50 p-3 text-sm text-zinc-700">
+            <div className="mt-4 rounded-md border border-[#9a9a9a]/20 bg-black/40 p-3 text-sm text-[#e6e6e6]">
               {transferSummary.map((item) => (
                 <div key={item.name} className="flex justify-between gap-3">
                   <span>{item.name}</span>
@@ -491,14 +495,14 @@ export default function PokemonBox({
               <button
                 type="button"
                 onClick={confirmTransfer}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-rose-600 px-5 text-sm font-medium text-white hover:bg-rose-500"
+                className="inline-flex h-12 items-center justify-center rounded-md border-2 border-[#ff5a5a] bg-[#ff5a5a] px-5 text-sm font-bold text-black transition hover:brightness-110"
               >
                 送る
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmOpen(false)}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                className="brass-btn inline-flex h-12 items-center justify-center rounded-md px-5 text-sm font-medium"
               >
                 キャンセル
               </button>
