@@ -25,7 +25,6 @@ interface MonsterTileProps {
   location: TileLocation;
   selected: TileLocation | null;
   active?: boolean;
-  buddySlot?: boolean;
   boxTile?: boolean;
   transferMode?: boolean;
   selectedForTransfer?: boolean;
@@ -38,7 +37,6 @@ function MonsterTile({
   location,
   selected,
   active,
-  buddySlot,
   boxTile,
   transferMode,
   selectedForTransfer,
@@ -83,27 +81,17 @@ function MonsterTile({
       type="button"
       onClick={handleClick}
       aria-pressed={!!isSelected || !!selectedForTransfer}
-      aria-label={`${current!.species.name} Lv. ${current!.level}`}
+      aria-label={`${current!.species.name} Lv.${current!.level}`}
       className={[
         "relative flex aspect-square flex-col items-center justify-center rounded-md border p-2 transition",
         boxTile ? "bg-black/30 hover:bg-black/15" : "bg-black/30 hover:bg-black/15",
-        buddySlot
+        active
           ? "parchment shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-          : active
-          ? "border-[#f5f5f5]"
           : "border-[#9a9a9a]/25 hover:border-[#f5f5f5]/60",
         isSelected ? "ring-2 ring-[#58d0ff] ring-offset-2 ring-offset-black" : "",
         selectedForTransfer ? "border-[#ff5a5a] ring-2 ring-[#ff5a5a]/60 ring-offset-2 ring-offset-black" : "",
       ].join(" ")}
     >
-      {buddySlot && (
-        <span
-          className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-[#9a9a9a] bg-black text-[11px] font-black text-[#ffcf4a]"
-          aria-hidden="true"
-        >
-          ★
-        </span>
-      )}
       {selectedForTransfer && (
         <span
           className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#ff5a5a] text-[11px] font-black text-black"
@@ -128,7 +116,7 @@ function MonsterTile({
       <span className={["mt-1 max-w-full truncate text-[11px] font-medium", isHoldingItem ? "text-[#58d0ff]" : "text-[#e6e6e6]"].join(" ")}>
         {current!.species.name}
       </span>
-      <span className="font-fantasy text-[10px] tabular-nums text-[#7d7d7d]">Lv. {current!.level}</span>
+      <span className="font-fantasy text-[10px] tabular-nums text-[#7d7d7d]">Lv.{current!.level}</span>
     </button>
   );
 }
@@ -402,7 +390,6 @@ export default function PokemonBox({
                 location={{ area: "party", index, id: monster?.id ?? null }}
                 selected={selected}
                 active={monster?.id === normalized.activeId}
-                buddySlot={index === 0}
                 transferMode={false}
                 onPick={pick}
               />
