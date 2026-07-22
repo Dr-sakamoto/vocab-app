@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useMotionValue } from "framer-motion";
 import { MonsterCollection } from "@/lib/types";
 import {
   getMonsterDisplayState,
@@ -32,15 +32,21 @@ export default function EtymonDock({
   const normalized = normalizeMonsterCollection(collection);
   const slots = getPartySlots(normalized).slice(0, BATTLE_PARTY_SIZE);
   const attackPower = getPartyAttackPower(normalized);
+  // 取っ手のドラッグ量を手持ち欄本体と共有し、両者が一体で連動するようにする
+  const dragY = useMotionValue(0);
 
   return (
     <div className="relative h-full">
       {/* 凹の持ち手（台座上辺の中央に彫り込まれたくぼみ。目立たせない） */}
-      <div className="absolute inset-x-0 top-0 z-20 flex justify-center">
+      <motion.div
+        style={{ y: dragY }}
+        className="absolute inset-x-0 top-0 z-20 flex justify-center"
+      >
         <motion.button
           type="button"
           onClick={onOpenDrawer}
           drag="y"
+          style={{ y: dragY }}
           dragConstraints={{ top: 0, bottom: 0 }}
           dragElastic={{ top: 0.6, bottom: 0 }}
           onDragEnd={(_, info) => {
@@ -56,9 +62,12 @@ export default function EtymonDock({
             <span className="mx-auto mt-1 block h-1 w-6 rounded-full bg-[#f5f5f5]/70" />
           </span>
         </motion.button>
-      </div>
+      </motion.div>
 
-      <div className="wood-panel flex h-full min-h-0 items-stretch gap-1.5 rounded-lg px-2 pb-1.5 pt-3 sm:gap-2 sm:px-3">
+      <motion.div
+        style={{ y: dragY }}
+        className="wood-panel flex h-full min-h-0 items-stretch gap-1.5 rounded-lg px-2 pb-1.5 pt-3 sm:gap-2 sm:px-3"
+      >
         {slots.map((monster, index) => {
           if (!monster) {
             return (
@@ -126,7 +135,7 @@ export default function EtymonDock({
             {attackPower}
           </span>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
