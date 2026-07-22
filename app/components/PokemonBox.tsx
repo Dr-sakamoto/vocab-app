@@ -384,7 +384,7 @@ export default function PokemonBox({
             </span>
             <span className="text-sm font-semibold text-emerald-950">手持ち</span>
           </div>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+          <div className="grid grid-cols-4 gap-3">
             {partySlots.map((monster, index) => (
               <MonsterTile
                 key={monster?.id ?? `party-empty-${index}`}

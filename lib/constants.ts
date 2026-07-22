@@ -5,7 +5,7 @@ export const GAME = {
   UNLOCK_STEP: 30,
   PERFECT_UNLOCK_STEP: 50,
   BOX_LIMIT: 500,
-  PARTY_SIZE: 6,
+  PARTY_SIZE: 4,
 } as const;
 
 export const XP = {
