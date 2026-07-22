@@ -50,6 +50,7 @@ export default function MobileGameScreen({
   return (
     <div className="quiz-shell fantasy-shell relative h-dvh overflow-hidden">
       <AuroraBackground colors={FANTASY_AURORA} />
+      <div className="scene-grid" aria-hidden />
       <div className="scene-vignette" aria-hidden />
 
       <div className="relative z-10 flex h-full w-full flex-col gap-2 p-2">
@@ -63,7 +64,7 @@ export default function MobileGameScreen({
         {/* ── 2. 問題ウィンドウ（残り全部。判定後に選択肢が消えても
              問題カードの位置がズレないよう上詰めで固定する） ── */}
         <main className="min-h-0 flex-1">
-          <div className="parchment flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
+          <div className="flex h-full min-h-0 flex-col overflow-hidden">
             {quiz.phase === "result" ? (
               <InlineResult
                 evaluation={result.evaluation}
