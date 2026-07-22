@@ -9,6 +9,7 @@ import SyncButton from "./components/SyncButton";
 import ToastQueue from "./components/ToastQueue";
 import DesktopGameScreen from "./components/game/DesktopGameScreen";
 import MobileGameScreen from "./components/game/MobileGameScreen";
+import { DrawerBlockProps } from "./components/game/screenProps";
 import { useGameSession } from "./hooks/useGameSession";
 import { useVocabPool } from "./hooks/useVocabPool";
 import { useClickSound } from "./hooks/useClickSound";
@@ -105,8 +106,6 @@ const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q, i) => ({
   ...q,
   id: `w${i}`,
 }));
-
-type BoxSortMode = "dex" | "level";
 
 const normalizeStoryProgressForPage = normalizeStoryProgress as (
   progress: unknown,
@@ -1218,6 +1217,22 @@ export default function Page() {
     onOpenDrawer: () => setIsDrawerOpen(true),
   };
 
+  // 手持ち編成（ボックス）操作。スマホの地続きシートと PC のモーダルで共有。
+  const drawerProps: DrawerBlockProps = {
+    open: shouldOpenDrawer,
+    onOpenChange: setIsDrawerOpen,
+    limit: BOX_LIMIT,
+    forceManage: isBoxOverLimit,
+    onSwap: (first, second) =>
+      setMonsterCollection((prev) => swapMonsterLocations(prev, first, second)),
+    onRemove: (partyIndex) =>
+      setMonsterCollection((prev) => sendPartySlotToBox(prev, partyIndex)),
+    onSendToProfessor: handleSendToProfessor,
+    onSortBox: (mode) =>
+      setMonsterCollection((prev) => sortBoxMonsters(prev, mode)),
+    onOpenSync: () => setIsSyncOpen(true),
+  };
+
   if (!q) {
     return (
       <>
@@ -1241,6 +1256,7 @@ export default function Page() {
           result={resultProps}
           tiles={tileProps}
           dock={dockProps}
+          drawer={drawerProps}
         />
       ) : (
         <DesktopGameScreen
@@ -1252,29 +1268,20 @@ export default function Page() {
         />
       )}
 
-      {/* 手持ち編成（取っ手から地続きにせり上がって開く。PokemonBox がモーダルとして出る） */}
+      {/* 手持ち編成。スマホは MobileGameScreen 内の地続きシートで開くため、
+          ここ（全画面モーダル）は PC 版のときだけ描画する。 */}
       <AnimatePresence>
-        {shouldOpenDrawer && (
+        {!isMobile && shouldOpenDrawer && (
           <PokemonBox
             collection={monsterCollection}
-            limit={BOX_LIMIT}
-            forceManage={isBoxOverLimit}
+            limit={drawerProps.limit}
+            forceManage={drawerProps.forceManage}
             onClose={() => setIsDrawerOpen(false)}
-            onSwap={(first, second) =>
-              setMonsterCollection((prev) =>
-                swapMonsterLocations(prev, first, second),
-              )
-            }
-            onRemove={(partyIndex: number) =>
-              setMonsterCollection((prev) =>
-                sendPartySlotToBox(prev, partyIndex),
-              )
-            }
-            onSendToProfessor={handleSendToProfessor}
-            onSortBox={(mode: BoxSortMode) =>
-              setMonsterCollection((prev) => sortBoxMonsters(prev, mode))
-            }
-            onOpenSync={() => setIsSyncOpen(true)}
+            onSwap={drawerProps.onSwap}
+            onRemove={drawerProps.onRemove}
+            onSendToProfessor={drawerProps.onSendToProfessor}
+            onSortBox={drawerProps.onSortBox}
+            onOpenSync={drawerProps.onOpenSync}
           />
         )}
       </AnimatePresence>
