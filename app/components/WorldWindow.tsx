@@ -289,11 +289,11 @@ export default function WorldWindow({
           </div>
         )}
         {encounter ? (
-          <ul className="flex min-h-0 flex-1 flex-col justify-around divide-y divide-[#9a9a9a]/60">
+          <ul className="flex min-h-0 flex-1 flex-col divide-y divide-[#9a9a9a]/60">
             {encounter.missions.map((mission) => (
               <li
                 key={mission.id}
-                className="flex items-center gap-1.5 py-0.5 text-[10px] leading-tight sm:text-sm"
+                className="flex min-h-0 flex-1 items-center gap-1.5 overflow-hidden py-0.5 text-[10px] leading-tight sm:text-sm"
               >
                 <span
                   aria-hidden
@@ -305,10 +305,11 @@ export default function WorldWindow({
                 >
                   ✓
                 </span>
+                {/* 1区切り=1行を守るため折り返さず省略する（幅が不変な区切り欄を保つ） */}
                 <span
-                  className={
+                  className={`min-w-0 flex-1 truncate ${
                     mission.done ? "text-[#7d7d7d] line-through" : "text-[#e6e6e6]"
-                  }
+                  }`}
                 >
                   {mission.label}
                   {mission.goal > 1 && !mission.done && (
@@ -326,7 +327,7 @@ export default function WorldWindow({
             }).map((_, index) => (
               <li
                 key={`mission-slot-empty-${index}`}
-                className="py-0.5 text-[10px] leading-tight sm:text-sm"
+                className="min-h-0 flex-1 py-0.5 text-[10px] leading-tight sm:text-sm"
                 aria-hidden
               >
                 {" "}
@@ -334,13 +335,14 @@ export default function WorldWindow({
             ))}
           </ul>
         ) : (
-          <ul className="flex min-h-0 flex-1 flex-col justify-around divide-y divide-[#9a9a9a]/60">
+          <ul className="flex min-h-0 flex-1 flex-col divide-y divide-[#9a9a9a]/60">
             {missionTipSlots.map((line, index) => (
               <li
                 key={index}
-                className={`font-mincho-dot py-0.5 leading-snug text-[#f5f5f5] ${missionTipSizeClass}`}
+                className={`flex min-h-0 flex-1 items-center overflow-hidden font-mincho-dot leading-snug text-[#f5f5f5] ${missionTipSizeClass}`}
               >
-                {line || " "}
+                {/* 1区切り=1行を守るため折り返さず省略する（幅が不変な区切り欄を保つ） */}
+                <span className="w-full truncate">{line}</span>
               </li>
             ))}
           </ul>
