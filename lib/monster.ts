@@ -759,7 +759,7 @@ export const MONSTER_LINES: MonsterLine[] = RAW_MONSTER_LINES.map(applyEtymonNam
 
 export const DEFAULT_MONSTER_LINE_ID = "bulbasaur";
 export const BULBASAUR_LINE = MONSTER_LINES.find(line => line.id === DEFAULT_MONSTER_LINE_ID)!.species;
-export const PARTY_SIZE = 6;
+export const PARTY_SIZE = 4;
 export const BOX_LIMIT = 500;
 export const DEFAULT_MONSTER_COLLECTION: MonsterCollection = {
   version: 1,
