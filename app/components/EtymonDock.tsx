@@ -38,10 +38,7 @@ export default function EtymonDock({
   return (
     <div className="relative h-full">
       {/* 凹の持ち手（台座上辺の中央に彫り込まれたくぼみ。目立たせない） */}
-      <motion.div
-        style={{ y: dragY }}
-        className="absolute inset-x-0 top-0 z-20 flex justify-center"
-      >
+      <div className="absolute inset-x-0 top-0 z-20 flex justify-center">
         <motion.button
           type="button"
           onClick={onOpenDrawer}
@@ -62,7 +59,7 @@ export default function EtymonDock({
             <span className="mx-auto mt-1 block h-1 w-6 rounded-full bg-[#f5f5f5]/70" />
           </span>
         </motion.button>
-      </motion.div>
+      </div>
 
       <motion.div
         style={{ y: dragY }}
