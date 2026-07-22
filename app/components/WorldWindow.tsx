@@ -23,6 +23,15 @@ interface WorldWindowProps {
   compact?: boolean;
 }
 
+/** フレーバーテキストの実際の行数（1〜FLAVOR_MAX_LINES）ごとの文字サイズ。
+ *  行数が少ないほど枠に余裕ができるため、大きく表示して読みやすくする。 */
+const MISSION_TIP_SIZE_CLASSES = [
+  "text-sm sm:text-base",
+  "text-xs sm:text-sm",
+  "text-[11px] sm:text-sm",
+  "text-[10px] sm:text-xs",
+] as const;
+
 function hpBarColor(ratio: number): string {
   if (ratio > 0.5) return "bg-[#4ade80]";
   if (ratio > 0.25) return "bg-[#ffcf4a]";
@@ -82,6 +91,10 @@ export default function WorldWindow({
     { length: FLAVOR_MAX_LINES },
     (_, index) => missionTipLines[index] ?? "",
   );
+  // 実際の行数が少ないほど枠に余裕が生まれるため、行数に応じて文字を大きくする
+  const missionTipSizeClass = MISSION_TIP_SIZE_CLASSES[
+    Math.min(Math.max(missionTipLines.length, 1), FLAVOR_MAX_LINES) - 1
+  ];
 
   if (compact) {
     const doneCount = encounter
@@ -325,7 +338,7 @@ export default function WorldWindow({
             {missionTipSlots.map((line, index) => (
               <li
                 key={index}
-                className="font-mincho-dot py-0.5 text-[10px] leading-snug text-[#f5f5f5] sm:text-xs"
+                className={`font-mincho-dot py-0.5 leading-snug text-[#f5f5f5] ${missionTipSizeClass}`}
               >
                 {line || " "}
               </li>
