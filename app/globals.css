@@ -556,11 +556,19 @@ a {
 }
 
 /* Lv./ATK/HPなど、単語の出題内容とは無関係な「システム表示」の英数字・記号用。
-   出題本体（.quest-card）には適用しないこと。 */
-.font-fantasy {
-  font-weight: 400;
-  font-size: 1.2em;
-  letter-spacing: 0.02em;
+   出題本体（.quest-card）には適用しないこと。
+   @layer utilities + :where() でこのクラス自体の詳細度を0にし、text-xs や
+   text-[10px] などのサイズ指定ユーティリティと併用した際は常に後者が優先
+   されるようにする。素の（レイヤーなしの）.font-fantasyだとTailwind v4の
+   cascade layer上、常にtext-*系ユーティリティより優先されてしまい、name側
+   より小さく指定したはずのレベル表示（Lv.）がname側より大きく表示されて
+   しまう。 */
+@layer utilities {
+  :where(.font-fantasy) {
+    font-weight: 400;
+    font-size: 1.2em;
+    letter-spacing: 0.02em;
+  }
 }
 
 .fantasy-shell {
