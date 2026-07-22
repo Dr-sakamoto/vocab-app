@@ -215,11 +215,11 @@ export default function WorldWindow({
               transition={{ duration: 0.3 }}
               className="relative z-10 flex h-full w-full min-h-0 flex-col items-center justify-center"
             >
-              <div className="flex w-full items-baseline justify-center gap-1 text-[10px] font-bold sm:text-xs">
-                <span className="font-fantasy shrink-0 text-[9px] tabular-nums text-[#ffcf4a] sm:text-[11px]">
+              <div className="flex w-full items-baseline justify-center gap-1 leading-none font-bold">
+                <span className="font-fantasy shrink-0 text-[8px] tabular-nums text-[#ffcf4a] sm:text-[9px]">
                   Lv.{encounter.level}
                 </span>
-                <span className="truncate">{encounter.name}</span>
+                <span className="truncate text-[10px] sm:text-xs">{encounter.name}</span>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -231,7 +231,7 @@ export default function WorldWindow({
                   }
                 }}
                 className="min-h-0 w-auto flex-1 object-contain py-0.5"
-                style={{ imageRendering: "pixelated", maxHeight: "70%" }}
+                style={{ imageRendering: "pixelated", maxHeight: "78%" }}
               />
               <div className="w-full">
                 <div
