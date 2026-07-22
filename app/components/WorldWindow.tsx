@@ -178,7 +178,7 @@ export default function WorldWindow({
                 e.currentTarget.style.display = "none";
               }
             }}
-            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover opacity-40"
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
             style={{ imageRendering: "pixelated" }}
           />
         )}
@@ -268,7 +268,7 @@ export default function WorldWindow({
               key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-1 text-center"
+              className="relative z-10 flex h-full w-full flex-col items-center justify-start gap-1 pt-1 text-center"
             >
               <span className="text-[9px] text-[#7d7d7d] sm:text-[10px]">現在地</span>
               <span className="truncate px-1 text-sm font-bold sm:text-base">
