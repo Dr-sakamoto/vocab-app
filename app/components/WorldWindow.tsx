@@ -306,6 +306,19 @@ export default function WorldWindow({
                 </span>
               </li>
             ))}
+            {/* ミッション数がレベルに応じて2〜4件と可変のため、区切り線が
+                常に4本構成になるよう不足分を空欄スロットで埋める */}
+            {Array.from({
+              length: Math.max(0, FLAVOR_MAX_LINES - encounter.missions.length),
+            }).map((_, index) => (
+              <li
+                key={`mission-slot-empty-${index}`}
+                className="py-0.5 text-[10px] leading-tight sm:text-sm"
+                aria-hidden
+              >
+                {" "}
+              </li>
+            ))}
           </ul>
         ) : (
           <ul className="flex min-h-0 flex-1 flex-col justify-around divide-y divide-[#9a9a9a]/60">
