@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { MonsterCollection, MonsterInstance } from "@/lib/types";
 import {
   getBoxMonsters,
@@ -328,8 +329,20 @@ export default function PokemonBox({
   };
 
   return (
-    <div className="font-dot fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="parchment max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-lg p-4 shadow-xl sm:p-5">
+    <motion.div
+      className="font-dot fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.div
+        className="parchment max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-lg p-4 shadow-xl sm:p-5"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 320, damping: 34, mass: 0.9 }}
+      >
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-[#9a9a9a] bg-black text-sm font-black text-[#ffcf4a]">
@@ -453,7 +466,7 @@ export default function PokemonBox({
             )}
           </div>
         </section>
-      </div>
+      </motion.div>
       <div className="fixed bottom-6 right-6 z-50">
         <PieMenu
           open={menuOpen}
@@ -510,6 +523,6 @@ export default function PokemonBox({
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

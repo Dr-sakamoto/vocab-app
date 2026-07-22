@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import FossilChoiceModal from "./components/FossilChoiceModal";
 import PokemonBox from "./components/PokemonBox";
 import StarterChoiceModal from "./components/StarterChoiceModal";
@@ -1251,30 +1252,32 @@ export default function Page() {
         />
       )}
 
-      {/* 手持ち編成（取っ手から開く。PokemonBox 自体がモーダルとして出る） */}
-      {shouldOpenDrawer && (
-        <PokemonBox
-          collection={monsterCollection}
-          limit={BOX_LIMIT}
-          forceManage={isBoxOverLimit}
-          onClose={() => setIsDrawerOpen(false)}
-          onSwap={(first, second) =>
-            setMonsterCollection((prev) =>
-              swapMonsterLocations(prev, first, second),
-            )
-          }
-          onRemove={(partyIndex: number) =>
-            setMonsterCollection((prev) =>
-              sendPartySlotToBox(prev, partyIndex),
-            )
-          }
-          onSendToProfessor={handleSendToProfessor}
-          onSortBox={(mode: BoxSortMode) =>
-            setMonsterCollection((prev) => sortBoxMonsters(prev, mode))
-          }
-          onOpenSync={() => setIsSyncOpen(true)}
-        />
-      )}
+      {/* 手持ち編成（取っ手から地続きにせり上がって開く。PokemonBox がモーダルとして出る） */}
+      <AnimatePresence>
+        {shouldOpenDrawer && (
+          <PokemonBox
+            collection={monsterCollection}
+            limit={BOX_LIMIT}
+            forceManage={isBoxOverLimit}
+            onClose={() => setIsDrawerOpen(false)}
+            onSwap={(first, second) =>
+              setMonsterCollection((prev) =>
+                swapMonsterLocations(prev, first, second),
+              )
+            }
+            onRemove={(partyIndex: number) =>
+              setMonsterCollection((prev) =>
+                sendPartySlotToBox(prev, partyIndex),
+              )
+            }
+            onSendToProfessor={handleSendToProfessor}
+            onSortBox={(mode: BoxSortMode) =>
+              setMonsterCollection((prev) => sortBoxMonsters(prev, mode))
+            }
+            onOpenSync={() => setIsSyncOpen(true)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* 設定モーダル（モンスター管理画面の⚙️から開く） */}
       {isSyncOpen && (
