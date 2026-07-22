@@ -1,5 +1,6 @@
 import { WildEncounterState } from "@/lib/wildEncounter";
 import { MonsterCollection, PlayEvaluation, PoolTier } from "@/lib/types";
+import { PokemonBoxProps } from "../PokemonBox";
 
 /**
  * スマホ版/PC版スクリーンが共有する props 群。
@@ -54,4 +55,23 @@ export interface DockBlockProps {
   collection: MonsterCollection;
   onSelect: (monsterId: string) => void;
   onOpenDrawer: () => void;
+}
+
+/**
+ * スマホ版の地続きボトムシート（EtymonPartySheet）に渡す手持ち編成の props。
+ * ボックス操作は PokemonBox と同じハンドラを共有する。
+ */
+export interface DrawerBlockProps
+  extends Pick<
+    PokemonBoxProps,
+    | "limit"
+    | "forceManage"
+    | "onSwap"
+    | "onRemove"
+    | "onSendToProfessor"
+    | "onSortBox"
+    | "onOpenSync"
+  > {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }

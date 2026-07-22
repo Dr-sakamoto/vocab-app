@@ -16,7 +16,13 @@ interface EtymonDockProps {
   collection: MonsterCollection;
   onSelect?: (monsterId: string) => void;
   /** 取っ手のタップ / 上方向ドラッグで手持ち編成ドロワーを開く */
-  onOpenDrawer: () => void;
+  onOpenDrawer?: () => void;
+  /**
+   * true のとき自前の取っ手・ドラッグを持たず、手持ち盤だけを描画する。
+   * スマホの地続きボトムシート（EtymonPartySheet）が取っ手とドラッグを
+   * 肩代わりし、そののぞき見（peek）としてこの盤面を使うためのモード。
+   */
+  asPeek?: boolean;
 }
 
 /**
@@ -28,6 +34,7 @@ export default function EtymonDock({
   collection,
   onSelect,
   onOpenDrawer,
+  asPeek = false,
 }: EtymonDockProps) {
   const normalized = normalizeMonsterCollection(collection);
   const slots = getPartySlots(normalized).slice(0, BATTLE_PARTY_SIZE);
@@ -37,29 +44,32 @@ export default function EtymonDock({
 
   return (
     <div className="relative h-full">
-      {/* 凹の持ち手（台座上辺の中央に彫り込まれたくぼみ。目立たせない） */}
-      <div className="absolute inset-x-0 top-0 z-20 flex justify-center">
-        <motion.button
-          type="button"
-          onClick={onOpenDrawer}
-          drag="y"
-          style={{ y: dragY }}
-          dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={{ top: 0.6, bottom: 0 }}
-          onDragEnd={(_, info) => {
-            if (info.offset.y < -18 || info.velocity.y < -300) onOpenDrawer();
-          }}
-          aria-label="手持ち編成を開く"
-          className="cursor-grab touch-none px-5 pb-2 active:cursor-grabbing"
-        >
-          <span
-            aria-hidden
-            className="block h-3.5 w-14 rounded-b-full bg-black/50 shadow-[inset_0_2px_5px_rgba(0,0,0,0.7),inset_0_-1px_1px_rgba(255,255,255,0.3)]"
+      {/* 凹の持ち手（台座上辺の中央に彫り込まれたくぼみ。目立たせない）。
+          peek モードではシート側が取っ手を担うので描画しない。 */}
+      {!asPeek && (
+        <div className="absolute inset-x-0 top-0 z-20 flex justify-center">
+          <motion.button
+            type="button"
+            onClick={onOpenDrawer}
+            drag="y"
+            style={{ y: dragY }}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0.6, bottom: 0 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y < -18 || info.velocity.y < -300) onOpenDrawer?.();
+            }}
+            aria-label="手持ち編成を開く"
+            className="cursor-grab touch-none px-5 pb-2 active:cursor-grabbing"
           >
-            <span className="mx-auto mt-1 block h-1 w-6 rounded-full bg-[#f5f5f5]/70" />
-          </span>
-        </motion.button>
-      </div>
+            <span
+              aria-hidden
+              className="block h-3.5 w-14 rounded-b-full bg-black/50 shadow-[inset_0_2px_5px_rgba(0,0,0,0.7),inset_0_-1px_1px_rgba(255,255,255,0.3)]"
+            >
+              <span className="mx-auto mt-1 block h-1 w-6 rounded-full bg-[#f5f5f5]/70" />
+            </span>
+          </motion.button>
+        </div>
+      )}
 
       <motion.div
         style={{ y: dragY }}

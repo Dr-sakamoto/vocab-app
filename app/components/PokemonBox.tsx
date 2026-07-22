@@ -12,9 +12,9 @@ import {
   normalizeMonsterCollection,
 } from "@/lib/monster";
 
-type SortMode = "dex" | "level";
+export type SortMode = "dex" | "level";
 
-interface TileLocation {
+export interface TileLocation {
   area: "party" | "box" | "remove";
   index: number;
   id: string | null;
@@ -222,7 +222,7 @@ function summarizeTransfers(monsters: MonsterInstance[]): { name: string; count:
   return [...summary.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ja"));
 }
 
-interface PokemonBoxProps {
+export interface PokemonBoxProps {
   collection: MonsterCollection;
   limit?: number;
   forceManage?: boolean;
@@ -232,6 +232,11 @@ interface PokemonBoxProps {
   onSendToProfessor?: (ids: string[]) => void;
   onSortBox?: (mode: SortMode) => void;
   onOpenSync?: () => void;
+  /**
+   * true のとき、独自の全画面背景・スライドを持たず親コンテナを満たす
+   * 中身だけを描画する。スマホの地続きボトムシートに埋め込むために使う。
+   */
+  embedded?: boolean;
 }
 
 export default function PokemonBox({
@@ -244,6 +249,7 @@ export default function PokemonBox({
   onSendToProfessor,
   onSortBox,
   onOpenSync,
+  embedded = false,
 }: PokemonBoxProps) {
   const normalized = normalizeMonsterCollection(collection);
   const partySlots = getPartySlots(normalized);
@@ -328,22 +334,9 @@ export default function PokemonBox({
     onClose?.();
   };
 
-  return (
-    <motion.div
-      className="font-dot fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-    >
-      <motion.div
-        className="parchment max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-lg p-4 shadow-xl sm:p-5"
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", stiffness: 320, damping: 34, mass: 0.9 }}
-      >
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+  const panelBody = (
+    <>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-[#9a9a9a] bg-black text-sm font-black text-[#ffcf4a]">
               ★
@@ -466,7 +459,11 @@ export default function PokemonBox({
             )}
           </div>
         </section>
-      </motion.div>
+    </>
+  );
+
+  const overlays = (
+    <>
       <div className="fixed bottom-6 right-6 z-50">
         <PieMenu
           open={menuOpen}
@@ -523,6 +520,38 @@ export default function PokemonBox({
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="font-dot flex h-full min-h-0 flex-col">
+        <div className="parchment min-h-0 flex-1 overflow-y-auto rounded-t-2xl p-4 shadow-xl sm:p-5">
+          {panelBody}
+        </div>
+        {overlays}
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      className="font-dot fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.div
+        className="parchment max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-lg p-4 shadow-xl sm:p-5"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 320, damping: 34, mass: 0.9 }}
+      >
+        {panelBody}
+      </motion.div>
+      {overlays}
     </motion.div>
   );
 }

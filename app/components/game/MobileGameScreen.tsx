@@ -1,13 +1,14 @@
 "use client";
 
 import AuroraBackground from "../AuroraBackground";
-import EtymonDock from "../EtymonDock";
+import EtymonPartySheet from "../EtymonPartySheet";
 import InlineResult from "../InlineResult";
 import WorldWindow from "../WorldWindow";
 import QuestionCard from "./QuestionCard";
 import TileAnswerBoard, { TileAnswerBoardProps } from "./TileAnswerBoard";
 import {
   DockBlockProps,
+  DrawerBlockProps,
   FANTASY_AURORA,
   QuizBlockProps,
   ResultBlockProps,
@@ -20,6 +21,7 @@ export interface MobileGameScreenProps {
   result: ResultBlockProps;
   tiles: TileAnswerBoardProps;
   dock: DockBlockProps;
+  drawer: DrawerBlockProps;
 }
 
 /**
@@ -43,6 +45,7 @@ export default function MobileGameScreen({
   result,
   tiles,
   dock,
+  drawer,
 }: MobileGameScreenProps) {
   return (
     <div className="quiz-shell fantasy-shell relative h-dvh overflow-hidden">
@@ -112,12 +115,22 @@ export default function MobileGameScreen({
         </main>
 
         {/* ── 3. エティモンウィンドウ（手持ち編成。最下段に固定配置。
-             持ち手の上方向ドラッグで編成ドロワーを開く） ── */}
+             持ち手を上へ引くと控えボックスが下から地続きにせり上がる。
+             背景・ボックス面は fixed で全画面に展開するため、この footer は
+             手持ち欄（のぞき見）ぶんの高さを確保する枠として機能する） ── */}
         <footer className="relative z-20 h-32 shrink-0">
-          <EtymonDock
+          <EtymonPartySheet
             collection={dock.collection}
             onSelect={dock.onSelect}
-            onOpenDrawer={dock.onOpenDrawer}
+            open={drawer.open}
+            onOpenChange={drawer.onOpenChange}
+            limit={drawer.limit}
+            forceManage={drawer.forceManage}
+            onSwap={drawer.onSwap}
+            onRemove={drawer.onRemove}
+            onSendToProfessor={drawer.onSendToProfessor}
+            onSortBox={drawer.onSortBox}
+            onOpenSync={drawer.onOpenSync}
           />
         </footer>
       </div>
