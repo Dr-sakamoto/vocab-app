@@ -220,6 +220,8 @@ export interface PokemonBoxProps {
   onSendToProfessor?: (ids: string[]) => void;
   onSortBox?: (mode: SortMode) => void;
   onOpenSync?: () => void;
+  /** 手持ちの札からせんとう（アクティブ）を切り替える。渡すと★導線を出す */
+  onSetActive?: (monsterId: string) => void;
   /**
    * true のとき、独自の全画面背景・スライドを持たず親コンテナを満たす
    * 中身だけを描画する。スマホの地続きボトムシートに埋め込むために使う。
@@ -237,6 +239,7 @@ export default function PokemonBox({
   onSendToProfessor,
   onSortBox,
   onOpenSync,
+  onSetActive,
   embedded = false,
 }: PokemonBoxProps) {
   const normalized = normalizeMonsterCollection(collection);
@@ -381,19 +384,53 @@ export default function PokemonBox({
               ★
             </span>
             <span className="text-sm font-semibold text-[#f5f5f5]">手持ち</span>
+            {onSetActive && (
+              <span className="ml-auto text-[11px] text-[#7d7d7d]">
+                ★＝せんとう（タップで交代）
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-4 gap-3">
-            {partySlots.map((monster, index) => (
-              <MonsterTile
-                key={monster?.id ?? `party-empty-${index}`}
-                monster={monster}
-                location={{ area: "party", index, id: monster?.id ?? null }}
-                selected={selected}
-                active={monster?.id === normalized.activeId}
-                transferMode={false}
-                onPick={pick}
-              />
-            ))}
+            {partySlots.map((monster, index) => {
+              const isActive = monster?.id === normalized.activeId;
+              return (
+                <div
+                  key={monster?.id ?? `party-empty-${index}`}
+                  className="relative"
+                >
+                  <MonsterTile
+                    monster={monster}
+                    location={{ area: "party", index, id: monster?.id ?? null }}
+                    selected={selected}
+                    active={isActive}
+                    transferMode={false}
+                    onPick={pick}
+                  />
+                  {onSetActive && monster && (
+                    <button
+                      type="button"
+                      onClick={() => onSetActive(monster.id)}
+                      disabled={isActive}
+                      aria-pressed={isActive}
+                      aria-label={
+                        isActive
+                          ? `${getMonsterDisplayState(monster).species.name} はせんとう中`
+                          : `${getMonsterDisplayState(monster).species.name} をせんとうにする`
+                      }
+                      title={isActive ? "せんとう中" : "せんとうにする"}
+                      className={[
+                        "absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border text-[11px] leading-none transition",
+                        isActive
+                          ? "cursor-default border-[#ffcf4a] bg-[#ffcf4a] text-black"
+                          : "border-[#9a9a9a]/60 bg-black/70 text-[#e6e6e6] hover:border-[#ffcf4a] hover:text-[#ffcf4a]",
+                      ].join(" ")}
+                    >
+                      ★
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <BoxDropTarget
             selected={selected}

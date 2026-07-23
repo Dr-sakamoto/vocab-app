@@ -1231,6 +1231,8 @@ export default function Page() {
     onSortBox: (mode) =>
       setMonsterCollection((prev) => sortBoxMonsters(prev, mode)),
     onOpenSync: () => setIsSyncOpen(true),
+    onSetActive: (monsterId) =>
+      setMonsterCollection((prev) => setActiveMonster(prev, monsterId)),
   };
 
   if (!q) {
@@ -1282,6 +1284,7 @@ export default function Page() {
             onSendToProfessor={drawerProps.onSendToProfessor}
             onSortBox={drawerProps.onSortBox}
             onOpenSync={drawerProps.onOpenSync}
+            onSetActive={drawerProps.onSetActive}
           />
         )}
       </AnimatePresence>

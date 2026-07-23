@@ -132,6 +132,7 @@ export default function MobileGameScreen({
             onSendToProfessor={drawer.onSendToProfessor}
             onSortBox={drawer.onSortBox}
             onOpenSync={drawer.onOpenSync}
+            onSetActive={drawer.onSetActive}
           />
         </footer>
       </div>

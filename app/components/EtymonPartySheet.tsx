@@ -20,6 +20,7 @@ type BoxHandlerProps = Pick<
   | "onSendToProfessor"
   | "onSortBox"
   | "onOpenSync"
+  | "onSetActive"
 >;
 
 interface EtymonPartySheetProps extends BoxHandlerProps {
@@ -58,6 +59,7 @@ export default function EtymonPartySheet({
   onSendToProfessor,
   onSortBox,
   onOpenSync,
+  onSetActive,
 }: EtymonPartySheetProps) {
   // 0 = 閉（ヘッダだけが最下段からのぞく）, 1 = 開（画面を覆う）
   const progress = useMotionValue(open ? 1 : 0);
@@ -170,6 +172,7 @@ export default function EtymonPartySheet({
             onSendToProfessor={onSendToProfessor}
             onSortBox={onSortBox}
             onOpenSync={onOpenSync}
+            onSetActive={onSetActive}
           />
 
           {/* 閉じている間だけ、のぞいているヘッダ帯全体をタップ／上ドラッグの
