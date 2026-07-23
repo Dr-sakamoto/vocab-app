@@ -6,13 +6,14 @@ import InlineResult from "../InlineResult";
 import WorldWindow from "../WorldWindow";
 import QuestionCard from "./QuestionCard";
 import TypingAnswerRow, { TypingAnswerRowProps } from "./TypingAnswerRow";
+import { getHabitatTheme } from "@/lib/habitatTheme";
 import {
   DockBlockProps,
-  FANTASY_AURORA,
   QuizBlockProps,
   ResultBlockProps,
   WorldBlockProps,
 } from "./screenProps";
+import type { CSSProperties } from "react";
 
 export interface DesktopGameScreenProps {
   world: WorldBlockProps;
@@ -35,9 +36,13 @@ export default function DesktopGameScreen({
   typing,
   dock,
 }: DesktopGameScreenProps) {
+  const theme = getHabitatTheme(world.encounter?.habitatId ?? world.fallbackHabitatId);
   return (
-    <div className="fantasy-shell relative h-screen overflow-hidden">
-      <AuroraBackground vivid colors={FANTASY_AURORA} />
+    <div
+      className="fantasy-shell relative h-screen overflow-hidden"
+      style={{ "--field-dots-glow": theme.dotsGlow } as CSSProperties}
+    >
+      <AuroraBackground vivid colors={theme.aurora} />
       <div className="field-dots field-dots-1" aria-hidden />
       <div className="field-dots field-dots-2" aria-hidden />
       <div className="scene-vignette" aria-hidden />
