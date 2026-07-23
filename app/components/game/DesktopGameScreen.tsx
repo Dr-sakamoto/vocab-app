@@ -38,7 +38,8 @@ export default function DesktopGameScreen({
   return (
     <div className="fantasy-shell relative h-screen overflow-hidden">
       <AuroraBackground vivid colors={FANTASY_AURORA} />
-      <div className="scene-grid" aria-hidden />
+      <div className="field-dots field-dots-1" aria-hidden />
+      <div className="field-dots field-dots-2" aria-hidden />
       <div className="scene-vignette" aria-hidden />
 
       <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col gap-3 p-3">

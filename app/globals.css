@@ -428,7 +428,7 @@ a {
   inset: 0;
   pointer-events: none;
   background-image: radial-gradient(
-    rgba(230, 230, 230, 0.14) 1px,
+    rgba(30, 41, 59, 0.14) 1px,
     transparent 1.5px
   );
   background-size: 24px 24px;

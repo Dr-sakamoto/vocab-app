@@ -50,7 +50,8 @@ export default function MobileGameScreen({
   return (
     <div className="quiz-shell fantasy-shell relative h-dvh overflow-hidden">
       <AuroraBackground colors={FANTASY_AURORA} />
-      <div className="scene-grid" aria-hidden />
+      <div className="field-dots field-dots-1" aria-hidden />
+      <div className="field-dots field-dots-2" aria-hidden />
       <div className="scene-vignette" aria-hidden />
 
       <div className="relative z-10 flex h-full w-full flex-col gap-2 p-2">
