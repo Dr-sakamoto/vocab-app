@@ -270,7 +270,6 @@ export default function WorldWindow({
               animate={{ opacity: 1 }}
               className="relative z-10 flex h-full w-full flex-col items-center justify-start gap-1 pt-1 text-center"
             >
-              <span className="text-[9px] text-[#7d7d7d] sm:text-[10px]">現在地</span>
               <span className="truncate px-1 text-sm font-bold sm:text-base">
                 {habitatName}
               </span>
