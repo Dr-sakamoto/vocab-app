@@ -1,3 +1,8 @@
 {
-  "sprites": {}
+  "sprites": {
+    "bulbasaur:0": "/etymon/bulbasaur-0.png",
+    "squirtle:0": "/etymon/squirtle-0.png",
+    "bulbasaur:1": "/etymon/bulbasaur-1.png",
+    "spearow:0": "/etymon/spearow-0.png"
+  }
 }
