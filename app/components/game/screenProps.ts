@@ -64,6 +64,7 @@ export interface DrawerBlockProps
     | "onSendToProfessor"
     | "onSortBox"
     | "onOpenSync"
+    | "onSetActive"
   > {
   open: boolean;
   onOpenChange: (open: boolean) => void;
