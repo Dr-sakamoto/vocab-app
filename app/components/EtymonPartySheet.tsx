@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   animate,
   motion,
@@ -63,9 +63,17 @@ export default function EtymonPartySheet({
 }: EtymonPartySheetProps) {
   // 0 = 閉（ヘッダだけが最下段からのぞく）, 1 = 開（画面を覆う）
   const progress = useMotionValue(open ? 1 : 0);
-  // 閉じても最下段に PEEK_PX 分（＝footer の高さ）だけ盤面上部を残す。
-  // これにより「ボックス管理画面の上部がそのまま下部にくる」状態になる。
-  const boxY = useTransform(progress, [0, 1], [`calc(100% - ${PEEK_PX}px)`, "0%"]);
+  // 閉じたときの盤面の下げ幅（px）。画面高 − PEEK_PX 分だけ下げると、
+  // 盤面上部（つまみ＋ヘッダ）が PEEK_PX 分だけ最下段にのぞく。
+  // ※calc() 文字列と "0%" の補間は framer-motion で正しく動かないため、
+  //   画面高から算出した px で補間する（＝盤面が確実にせり上がる）。
+  const [peekOffset, setPeekOffset] = useState(() =>
+    typeof window !== "undefined"
+      ? Math.max(0, window.innerHeight - PEEK_PX)
+      : 700,
+  );
+  // 閉（peekOffset px 下げ）→ 開（0）へ。y は数値＝px として扱われる。
+  const boxY = useTransform(progress, [0, 1], [peekOffset, 0]);
   const dim = useTransform(progress, [0, 1], [0, 0.72]);
 
   // 引き切るのに必要なドラッグ量（画面高の約55%）。指追従の感度基準。
@@ -76,6 +84,7 @@ export default function EtymonPartySheet({
   useEffect(() => {
     const update = () => {
       dragDist.current = Math.max(240, Math.round(window.innerHeight * 0.55));
+      setPeekOffset(Math.max(0, window.innerHeight - PEEK_PX));
     };
     update();
     window.addEventListener("resize", update);
