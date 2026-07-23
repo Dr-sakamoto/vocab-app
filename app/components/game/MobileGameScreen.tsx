@@ -6,14 +6,15 @@ import InlineResult from "../InlineResult";
 import WorldWindow from "../WorldWindow";
 import QuestionCard from "./QuestionCard";
 import TileAnswerBoard, { TileAnswerBoardProps } from "./TileAnswerBoard";
+import { getHabitatTheme } from "@/lib/habitatTheme";
 import {
   DockBlockProps,
   DrawerBlockProps,
-  FANTASY_AURORA,
   QuizBlockProps,
   ResultBlockProps,
   WorldBlockProps,
 } from "./screenProps";
+import type { CSSProperties } from "react";
 
 export interface MobileGameScreenProps {
   world: WorldBlockProps;
@@ -47,10 +48,15 @@ export default function MobileGameScreen({
   dock,
   drawer,
 }: MobileGameScreenProps) {
+  const theme = getHabitatTheme(world.encounter?.habitatId ?? world.fallbackHabitatId);
   return (
-    <div className="quiz-shell fantasy-shell relative h-dvh overflow-hidden">
-      <AuroraBackground colors={FANTASY_AURORA} />
-      <div className="scene-grid" aria-hidden />
+    <div
+      className="quiz-shell fantasy-shell relative h-dvh overflow-hidden"
+      style={{ "--field-dots-glow": theme.dotsGlow } as CSSProperties}
+    >
+      <AuroraBackground colors={theme.aurora} />
+      <div className="field-dots field-dots-1" aria-hidden />
+      <div className="field-dots field-dots-2" aria-hidden />
       <div className="scene-vignette" aria-hidden />
 
       <div className="relative z-10 flex h-full w-full flex-col gap-2 p-2">

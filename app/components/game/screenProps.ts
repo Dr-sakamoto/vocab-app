@@ -7,13 +7,6 @@ import { PokemonBoxProps } from "../PokemonBox";
  * page.tsx（状態の持ち主）が組み立て、各スクリーンはレイアウトに専念する。
  */
 
-/** EGAレトロRPGスキンの背景グロー（明白・琥珀・血赤） */
-export const FANTASY_AURORA: [string, string, string] = [
-  "#f5f5f5",
-  "#ffcf4a",
-  "#ff5a5a",
-];
-
 export interface WorldBlockProps {
   encounter: WildEncounterState | null;
   fallbackHabitatName: string;
