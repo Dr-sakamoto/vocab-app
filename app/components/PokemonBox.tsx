@@ -238,7 +238,6 @@ export default function PokemonBox({
   onRemove,
   onSendToProfessor,
   onSortBox,
-  onOpenSync,
   onSetActive,
   embedded = false,
 }: PokemonBoxProps) {
@@ -248,29 +247,11 @@ export default function PokemonBox({
   const partyCount = getPartyCount(normalized);
   const [selected, setSelected] = useState<TileLocation | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchText, setSearchText] = useState("");
   const [requestedTransferMode, setRequestedTransferMode] = useState(false);
   const [transferIds, setTransferIds] = useState<Set<string>>(() => new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const overLimit = boxMonsters.length > limit;
   const transferMode = requestedTransferMode || forceManage || overLimit;
-
-  const getVisibleBoxMonsters = (): MonsterInstance[] => {
-    const query = searchText.trim().toLocaleLowerCase("ja");
-    if (!query) return boxMonsters;
-    return boxMonsters.filter((monster) => {
-      const state = getMonsterDisplayState(monster);
-      const line = getMonsterLine(monster.lineId);
-      return [
-        state.species.name,
-        state.species.nameEn,
-        String(state.species.id),
-        line?.name ?? "",
-        line?.id ?? "",
-      ].some((value) => String(value ?? "").toLocaleLowerCase("ja").includes(query));
-    });
-  };
-  const visibleBoxMonsters = getVisibleBoxMonsters();
 
   const selectedTransferMonsters = boxMonsters.filter((monster) => transferIds.has(monster.id));
   const transferSummary = summarizeTransfers(selectedTransferMonsters);
@@ -327,58 +308,7 @@ export default function PokemonBox({
 
   const panelBody = (
     <>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-[#9a9a9a] bg-black text-sm font-black text-[#ffcf4a]">
-              ★
-            </div>
-            <div>
-              <h2 className="fantasy-title text-lg font-semibold text-[#ffcf4a]">エティモン管理</h2>
-              <p className={overLimit ? "text-sm font-semibold text-[#ff5a5a]" : "text-xs text-[#7d7d7d]"}>
-                ボックス {boxMonsters.length} / {limit}
-                {totalTransferred > 0 && ` ・ナビに送った数 ${totalTransferred}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {onOpenSync && (
-              <button
-                type="button"
-                onClick={onOpenSync}
-                className="brass-btn flex h-10 w-10 items-center justify-center rounded-md text-lg leading-none"
-                aria-label="設定"
-                title="設定"
-              >
-                ⚙️
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={requestClose}
-              disabled={forceManage || overLimit}
-              className="brass-btn flex h-10 w-10 items-center justify-center rounded-md text-xl leading-none disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="close"
-            >
-              ×
-            </button>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <input
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              placeholder="名前・DECK Noで検索"
-              className="slot-box h-10 min-w-[200px] rounded-md px-3 text-sm outline-none placeholder:text-[#7d7d7d] focus:ring-2 focus:ring-[#58d0ff]/50"
-            />
-          </div>
-        </div>
-
-        {overLimit && (
-          <div className="mb-4 rounded-lg border-2 border-[#ff5a5a] bg-[#1f0a0a] px-4 py-3 text-sm font-medium text-[#ff8a8a]">
-            ボックスが上限を超えています。{boxMonsters.length - limit}匹以上をナビに送ってください。
-          </div>
-        )}
-
-        <section className="wood-panel rounded-lg p-3">
+      <section className="wood-panel rounded-lg p-3">
           <div className="mb-2 flex items-center gap-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#9a9a9a] bg-black text-[11px] font-black text-[#ffcf4a]">
               ★
@@ -439,7 +369,39 @@ export default function PokemonBox({
           />
         </section>
 
-        <section className="parchment mt-4 rounded-lg p-3">
+        <div className="mb-4 mt-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-[#9a9a9a] bg-black text-sm font-black text-[#ffcf4a]">
+              ★
+            </div>
+            <div>
+              <h2 className="fantasy-title text-lg font-semibold text-[#ffcf4a]">エティモン管理</h2>
+              <p className={overLimit ? "text-sm font-semibold text-[#ff5a5a]" : "text-xs text-[#7d7d7d]"}>
+                ボックス {boxMonsters.length} / {limit}
+                {totalTransferred > 0 && ` ・ナビに送った数 ${totalTransferred}`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={requestClose}
+              disabled={forceManage || overLimit}
+              className="brass-btn flex h-10 w-10 items-center justify-center rounded-md text-xl leading-none disabled:cursor-not-allowed disabled:opacity-30"
+              aria-label="close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        {overLimit && (
+          <div className="mb-4 rounded-lg border-2 border-[#ff5a5a] bg-[#1f0a0a] px-4 py-3 text-sm font-medium text-[#ff8a8a]">
+            ボックスが上限を超えています。{boxMonsters.length - limit}匹以上をナビに送ってください。
+          </div>
+        )}
+
+        <section className="parchment rounded-lg p-3">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-[#e6e6e6]">ボックス</div>
@@ -463,7 +425,7 @@ export default function PokemonBox({
           </div>
 
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-            {visibleBoxMonsters.map((monster, index) => (
+            {boxMonsters.map((monster, index) => (
               <MonsterTile
                 key={monster.id}
                 monster={monster}
@@ -476,7 +438,7 @@ export default function PokemonBox({
                 onToggleTransfer={toggleTransfer}
               />
             ))}
-            {visibleBoxMonsters.length === 0 && (
+            {boxMonsters.length === 0 && (
               <div className="col-span-3 rounded-md border border-dashed border-[#9a9a9a]/30 bg-black/30 px-4 py-8 text-center text-sm text-[#7d7d7d] sm:col-span-6">
                 Empty
               </div>
