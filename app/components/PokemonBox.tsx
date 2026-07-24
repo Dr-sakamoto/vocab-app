@@ -11,6 +11,7 @@ import {
   getPartySlots,
   normalizeMonsterCollection,
 } from "@/lib/monster";
+import { getPartyAttackPower } from "@/lib/wildEncounter";
 
 export type SortMode = "dex" | "level";
 
@@ -118,6 +119,112 @@ function MonsterTile({
       </span>
       <span className="font-fantasy text-[10px] tabular-nums text-[#7d7d7d]">Lv.{current!.level}</span>
     </button>
+  );
+}
+
+interface PartyCardProps {
+  monster: MonsterInstance | null;
+  location: TileLocation;
+  selected: TileLocation | null;
+  active: boolean;
+  onPick: (location: TileLocation) => void;
+  onSetActive?: (monsterId: string) => void;
+}
+
+/**
+ * 手持ち欄の1枠。以前の手持ちドック（EtymonDock）と同じ横並び・コンパクトな
+ * 見た目（スプライト＋名前＋Lv）を、ボックス画面のスワップ選択／★せんとう
+ * 切替と両立させて描く。
+ */
+function PartyCard({ monster, location, selected, active, onPick, onSetActive }: PartyCardProps) {
+  const isSelected =
+    !!selected &&
+    selected.area === location.area &&
+    selected.index === location.index &&
+    selected.id === location.id;
+
+  if (!monster) {
+    const canReceive = selected && selected.area !== "party";
+    return (
+      <button
+        type="button"
+        onClick={() => canReceive && onPick(location)}
+        disabled={!canReceive}
+        aria-label="empty"
+        className={[
+          "flex min-w-0 flex-1 flex-col items-center justify-center rounded-md border border-dashed text-lg font-light transition",
+          canReceive
+            ? "border-[#58d0ff] bg-[#58d0ff]/10 text-[#58d0ff] ring-2 ring-[#58d0ff]/40"
+            : "border-[#9a9a9a]/40 bg-black/30 text-[#9a9a9a]/50",
+        ].join(" ")}
+      >
+        +
+      </button>
+    );
+  }
+
+  const state = getMonsterDisplayState(monster);
+
+  return (
+    <div className="relative min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={() => onPick(location)}
+        aria-pressed={isSelected}
+        aria-label={`${state.species.name} Lv.${state.level}${active ? "（せんとう）" : ""}`}
+        className={[
+          "flex h-full w-full min-w-0 flex-col items-center justify-center rounded-md px-1 py-0.5 transition-all",
+          active
+            ? "parchment shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+            : "border border-[#9a9a9a]/25 bg-black/30 hover:border-[#f5f5f5]/60",
+          isSelected ? "ring-2 ring-[#58d0ff] ring-offset-2 ring-offset-black" : "",
+        ].join(" ")}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={state.species.sprite}
+          alt=""
+          aria-hidden
+          onError={(e) => {
+            if (e.currentTarget.src !== state.species.fallbackSprite) {
+              e.currentTarget.src = state.species.fallbackSprite;
+            }
+          }}
+          className="min-h-0 w-auto flex-1 object-contain"
+          style={{ imageRendering: "pixelated", maxHeight: "70%" }}
+        />
+        <span
+          className={`max-w-full truncate text-[10px] font-medium leading-tight sm:text-xs ${
+            active ? "text-[#f5f5f5]" : "text-[#e6e6e6]"
+          }`}
+        >
+          {state.species.name}
+        </span>
+        <span className="font-fantasy text-[8px] leading-tight tabular-nums text-[#7d7d7d] sm:text-[9px]">
+          Lv.{state.level}
+        </span>
+      </button>
+      {onSetActive && (
+        <button
+          type="button"
+          onClick={() => onSetActive(monster.id)}
+          disabled={active}
+          aria-pressed={active}
+          aria-label={
+            active ? `${state.species.name} はせんとう中` : `${state.species.name} をせんとうにする`
+          }
+          title={active ? "せんとう中" : "せんとうにする"}
+          className={[
+            "absolute left-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border text-[10px] leading-none transition",
+            active
+              ? "cursor-default border-[#ffcf4a] bg-[#ffcf4a] text-black"
+              : "border-[#9a9a9a]/60 bg-black/70 text-[#e6e6e6] hover:border-[#ffcf4a] hover:text-[#ffcf4a]",
+          ].join(" ")}
+        >
+          ★
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -245,6 +352,7 @@ export default function PokemonBox({
   const partySlots = getPartySlots(normalized);
   const boxMonsters = getBoxMonsters(normalized);
   const partyCount = getPartyCount(normalized);
+  const attackPower = getPartyAttackPower(normalized);
   const [selected, setSelected] = useState<TileLocation | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [requestedTransferMode, setRequestedTransferMode] = useState(false);
@@ -309,58 +417,33 @@ export default function PokemonBox({
   const panelBody = (
     <>
       <section className="wood-panel rounded-lg p-3">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#9a9a9a] bg-black text-[11px] font-black text-[#ffcf4a]">
-              ★
-            </span>
-            <span className="text-sm font-semibold text-[#f5f5f5]">手持ち</span>
-            {onSetActive && (
-              <span className="ml-auto text-[11px] text-[#7d7d7d]">
-                ★＝せんとう（タップで交代）
+          {onSetActive && (
+            <div className="mb-1.5 text-[11px] text-[#7d7d7d]">★＝せんとう（タップで交代）</div>
+          )}
+          <div className="flex h-24 items-stretch gap-1.5 sm:h-28 sm:gap-2">
+            {partySlots.map((monster, index) => (
+              <PartyCard
+                key={monster?.id ?? `party-empty-${index}`}
+                monster={monster}
+                location={{ area: "party", index, id: monster?.id ?? null }}
+                selected={selected}
+                active={monster?.id === normalized.activeId}
+                onPick={pick}
+                onSetActive={onSetActive}
+              />
+            ))}
+            {/* 攻撃力（1正解あたりのダメージ）: 真鍮のプレート */}
+            <div
+              className="brass-btn flex w-12 shrink-0 flex-col items-center justify-center rounded-md text-center sm:w-16"
+              title="1正解ごとに出現エティモンへ与えるダメージ"
+            >
+              <span className="font-fantasy text-[9px] font-bold text-[#ffcf4a] sm:text-[10px]">
+                ATK
               </span>
-            )}
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            {partySlots.map((monster, index) => {
-              const isActive = monster?.id === normalized.activeId;
-              return (
-                <div
-                  key={monster?.id ?? `party-empty-${index}`}
-                  className="relative"
-                >
-                  <MonsterTile
-                    monster={monster}
-                    location={{ area: "party", index, id: monster?.id ?? null }}
-                    selected={selected}
-                    active={isActive}
-                    transferMode={false}
-                    onPick={pick}
-                  />
-                  {onSetActive && monster && (
-                    <button
-                      type="button"
-                      onClick={() => onSetActive(monster.id)}
-                      disabled={isActive}
-                      aria-pressed={isActive}
-                      aria-label={
-                        isActive
-                          ? `${getMonsterDisplayState(monster).species.name} はせんとう中`
-                          : `${getMonsterDisplayState(monster).species.name} をせんとうにする`
-                      }
-                      title={isActive ? "せんとう中" : "せんとうにする"}
-                      className={[
-                        "absolute left-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border text-[11px] leading-none transition",
-                        isActive
-                          ? "cursor-default border-[#ffcf4a] bg-[#ffcf4a] text-black"
-                          : "border-[#9a9a9a]/60 bg-black/70 text-[#e6e6e6] hover:border-[#ffcf4a] hover:text-[#ffcf4a]",
-                      ].join(" ")}
-                    >
-                      ★
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+              <span className="font-fantasy text-base font-bold tabular-nums sm:text-lg">
+                {attackPower}
+              </span>
+            </div>
           </div>
           <BoxDropTarget
             selected={selected}
