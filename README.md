@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vocab App
 
-## Getting Started
+英単語の日本語訳を**記述式**で答える暗記アプリ。完全一致で拾えない表記ゆれは
+AI（Gemini）が判定するため、選択式より「思い出す」負荷を保ったまま学習できる。
 
-First, run the development server:
+- 出題 → 日本語訳をタイピングで入力 → 判定 → 次の問題、の単一ループ
+- 10問ごとに画面遷移せずリザルトへ中身だけ入れ替わり、続けて次のセットへ
+- 正答率に応じて出題プールが段階的に解放される
+- 進捗は localStorage 保存。Googleログインで Supabase へクラウド同期
+
+詳しい方針は [`CLAUDE.md`](./CLAUDE.md)、収益化計画は
+[`MONETIZATION.md`](./MONETIZATION.md) を参照。
+
+## 開発
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm test        # tests/ を実行
+npm run lint
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 環境変数
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 変数 | 用途 |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 公開鍵 |
+| `GEMINI_API_KEY` | AI判定（`/api/ai-review`）。**サーバー側のみ** |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+DBスキーマは [`supabase_setup.sql`](./supabase_setup.sql) を Supabase の
+SQL Editor で実行して作成する。

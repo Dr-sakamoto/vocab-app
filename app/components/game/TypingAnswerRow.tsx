@@ -33,8 +33,8 @@ export interface TypingAnswerRowProps {
 }
 
 /**
- * タイピング回答行（ハイファンタジースキン）。
- * 答え合わせ/次への操作は入力欄右端の⏎/→アイコンに織り込む。
+ * タイピング回答行。日本語IMEで自由記述し、答え合わせ/次への操作は
+ * 入力欄右端の⏎/→アイコンに織り込む（ボタンへ視線を外さないため）。
  */
 export default function TypingAnswerRow({
   inputRef,
@@ -68,7 +68,7 @@ export default function TypingAnswerRow({
           onCompositionEnd={onCompositionEnd}
           onFocus={onFocus}
           onBlur={onBlur}
-          placeholder="日本語訳を記す..."
+          placeholder="日本語訳を入力..."
           aria-label="日本語訳を入力してください"
           className="w-full rounded-lg border-2 border-[#9a9a9a] bg-[#0a0a0a] py-3.5 pl-4 pr-16 text-base text-[#e6e6e6] outline-none transition-all placeholder:text-[#7d7d7d] focus:border-[#f5f5f5] focus:shadow-[0_0_12px_rgba(255,255,255,0.35)] disabled:opacity-50"
           onKeyDown={(e) => {
@@ -178,16 +178,16 @@ export default function TypingAnswerRow({
                           ))}
                         </span>
                       )}
-                      {isRequestingReview ? "賢者が審議中..." : "賢者（AI）に審議してもらう"}
+                      {isRequestingReview ? "AIが判定中..." : "AIに判定してもらう"}
                     </button>
                     {isRequestingReview && (
-                      <p className="px-1 text-xs text-[#7d7d7d]">審議には少し時間がかかります。そのままお待ちください。</p>
+                      <p className="px-1 text-xs text-[#7d7d7d]">判定には少し時間がかかります。そのままお待ちください。</p>
                     )}
                   </div>
                 )}
                 {reviewResult && !reviewResult.approved && (
                   <div className="mt-2 rounded-lg border border-[#9a9a9a]/50 bg-[#0a0a0a] px-3 py-2 text-xs text-[#e6e6e6]">
-                    AI審議: 不承認（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
+                    AI判定: 不正解（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
                   </div>
                 )}
               </div>

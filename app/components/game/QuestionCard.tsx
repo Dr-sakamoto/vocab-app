@@ -17,7 +17,7 @@ export interface QuestionCardProps {
   skipDisabled?: boolean;
 }
 
-/** 出題カード。呪文書の1ページ風（ハイファンタジースキン） */
+/** 出題カード。英単語と品詞だけを大きく見せる */
 export default function QuestionCard({
   questionKey,
   partOfSpeech,

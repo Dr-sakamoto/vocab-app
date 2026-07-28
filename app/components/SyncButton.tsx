@@ -11,7 +11,7 @@ import {
   uploadProgress,
   DownloadAndMergeResult,
 } from "@/lib/sync";
-import { MonsterCollection, WordStat } from "@/lib/types";
+import { WordStat } from "@/lib/types";
 
 function getErrorMessage(err: unknown): string | undefined {
   return err instanceof Error ? err.message : undefined;
@@ -20,15 +20,12 @@ function getErrorMessage(err: unknown): string | undefined {
 interface SyncButtonProps {
   stats: WordStat[];
   unlockedPoolSize: number;
-  monsterCollection: MonsterCollection;
-  approvedAnswers?: Record<string, string[]>;
   onMerged: (merged: DownloadAndMergeResult) => void;
 }
 
 export default function SyncButton({
   stats,
   unlockedPoolSize,
-  monsterCollection,
   onMerged,
 }: SyncButtonProps) {
   const [user, setUser] = useState<User | null>(null);
@@ -43,7 +40,6 @@ export default function SyncButton({
       const merged = await downloadAndMerge({
         stats,
         unlockedPoolSize,
-        monsterCollection,
       });
       await uploadProgress(merged);
       onMerged(merged);
@@ -56,7 +52,7 @@ export default function SyncButton({
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
-  }, [monsterCollection, onMerged, stats, unlockedPoolSize]);
+  }, [onMerged, stats, unlockedPoolSize]);
 
   useEffect(() => {
     let disposed = false;

@@ -4,8 +4,6 @@ export const GAME = {
   UNLOCK_ACCURACY: 0.8,
   UNLOCK_STEP: 30,
   PERFECT_UNLOCK_STEP: 50,
-  BOX_LIMIT: 500,
-  PARTY_SIZE: 4,
 } as const;
 
 export const XP = {
@@ -19,12 +17,7 @@ export const XP = {
 export const STORAGE_KEYS = {
   PROGRESS: "vocab-progress",
   POOL_SIZE: "vocab-active-pool-size",
-  MONSTER_XP: "monster-total-xp",
-  MONSTER_LINE_ID: "monster-line-id",
-  MONSTER_COLLECTION: "monster-collection",
-  STORY_PROGRESS: "story-progress",
   STREAK: "vocab-daily-streak",
-  WILD_ENCOUNTER: "wild-encounter",
   SOUND_ENABLED: "vocab-sound-enabled",
 } as const;
 

@@ -13,21 +13,19 @@ create table if not exists word_stats (
   primary key (user_id, word_id)
 );
 
--- メタデータ（プールサイズ、モンスターXP）
+-- メタデータ（解放済み単語プールのサイズ）
 create table if not exists user_meta (
   user_id            uuid primary key,
   unlocked_pool_size int  not null default 60,
-  monster_total_xp   int  not null default 0,
-  active_monster_id  text,
-  monster_collection jsonb,
-  professor_transfers jsonb not null default '{}'::jsonb,
   updated_at         timestamptz not null default now()
 );
 
-alter table user_meta add column if not exists active_monster_id text;
-alter table user_meta add column if not exists monster_collection jsonb;
-alter table user_meta add column if not exists professor_transfers jsonb not null default '{}'::jsonb;
 alter table user_meta add column if not exists approved_answers jsonb not null default '{}'::jsonb;
+
+-- 旧・モンスター収集機能の列（monster_total_xp / active_monster_id /
+-- monster_collection / professor_transfers）はアプリから読み書きしなくなった。
+-- 既存環境のデータを壊さないため drop はせず、そのまま放置する。
+-- 新規環境ではこのファイルの通り、これらの列は作成されない。
 
 -- updated_at 自動更新トリガー
 create or replace function set_updated_at()

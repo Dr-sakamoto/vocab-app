@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
-import { pickBattleQuestionIndex } from "@/lib/storyBattles";
-import { WordStat, Battle } from "@/lib/types";
+import { WordStat } from "@/lib/types";
 import { GAME } from "@/lib/constants";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -57,18 +56,7 @@ export function useVocabPool({ stats, vocabItemsLength }: UseVocabPoolProps) {
       avoidIndex: number | null,
       seenSet: Set<number>,
       currentSessionAccuracy: number,
-      battle: Battle | null,
     ): number | null => {
-      if (battle) {
-        return pickBattleQuestionIndex({
-          stats,
-          unlockedPoolSize,
-          seenSet,
-          avoidIndex: avoidIndex ?? undefined,
-          battle,
-        });
-      }
-
       const poolLimit = Math.max(1, Math.min(unlockedPoolSize, vocabItemsLength));
       let candidates = Array.from({ length: poolLimit }, (_, i) => i).filter(
         (i) => !seenSet?.has(i),

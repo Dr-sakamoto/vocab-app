@@ -30,106 +30,6 @@ export interface SessionAnswer {
 
 export type GameView = "start" | "study" | "result" | "dashboard";
 
-export interface Species {
-  id: number;
-  name: string;
-  nameEn: string;
-  minLevel: number;
-  maxLevel: number;
-  sprite: string;
-  fallbackSprite: string;
-}
-
-export interface MonsterLine {
-  id: string;
-  name: string;
-  species: Species[];
-}
-
-export interface MonsterInstance {
-  id: string;
-  lineId: string;
-  nickname?: string;
-  totalXP: number;
-  caughtAt?: string;
-  heldItemType?: string;
-  heldItemName?: string;
-  forcedSpeciesId?: number | null;
-}
-
-export interface MonsterCollection {
-  version: number;
-  activeId: string | null;
-  partyIds: (string | null)[];
-  habitatVisits: Record<string, number>;
-  professorTransfers: Record<string, number>;
-  giftClaims: Record<string, boolean>;
-  monsters: MonsterInstance[];
-  storyProgress?: StoryProgress;
-}
-
-export interface StoryProgress {
-  version: number;
-  defeated: Record<string, boolean>;
-  badges: string[];
-  pendingChallengeId: string | null;
-  pendingChallengePoolSize: number | null;
-  activeBattleId: string | null;
-  activeBattlePoolSize: number | null;
-  activeBattleStartedAt: number | null;
-  masterBall: boolean;
-  mewWordsSeen: number[];
-  relocatedHabitatId: string | null;
-  hallOfFame: boolean;
-  legendaryFirstSeen: Record<string, boolean>;
-  voltorbTrapsCleared: number;
-  usedMasterBall: boolean;
-  chosenStarterLineId: string | null;
-  rivalStarterLineId: string | null;
-  professorStartersAwarded: boolean;
-}
-
-export interface BattlePartyMember {
-  lineId: string;
-  level: number;
-}
-
-export interface BattleRewards {
-  badge?: string;
-  fossilItem?: boolean;
-  unlocksSideAreas?: boolean;
-  hallOfFame?: boolean;
-  hitmon?: boolean;
-  lapras?: boolean;
-  masterBall?: boolean;
-  voltorbTrap?: boolean;
-}
-
-export interface Battle {
-  id: string;
-  name: string;
-  level?: number;
-  habitatId?: string;
-  opponentSprite?: string;
-  playLimit?: number;
-  boss?: boolean;
-  location: string;
-  tier?: string;
-  party: BattlePartyMember[];
-  preMessage?: string;
-  optional?: boolean;
-  minPool: number;
-  maxPool?: number;
-  requiresDefeat?: string[];
-  requiresBadges?: string[];
-  requiresHallOfFame?: boolean;
-  requiresMewSeen?: boolean;
-  reappearOnHabitat?: boolean;
-  reappearChance?: number;
-  firstEncounterGuaranteed?: boolean;
-  rewards?: BattleRewards;
-}
-
 export interface EvaluationBreakdownItem {
   label: string;
   points: number;
@@ -137,18 +37,12 @@ export interface EvaluationBreakdownItem {
   detail: string;
 }
 
+/** 解放済みプールの規模に応じた獲得ポイント倍率 */
 export interface PoolTier {
   minPool: number;
   multiplier: number;
   label: string;
   color: string;
-}
-
-export interface CapturePreview {
-  lineId: string;
-  level?: number;
-  habitat?: { id: string; name: string };
-  monsterId?: string;
 }
 
 export interface PlayEvaluation {
@@ -159,29 +53,4 @@ export interface PlayEvaluation {
   tier: PoolTier;
   fzm: number;
   breakdown: EvaluationBreakdownItem[];
-  captureFailed?: boolean;
-  capturePreview?: CapturePreview;
-}
-
-export interface ToastItem {
-  id?: string;
-  title: string;
-  message: string;
-  image?: string;
-  detail?: string;
-  duration?: number;
-  isActive?: boolean;
-}
-
-export interface ActiveToast extends ToastItem {
-  instanceId: string;
-}
-
-export interface TrainerChallenge {
-  title: string;
-  message: string;
-  image?: string;
-  trainerSprite?: string;
-  duration?: number;
-  battleId: string;
 }
