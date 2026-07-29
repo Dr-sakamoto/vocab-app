@@ -120,9 +120,8 @@ export function useGameSession({
 
   /**
    * 「？」ボタン（わからない）押下時の判定。
-   * 不正解時と全く同じ扱いにする（score/streak/単語ごとの正誤統計・
-   * バトルのダメージ/捕獲判定に反映）。入力欄の途中入力は判定に使わず
-   * 常に不正解として扱う。
+   * 不正解時と全く同じ扱いにする（score/streak/単語ごとの正誤統計に
+   * 反映）。入力欄の途中入力は判定に使わず常に不正解として扱う。
    */
   const giveUp = useCallback(() => {
     if (checked || isCheckingAnswer || activeView === "result" || !q) return;

@@ -14,8 +14,9 @@ const spaceGrotesk = Space_Grotesk({
 // 自前の@font-face（globals.css）で構成するため、next/fontでは読み込まない。
 
 export const metadata: Metadata = {
-  title: "Etymon ― 単語が、まるい生き物になる。英単語学習RPG",
-  description: "英単語を記述式で答えると、言葉がまるい生き物になる学習RPG",
+  title: "英単語アプリ ― 記述式で答える英単語学習",
+  description:
+    "英単語の日本語訳を記述式で入力し、表記ゆれはAIが判定する英単語学習アプリ",
 };
 
 export const viewport: Viewport = {

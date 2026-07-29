@@ -1,4 +1,4 @@
-import { getPoolTier } from "./monster";
+import { getPoolTier } from "./poolTier";
 import { XP } from "./constants";
 import { SessionAnswer, PlayEvaluation, PoolTier, EvaluationBreakdownItem } from "./types";
 
