@@ -80,3 +80,34 @@ test("keeps unrelated answers wrong", async () => {
 
   assert.equal(result.status, "wrong");
 });
+
+test("strips parenthetical usage notes on the client-safe path", () => {
+  assert.equal(normalizeAnswer("（データを）検索する"), "検索する");
+});
+
+test("accepts an answer without its parenthetical usage note", async () => {
+  const result = await evaluateAnswer({
+    input: "検索する",
+    answers: ["（データを）検索する"],
+  });
+
+  assert.notEqual(result.status, "wrong");
+});
+
+test("still accepts the answer when the usage note is typed in full", async () => {
+  const result = await evaluateAnswer({
+    input: "（データを）検索する",
+    answers: ["（データを）検索する"],
+  });
+
+  assert.equal(result.status, "exact");
+});
+
+test("does not strip parenthetical notes that share a tilde placeholder", () => {
+  assert.equal(normalizeAnswer("少しの〜も（ない）"), normalizeAnswer("少しの〜も(ない)"));
+  assert.equal(normalizeAnswer("(～を)えさとする"), "えさとする");
+});
+
+test("falls back to the original text when an answer is entirely parenthetical", () => {
+  assert.equal(normalizeAnswer("（注記）"), "注記");
+});
