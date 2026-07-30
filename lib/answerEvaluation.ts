@@ -146,8 +146,16 @@ function getTokenizer(): Promise<Tokenizer> {
   if (!tokenizerPromise) {
     tokenizerPromise = new Promise((resolve, reject) => {
       kuromoji.builder({ dicPath: TOKENIZER_DIC_PATH }).build((error, tokenizer) => {
-        if (error) reject(error);
-        else resolve(tokenizer);
+        if (error) {
+          console.error(
+            `[answerEvaluation] kuromoji dictionary load failed (dicPath="${TOKENIZER_DIC_PATH}"). ` +
+              "This happens once per server instance when the tokenizer is first built, not per request.",
+            error,
+          );
+          reject(error);
+        } else {
+          resolve(tokenizer);
+        }
       });
     });
   }
