@@ -1,9 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import { QUESTIONS } from "./vocab";
+import { VOCAB_IDS } from "./vocab";
+import { mergeRemoteWordStats } from "./wordProgress";
 import { WordStat } from "./types";
-
-const VOCAB_IDS = QUESTIONS.map((_, i) => `w${i}`);
 
 export async function signInWithGoogle(): Promise<void> {
   const redirectTo =
@@ -116,16 +115,10 @@ export async function downloadAndMerge({
     .maybeSingle();
   if (metaError) throw metaError;
 
-  const remoteMap = new Map(remoteWords?.map((row) => [row.word_id, row]) ?? []);
-  const mergedStats = VOCAB_IDS.map((id, i) => {
-    const local = stats[i] ?? { correct: 0, wrong: 0 };
-    const remote = remoteMap.get(id) ?? { correct: 0, wrong: 0 };
-
-    return {
-      correct: Math.max(local.correct, remote.correct),
-      wrong: Math.max(local.wrong, remote.wrong),
-    };
-  });
+  // 移行前に保存された旧ID `w${i}` の行も安定IDへ解決してから突き合わせる。
+  // 旧行は削除しない（解決は凍結スナップショット経由で恒久的に正しく、
+  // max マージなので残っていても進捗が巻き戻らない）。
+  const mergedStats = mergeRemoteWordStats(VOCAB_IDS, stats, remoteWords);
 
   return {
     stats: mergedStats,

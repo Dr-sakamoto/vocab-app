@@ -12,7 +12,12 @@ import { useVisualViewportVars } from "./hooks/useVisualViewport";
 import { evaluatePlay } from "@/lib/playEvaluation";
 import { getPoolTier } from "@/lib/poolTier";
 import { normalizeAnswer } from "@/lib/answerNormalization";
-import { QUESTIONS } from "@/lib/vocab";
+import { VOCAB_ITEMS } from "@/lib/vocab";
+import {
+  buildStatsMapFromStoredProgress,
+  hydrateStats,
+  migrateApprovedAnswers,
+} from "@/lib/wordProgress";
 import { GAME, STORAGE_KEYS } from "@/lib/constants";
 import {
   EMPTY_STREAK,
@@ -26,12 +31,6 @@ import { WordStat, PlayEvaluation, VocabItem } from "@/lib/types";
 import storage from "@/lib/storage";
 
 const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
-
-/** 各問題に安定した ID */
-const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q, i) => ({
-  ...q,
-  id: `w${i}`,
-}));
 
 function getPartOfSpeech(q: VocabItem | undefined): string {
   return q?.partOfSpeech ?? "word";
@@ -67,7 +66,12 @@ export default function Page() {
 
   const [dailyStreak, setDailyStreak] = useState<StreakState>(EMPTY_STREAK);
   const [approvedAnswers, setApprovedAnswers] = useState<Record<string, string[]>>(() => {
-    try { return JSON.parse(localStorage.getItem(APPROVED_ANSWERS_KEY) ?? "{}"); } catch { return {}; }
+    // 旧ID `w${i}` で保存されたキーもここで安定IDへ移行する
+    try {
+      return migrateApprovedAnswers(
+        JSON.parse(localStorage.getItem(APPROVED_ANSWERS_KEY) ?? "{}"),
+      );
+    } catch { return {}; }
   });
   const [isRequestingReview, setIsRequestingReview] = useState<boolean>(false);
   const [reviewResult, setReviewResult] = useState<{ approved: boolean; score: number; feedback?: string } | null>(null);
@@ -165,35 +169,11 @@ export default function Page() {
           );
         }
 
-        // 単語進捗
+        // 単語進捗。旧ID `w${i}` で保存されたレコードは安定IDへ移行する
         const parsed = storage.get<unknown[] | null>(STORAGE_KEYS.PROGRESS, null);
         if (parsed && Array.isArray(parsed)) {
-          const map = new Map<string, WordStat>();
-          for (const raw of parsed) {
-            if (!raw || typeof raw !== "object") continue;
-            const item = raw as Record<string, unknown>;
-            const correct = Number(item.correct);
-            const wrong = Number(item.wrong);
-            const safe = {
-              correct: Number.isFinite(correct) && correct >= 0 ? correct : 0,
-              wrong: Number.isFinite(wrong) && wrong >= 0 ? wrong : 0,
-            };
-            if (typeof item.id === "string") {
-              map.set(item.id, safe);
-              continue;
-            }
-            const idx = VOCAB_ITEMS.findIndex((v) => v.target === item.target);
-            if (idx >= 0) map.set(VOCAB_ITEMS[idx].id, safe);
-          }
-
-          setStats((prev) =>
-            VOCAB_ITEMS.map((v, i) => {
-              const saved = map.get(v.id);
-              return saved
-                ? { correct: saved.correct, wrong: saved.wrong }
-                : prev[i] ?? { correct: 0, wrong: 0 };
-            }),
-          );
+          const map = buildStatsMapFromStoredProgress(parsed, VOCAB_ITEMS);
+          setStats((prev) => hydrateStats(VOCAB_ITEMS, map, prev));
         }
       } catch {
         /* ignore */
