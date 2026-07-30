@@ -10300,7 +10300,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "target": "evade",
     "partOfSpeech": "verb",
     "answers": [
-      "避ける",
       "避ける"
     ]
   },
@@ -14385,7 +14384,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "target": "detonate",
     "partOfSpeech": "verb",
     "answers": [
-      "を爆発させる",
       "を爆発させる"
     ]
   },
