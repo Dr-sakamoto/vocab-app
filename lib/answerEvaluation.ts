@@ -250,18 +250,20 @@ function checkPosViolation(tokens: IpadicFeatures[], partOfSpeech: string | unde
   if (!partOfSpeech || tokens.length === 0) return null;
 
   if (partOfSpeech === "adjective") {
-    if (tokens.some(t => t.pos === "副詞")) {
+    const lastToken = tokens[tokens.length - 1];
+    const endsWithBareAdverb = lastToken.pos === "副詞";
+    const endsWithAdverbialNi = lastToken.pos === "助詞" && lastToken.pos_detail_1 === "副詞化";
+    if (endsWithBareAdverb || endsWithAdverbialNi) {
       return "副詞の形（〜に/〜く）ではなく、形容詞の形（〜な/〜い）で答えてください";
     }
 
-    for (let i = 0; i < tokens.length - 1; i++) {
-      if (
-        tokens[i].pos_detail_1 === "形容動詞語幹" &&
-        tokens[i + 1].surface_form === "に" &&
-        tokens[i + 1].pos === "助詞"
-      ) {
-        return "「〜に」は副詞的な使い方です。形容詞として「〜な/〜的な」の形で答えてください";
-      }
+    if (
+      tokens.length >= 2 &&
+      tokens[tokens.length - 2].pos_detail_1 === "形容動詞語幹" &&
+      lastToken.surface_form === "に" &&
+      lastToken.pos === "助詞"
+    ) {
+      return "「〜に」は副詞的な使い方です。形容詞として「〜な/〜的な」の形で答えてください";
     }
 
     const adjTokens = tokens.filter(t => t.pos === "形容詞");

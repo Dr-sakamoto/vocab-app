@@ -80,3 +80,47 @@ test("keeps unrelated answers wrong", async () => {
 
   assert.equal(result.status, "wrong");
 });
+
+test("does not raise a pos hint for adjective phrases with a leading degree adverb", async () => {
+  for (const input of ["とても危険な", "極めて重要な", "きちんとした", "はっきりとした", "まっすぐな"]) {
+    const result = await evaluateAnswer({
+      input,
+      answers: ["誠実な"],
+      partOfSpeech: "adjective",
+    });
+
+    assert.equal(result.posViolation ?? null, null, `unexpected hint for "${input}"`);
+  }
+});
+
+test("does not raise a pos hint when a na-adjective modifies a later adjective", async () => {
+  const result = await evaluateAnswer({
+    input: "健康に良い",
+    answers: ["誠実な"],
+    partOfSpeech: "adjective",
+  });
+
+  assert.equal(result.posViolation ?? null, null);
+});
+
+test("raises a pos hint for na-adjectives answered in adverbial に form", async () => {
+  for (const input of ["危険に", "静かに"]) {
+    const result = await evaluateAnswer({
+      input,
+      answers: ["誠実な"],
+      partOfSpeech: "adjective",
+    });
+
+    assert.ok(result.posViolation, `expected hint for "${input}"`);
+  }
+});
+
+test("raises a pos hint for i-adjectives answered in adverbial く form", async () => {
+  const result = await evaluateAnswer({
+    input: "美しく",
+    answers: ["誠実な"],
+    partOfSpeech: "adjective",
+  });
+
+  assert.ok(result.posViolation);
+});
