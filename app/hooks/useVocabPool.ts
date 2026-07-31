@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import { WordStat } from "@/lib/types";
 import { GAME } from "@/lib/constants";
+import { DIFFICULTY_ORDERED_INDICES } from "@/lib/vocab";
+import { getUnlockedIndices } from "@/lib/vocabPool";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ヘルパー関数群（旧 page.js から移植）
@@ -57,10 +59,13 @@ export function useVocabPool({ stats, vocabItemsLength }: UseVocabPoolProps) {
       seenSet: Set<number>,
       currentSessionAccuracy: number,
     ): number | null => {
+      // 出題プールは配列の先頭からではなく、難易度順の先頭から取る
       const poolLimit = Math.max(1, Math.min(unlockedPoolSize, vocabItemsLength));
-      let candidates = Array.from({ length: poolLimit }, (_, i) => i).filter(
-        (i) => !seenSet?.has(i),
-      );
+      let candidates = getUnlockedIndices(
+        DIFFICULTY_ORDERED_INDICES,
+        poolLimit,
+        stats,
+      ).filter((i) => !seenSet?.has(i));
       if (typeof avoidIndex === "number" && candidates.length > 1) {
         candidates = candidates.filter((i) => i !== avoidIndex);
       }
