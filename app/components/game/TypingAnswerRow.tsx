@@ -77,7 +77,6 @@ export default function TypingAnswerRow({
             if (checked) onNext();
             else onCheck();
           }}
-          disabled={isCheckingAnswer}
         />
         <button
           type="button"
