@@ -136,15 +136,15 @@ export default function FlashScreen({
             aria-label={isPaused ? "再開する" : "一時停止する"}
             className="w-full"
           >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <TiltCard className="quest-card relative overflow-hidden rounded-lg px-5 py-8 text-center sm:py-12">
+            <TiltCard className="quest-card relative overflow-hidden rounded-lg px-5 py-8 text-center sm:py-12">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <div className="fantasy-title text-xs font-semibold tracking-[0.2em] text-[#ffcf4a]">
                     {q.partOfSpeech}
                   </div>
@@ -154,9 +154,9 @@ export default function FlashScreen({
                   <div className="mt-4 break-words text-lg font-semibold text-[#9affc0] sm:text-2xl">
                     {q.answers[0]}
                   </div>
-                </TiltCard>
-              </motion.div>
-            </AnimatePresence>
+                </motion.div>
+              </AnimatePresence>
+            </TiltCard>
           </button>
 
           <div className="mt-3 h-1 w-full max-w-xs overflow-hidden rounded-full bg-white/10">
