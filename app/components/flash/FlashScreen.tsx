@@ -48,14 +48,34 @@ export default function FlashScreen({
   const [index, setIndex] = useState<number>(
     () => pickFlashIndex(candidates, stats, null) ?? candidates[0] ?? 0,
   );
-  const [seenCount, setSeenCount] = useState<number>(1);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+
+  // プール内で何語ユニークに見たか、プールを何周したかを追跡する
+  const [seenIndices, setSeenIndices] = useState<Set<number>>(() => new Set());
+  const [lap, setLap] = useState<number>(1);
+
+  // 解放プール自体が変わったら（レベルアップ等）周回カウントをやり直す
+  useEffect(() => {
+    setSeenIndices(new Set());
+    setLap(1);
+  }, [candidates]);
+
+  useEffect(() => {
+    if (candidates.length === 0) return;
+    setSeenIndices((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
+  }, [index, candidates]);
+
+  useEffect(() => {
+    if (candidates.length > 0 && seenIndices.size >= candidates.length) {
+      setLap((l) => l + 1);
+      setSeenIndices(new Set());
+    }
+  }, [seenIndices, candidates]);
 
   useEffect(() => {
     if (isPaused) return undefined;
     const timer = window.setTimeout(() => {
       setIndex((current) => pickFlashIndex(candidates, stats, current) ?? current);
-      setSeenCount((c) => c + 1);
     }, speedSeconds * 1000);
     return () => window.clearTimeout(timer);
   }, [index, isPaused, candidates, stats, speedSeconds]);
@@ -153,7 +173,9 @@ export default function FlashScreen({
           </div>
 
           <p className="mt-2 text-xs text-[#7d7d7d]">
-            {isPaused ? "一時停止中（タップで再開）" : `見た単語 ${seenCount} 語（タップで一時停止）`}
+            {isPaused
+              ? "一時停止中（タップで再開）"
+              : `見た単語 ${seenIndices.size} / ${candidates.length} 語・プール内${lap}周目（タップで一時停止）`}
           </p>
         </main>
       </div>
