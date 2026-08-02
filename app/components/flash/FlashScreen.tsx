@@ -66,7 +66,7 @@ export default function FlashScreen({
     if (isPaused) return undefined;
     const timer = window.setTimeout(() => {
       setProgress((prev) => {
-        const nextIndex = pickFlashIndex(candidates, stats, prev.index) ?? prev.index;
+        const nextIndex = pickFlashIndex(candidates, stats, prev.index, prev.seen) ?? prev.index;
         const seen = prev.seen.has(nextIndex) ? prev.seen : new Set(prev.seen).add(nextIndex);
         if (candidates.length > 0 && seen.size >= candidates.length) {
           return { index: nextIndex, seen: new Set([nextIndex]), lap: prev.lap + 1 };
