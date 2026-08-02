@@ -14,12 +14,12 @@ interface ModeTabsProps {
  */
 export default function ModeTabs({ mode, onChange }: ModeTabsProps) {
   return (
-    <div className="flex shrink-0 overflow-hidden rounded-full border border-[#9a9a9a]/50 text-[10px] font-semibold">
+    <div className="flex shrink-0 overflow-hidden rounded-full border border-[#9a9a9a]/50 text-xs font-semibold">
       <button
         type="button"
         onClick={() => onChange("test")}
         aria-pressed={mode === "test"}
-        className={`px-2.5 py-1 transition ${
+        className={`min-h-9 px-4 py-2 transition active:scale-95 ${
           mode === "test" ? "bg-[#f5f5f5] text-[#0a0a0a]" : "text-[#9a9a9a] hover:bg-white/5"
         }`}
       >
@@ -29,7 +29,7 @@ export default function ModeTabs({ mode, onChange }: ModeTabsProps) {
         type="button"
         onClick={() => onChange("flash")}
         aria-pressed={mode === "flash"}
-        className={`px-2.5 py-1 transition ${
+        className={`min-h-9 px-4 py-2 transition active:scale-95 ${
           mode === "flash" ? "bg-[#f5f5f5] text-[#0a0a0a]" : "text-[#9a9a9a] hover:bg-white/5"
         }`}
       >

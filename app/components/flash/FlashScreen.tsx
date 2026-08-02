@@ -45,17 +45,34 @@ export default function FlashScreen({
     () => getUnlockedIndices(DIFFICULTY_ORDERED_INDICES, unlockedPoolSize, stats),
     [unlockedPoolSize, stats],
   );
-  const [index, setIndex] = useState<number>(
-    () => pickFlashIndex(candidates, stats, null) ?? candidates[0] ?? 0,
+  // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する
+  const [progress, setProgress] = useState<{ index: number; seen: Set<number>; lap: number }>(
+    () => {
+      const initialIndex = pickFlashIndex(candidates, stats, null) ?? candidates[0] ?? 0;
+      return { index: initialIndex, seen: new Set([initialIndex]), lap: 1 };
+    },
   );
-  const [seenCount, setSeenCount] = useState<number>(1);
+  const { index, seen: seenIndices, lap } = progress;
   const [isPaused, setIsPaused] = useState<boolean>(false);
+
+  // 解放プール自体が変わったら（レベルアップ等）周回カウントをやり直す
+  const [poolSnapshot, setPoolSnapshot] = useState(candidates);
+  if (candidates !== poolSnapshot) {
+    setPoolSnapshot(candidates);
+    setProgress((prev) => ({ index: prev.index, seen: new Set([prev.index]), lap: 1 }));
+  }
 
   useEffect(() => {
     if (isPaused) return undefined;
     const timer = window.setTimeout(() => {
-      setIndex((current) => pickFlashIndex(candidates, stats, current) ?? current);
-      setSeenCount((c) => c + 1);
+      setProgress((prev) => {
+        const nextIndex = pickFlashIndex(candidates, stats, prev.index) ?? prev.index;
+        const seen = prev.seen.has(nextIndex) ? prev.seen : new Set(prev.seen).add(nextIndex);
+        if (candidates.length > 0 && seen.size >= candidates.length) {
+          return { index: nextIndex, seen: new Set([nextIndex]), lap: prev.lap + 1 };
+        }
+        return { index: nextIndex, seen, lap: prev.lap };
+      });
     }, speedSeconds * 1000);
     return () => window.clearTimeout(timer);
   }, [index, isPaused, candidates, stats, speedSeconds]);
@@ -153,7 +170,9 @@ export default function FlashScreen({
           </div>
 
           <p className="mt-2 text-xs text-[#7d7d7d]">
-            {isPaused ? "一時停止中（タップで再開）" : `見た単語 ${seenCount} 語（タップで一時停止）`}
+            {isPaused
+              ? "一時停止中（タップで再開）"
+              : `見た単語 ${seenIndices.size} / ${candidates.length} 語・プール内${lap}周目（タップで一時停止）`}
           </p>
         </main>
       </div>
