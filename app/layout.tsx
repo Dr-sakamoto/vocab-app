@@ -15,13 +15,13 @@ const spaceGrotesk = Space_Grotesk({
 // 自前の@font-face（globals.css）で構成するため、next/fontでは読み込まない。
 
 export const metadata: Metadata = {
-  title: "英単語アプリ ― 記述式で答える英単語学習",
+  title: "VocabBlitz ― 記述式で答える英単語学習",
   description:
-    "英単語の日本語訳を記述式で入力し、表記ゆれはAIが判定する英単語学習アプリ",
+    "英単語の日本語訳を記述式で入力し、表記ゆれはAIが判定する英単語学習アプリ「VocabBlitz（ボキャブリッツ）」",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "英単語アプリ",
+    title: "VocabBlitz",
   },
 };
 

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "英単語アプリ ― 記述式で答える英単語学習",
-    short_name: "英単語アプリ",
+    name: "VocabBlitz ― 記述式で答える英単語学習",
+    short_name: "VocabBlitz",
     description:
       "英単語の日本語訳を記述式で入力し、表記ゆれはAIが判定する英単語学習アプリ",
     start_url: "/",
