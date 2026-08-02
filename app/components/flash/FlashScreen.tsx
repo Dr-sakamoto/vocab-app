@@ -45,37 +45,34 @@ export default function FlashScreen({
     () => getUnlockedIndices(DIFFICULTY_ORDERED_INDICES, unlockedPoolSize, stats),
     [unlockedPoolSize, stats],
   );
-  const [index, setIndex] = useState<number>(
-    () => pickFlashIndex(candidates, stats, null) ?? candidates[0] ?? 0,
+  // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する
+  const [progress, setProgress] = useState<{ index: number; seen: Set<number>; lap: number }>(
+    () => {
+      const initialIndex = pickFlashIndex(candidates, stats, null) ?? candidates[0] ?? 0;
+      return { index: initialIndex, seen: new Set([initialIndex]), lap: 1 };
+    },
   );
+  const { index, seen: seenIndices, lap } = progress;
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
-  // プール内で何語ユニークに見たか、プールを何周したかを追跡する
-  const [seenIndices, setSeenIndices] = useState<Set<number>>(() => new Set());
-  const [lap, setLap] = useState<number>(1);
-
   // 解放プール自体が変わったら（レベルアップ等）周回カウントをやり直す
-  useEffect(() => {
-    setSeenIndices(new Set());
-    setLap(1);
-  }, [candidates]);
-
-  useEffect(() => {
-    if (candidates.length === 0) return;
-    setSeenIndices((prev) => (prev.has(index) ? prev : new Set(prev).add(index)));
-  }, [index, candidates]);
-
-  useEffect(() => {
-    if (candidates.length > 0 && seenIndices.size >= candidates.length) {
-      setLap((l) => l + 1);
-      setSeenIndices(new Set());
-    }
-  }, [seenIndices, candidates]);
+  const [poolSnapshot, setPoolSnapshot] = useState(candidates);
+  if (candidates !== poolSnapshot) {
+    setPoolSnapshot(candidates);
+    setProgress((prev) => ({ index: prev.index, seen: new Set([prev.index]), lap: 1 }));
+  }
 
   useEffect(() => {
     if (isPaused) return undefined;
     const timer = window.setTimeout(() => {
-      setIndex((current) => pickFlashIndex(candidates, stats, current) ?? current);
+      setProgress((prev) => {
+        const nextIndex = pickFlashIndex(candidates, stats, prev.index) ?? prev.index;
+        const seen = prev.seen.has(nextIndex) ? prev.seen : new Set(prev.seen).add(nextIndex);
+        if (candidates.length > 0 && seen.size >= candidates.length) {
+          return { index: nextIndex, seen: new Set([nextIndex]), lap: prev.lap + 1 };
+        }
+        return { index: nextIndex, seen, lap: prev.lap };
+      });
     }, speedSeconds * 1000);
     return () => window.clearTimeout(timer);
   }, [index, isPaused, candidates, stats, speedSeconds]);
