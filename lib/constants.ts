@@ -6,6 +6,12 @@ export const GAME = {
   PERFECT_UNLOCK_STEP: 50,
 } as const;
 
+export const FLASH = {
+  DEFAULT_SPEED_SEC: 1.0,
+  MIN_SPEED_SEC: 0.8,
+  MAX_SPEED_SEC: 2.0,
+} as const;
+
 export const XP = {
   BASE_PER_CORRECT: 20,
   WEAKNESS_PER_WRONG: 30,
@@ -19,6 +25,7 @@ export const STORAGE_KEYS = {
   POOL_SIZE: "vocab-active-pool-size",
   STREAK: "vocab-daily-streak",
   SOUND_ENABLED: "vocab-sound-enabled",
+  FLASH_SPEED: "vocab-flash-speed",
 } as const;
 
 export const BUTTON_CLASSES = {

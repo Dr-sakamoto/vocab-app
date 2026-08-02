@@ -3,6 +3,7 @@ import { WordStat } from "@/lib/types";
 import { GAME } from "@/lib/constants";
 import { DIFFICULTY_ORDERED_INDICES } from "@/lib/vocab";
 import { getUnlockedIndices } from "@/lib/vocabPool";
+import { weightedPickIndex } from "@/lib/weightedPick";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ヘルパー関数群（旧 page.js から移植）
@@ -14,20 +15,6 @@ function getAttempts(stat?: WordStat) {
 
 function pickRandomIndex(indices: number[]) {
   return indices[Math.floor(Math.random() * indices.length)];
-}
-
-function weightedPickIndex(indices: number[], getWeight: (i: number) => number) {
-  const weighted = indices.map((i) => ({
-    index: i,
-    weight: Math.max(0.01, getWeight(i)),
-  }));
-  const total = weighted.reduce((s, x) => s + x.weight, 0);
-  let cursor = Math.random() * total;
-  for (const item of weighted) {
-    cursor -= item.weight;
-    if (cursor <= 0) return item.index;
-  }
-  return weighted.at(-1)?.index ?? null;
 }
 
 function getQuestionWeight(stat: WordStat | undefined, currentAccuracy: number) {
