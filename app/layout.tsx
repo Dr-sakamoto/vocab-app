@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import RegisterServiceWorker from "./components/RegisterServiceWorker";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -17,12 +18,18 @@ export const metadata: Metadata = {
   title: "英単語アプリ ― 記述式で答える英単語学習",
   description:
     "英単語の日本語訳を記述式で入力し、表記ゆれはAIが判定する英単語学習アプリ",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "英単語アプリ",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#6366f1",
 };
 
 export default function RootLayout({
@@ -47,7 +54,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-dvh flex flex-col safe-area">{children}</body>
+      <body className="min-h-dvh flex flex-col safe-area">
+        {children}
+        <RegisterServiceWorker />
+      </body>
     </html>
   );
 }
