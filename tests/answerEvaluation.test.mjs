@@ -155,3 +155,39 @@ test("does not strip parenthetical notes that share a tilde placeholder", () => 
 test("falls back to the original text when an answer is entirely parenthetical", () => {
   assert.equal(normalizeAnswer("（注記）"), "注記");
 });
+
+test("accepts a single-character typo in a kana reading as an alternative", async () => {
+  const result = await evaluateAnswer({
+    input: "かんは", // かんわ の「わ」を打ち間違えた想定
+    answers: ["緩和"],
+  });
+
+  assert.equal(result.status, "alternative");
+});
+
+test("accepts a two-character typo in a longer (7+ char) kana reading", async () => {
+  const result = await evaluateAnswer({
+    input: "せっとくらあく", // 「せっとくりょく」の2文字誤打想定
+    answers: ["説得力"],
+  });
+
+  assert.equal(result.status, "alternative");
+});
+
+test("rejects a two-character-distance kana input as a typo", async () => {
+  const result = await evaluateAnswer({
+    input: "はんたい",
+    answers: ["緩和"], // 読みは「かんわ」で編集距離2以上あり無関係語
+  });
+
+  assert.equal(result.status, "wrong");
+});
+
+test("does not extend typo tolerance to very short kana words", async () => {
+  const result = await evaluateAnswer({
+    input: "うま", // 「うみ」との1文字違いだが短すぎるため許容しない
+    answers: ["うみ"],
+  });
+
+  assert.equal(result.status, "wrong");
+});
