@@ -1,12 +1,15 @@
 "use client";
 
 import InlineResult from "../InlineResult";
+import ModeTabs, { StudyMode } from "../ModeTabs";
 import QuestionCard from "./QuestionCard";
 import TypingAnswerRow, { TypingAnswerRowProps } from "./TypingAnswerRow";
 import { PlayEvaluation, PoolTier } from "@/lib/types";
 
 export interface StudyScreenProps {
   phase: "quiz" | "result";
+  mode: StudyMode;
+  onModeChange: (mode: StudyMode) => void;
   /** ヘッダーに出す学習の進み具合 */
   status: {
     score: number;
@@ -44,6 +47,8 @@ export interface StudyScreenProps {
  */
 export default function StudyScreen({
   phase,
+  mode,
+  onModeChange,
   status,
   question,
   typing,
@@ -54,6 +59,9 @@ export default function StudyScreen({
     <div className="quiz-shell fantasy-shell relative flex h-dvh flex-col overflow-hidden bg-[#0a0a0a]">
       <div className="relative z-10 mx-auto flex h-full w-full max-w-2xl flex-col p-3">
         <header className="shrink-0">
+          <div className="mb-1.5 flex justify-start">
+            <ModeTabs mode={mode} onChange={onModeChange} />
+          </div>
           <div className="flex items-center justify-between gap-3 text-xs text-[#7d7d7d]">
             <div className="flex items-center gap-3">
               <span className="tabular-nums">

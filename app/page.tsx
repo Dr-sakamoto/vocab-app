@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import StudyScreen from "./components/game/StudyScreen";
+import FlashScreen from "./components/flash/FlashScreen";
+import { StudyMode } from "./components/ModeTabs";
 import SyncButton from "./components/SyncButton";
 import { useGameSession } from "./hooks/useGameSession";
 import { useVocabPool } from "./hooks/useVocabPool";
@@ -18,7 +20,7 @@ import {
   hydrateStats,
   migrateApprovedAnswers,
 } from "@/lib/wordProgress";
-import { GAME, STORAGE_KEYS } from "@/lib/constants";
+import { GAME, STORAGE_KEYS, FLASH } from "@/lib/constants";
 import {
   EMPTY_STREAK,
   StreakState,
@@ -54,6 +56,8 @@ export default function Page() {
   const [resultEvaluation, setResultEvaluation] = useState<PlayEvaluation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(true);
+  const [mode, setMode] = useState<StudyMode>("test");
+  const [flashSpeed, setFlashSpeedState] = useState<number>(FLASH.DEFAULT_SPEED_SEC);
   const [isComposing, setIsComposing] = useState<boolean>(false);
   /** 同一セッションで連続プレイした回数。多いほどフロー係数が上がる */
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
@@ -144,6 +148,18 @@ export default function Page() {
     });
   }, []);
 
+  const handleFlashSpeedChange = useCallback((value: number) => {
+    const clamped = Math.min(FLASH.MAX_SPEED_SEC, Math.max(FLASH.MIN_SPEED_SEC, value));
+    setFlashSpeedState(clamped);
+    storage.set(STORAGE_KEYS.FLASH_SPEED, clamped);
+  }, []);
+
+  // フラッシュモードもストリーク対象の学習時間として扱う
+  const handleModeChange = useCallback((next: StudyMode) => {
+    setMode(next);
+    if (next === "flash") markDailyPlay();
+  }, [markDailyPlay]);
+
   // 回答欄は常にフォーカスしておく。IMEをすぐ打ち始められる状態を保つ。
   useEffect(() => {
     if (phase !== "quiz" || isCheckingAnswer) return;
@@ -158,6 +174,15 @@ export default function Page() {
       try {
         setSoundEnabledState(isSoundEnabled());
         setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
+
+        const savedSpeed = Number(
+          storage.get(STORAGE_KEYS.FLASH_SPEED, FLASH.DEFAULT_SPEED_SEC),
+        );
+        if (Number.isFinite(savedSpeed)) {
+          setFlashSpeedState(
+            Math.min(FLASH.MAX_SPEED_SEC, Math.max(FLASH.MIN_SPEED_SEC, savedSpeed)),
+          );
+        }
 
         const savedPool = Number(storage.get(STORAGE_KEYS.POOL_SIZE, null));
         if (Number.isFinite(savedPool) && savedPool > 0) {
@@ -397,51 +422,68 @@ export default function Page() {
 
   return (
     <>
-      <StudyScreen
-        phase={phase}
-        status={{
-          score,
-          total,
-          playLimit: GAME.PLAY_LIMIT,
-          progressPct,
-          streakDays: displayStreak,
-          unlockedPoolSize,
-          totalWords: VOCAB_ITEMS.length,
-          tier: currentTier,
-        }}
-        question={{
-          questionKey: index,
-          partOfSpeech: getPartOfSpeech(q),
-          word: q.target,
-          onSkip: checked ? undefined : giveUp,
-          skipDisabled: isCheckingAnswer,
-        }}
-        typing={{
-          inputRef,
-          input,
-          onInputChange: setInput,
-          onCompositionStart: () => setIsComposing(true),
-          onCompositionEnd: () => setIsComposing(false),
-          isComposing,
-          checked,
-          isCorrect,
-          answerStatus,
-          isCheckingAnswer,
-          normalizedAnswers,
-          posViolation,
-          reviewResult,
-          isRequestingReview,
-          onRequestAiReview: requestAiReview,
-          onCheck: () => checkAnswer(),
-          onNext: next,
-        }}
-        result={{
-          evaluation: resultEvaluation,
-          unlockedThisRun: lastUnlockCount,
-          onContinue: continueToNextSet,
-        }}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
+      {mode === "flash" ? (
+        <FlashScreen
+          vocabItems={VOCAB_ITEMS}
+          stats={stats}
+          unlockedPoolSize={unlockedPoolSize}
+          totalWords={VOCAB_ITEMS.length}
+          tier={currentTier}
+          streakDays={displayStreak}
+          speedSeconds={flashSpeed}
+          mode={mode}
+          onModeChange={handleModeChange}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      ) : (
+        <StudyScreen
+          phase={phase}
+          mode={mode}
+          onModeChange={handleModeChange}
+          status={{
+            score,
+            total,
+            playLimit: GAME.PLAY_LIMIT,
+            progressPct,
+            streakDays: displayStreak,
+            unlockedPoolSize,
+            totalWords: VOCAB_ITEMS.length,
+            tier: currentTier,
+          }}
+          question={{
+            questionKey: index,
+            partOfSpeech: getPartOfSpeech(q),
+            word: q.target,
+            onSkip: checked ? undefined : giveUp,
+            skipDisabled: isCheckingAnswer,
+          }}
+          typing={{
+            inputRef,
+            input,
+            onInputChange: setInput,
+            onCompositionStart: () => setIsComposing(true),
+            onCompositionEnd: () => setIsComposing(false),
+            isComposing,
+            checked,
+            isCorrect,
+            answerStatus,
+            isCheckingAnswer,
+            normalizedAnswers,
+            posViolation,
+            reviewResult,
+            isRequestingReview,
+            onRequestAiReview: requestAiReview,
+            onCheck: () => checkAnswer(),
+            onNext: next,
+          }}
+          result={{
+            evaluation: resultEvaluation,
+            unlockedThisRun: lastUnlockCount,
+            onContinue: continueToNextSet,
+          }}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      )}
 
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/45 p-4">
@@ -482,6 +524,25 @@ export default function Page() {
                   ].join(" ")}
                 />
               </button>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-zinc-200 px-3 py-2.5">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-medium text-zinc-900">フラッシュ速度</span>
+                <span className="text-xs tabular-nums text-zinc-500">
+                  {flashSpeed.toFixed(1)}秒 / 語
+                </span>
+              </div>
+              <input
+                type="range"
+                min={FLASH.MIN_SPEED_SEC}
+                max={FLASH.MAX_SPEED_SEC}
+                step={0.1}
+                value={flashSpeed}
+                onChange={(e) => handleFlashSpeedChange(Number(e.target.value))}
+                aria-label="フラッシュ速度（秒/語）"
+                className="w-full"
+              />
             </div>
 
             <h3 className="mb-2 text-sm font-semibold text-zinc-700">クラウド同期</h3>

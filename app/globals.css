@@ -98,6 +98,15 @@ a {
   animation: fadeIn 0.15s ease-out forwards;
 }
 
+@keyframes flash-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
 /* ── フューチャリスティック UI 用ユーティリティ ───────────────────────────── */
 
 @keyframes aurora-drift {
