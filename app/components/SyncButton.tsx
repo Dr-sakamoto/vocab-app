@@ -145,12 +145,12 @@ export default function SyncButton({
           type="button"
           onClick={handleGoogleSignIn}
           disabled={status === "syncing"}
-          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm font-medium disabled:opacity-50"
         >
           Googleで同期
         </button>
         {message && (
-          <p className={`text-xs ${status === "error" ? "text-rose-600" : "text-zinc-500"}`}>
+          <p className={`text-xs ${status === "error" ? "text-negative" : "text-ink-3"}`}>
             {message}
           </p>
         )}
@@ -165,7 +165,7 @@ export default function SyncButton({
           type="button"
           onClick={syncProgress}
           disabled={status === "syncing"}
-          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm font-medium disabled:opacity-50"
         >
           {label}
         </button>
@@ -173,16 +173,16 @@ export default function SyncButton({
           type="button"
           onClick={handleSignOut}
           disabled={status === "syncing"}
-          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm font-medium text-ink-3 disabled:opacity-50"
         >
           ログアウト
         </button>
       </div>
-      <p className="max-w-56 truncate text-xs text-zinc-500">
+      <p className="max-w-56 truncate text-xs text-ink-3">
         {user.email ?? "Googleログイン中"}
       </p>
       {message && (
-        <p className={`text-xs ${status === "error" ? "text-rose-600" : "text-emerald-600"}`}>
+        <p className={`text-xs ${status === "error" ? "text-negative" : "text-positive"}`}>
           {message}
         </p>
       )}

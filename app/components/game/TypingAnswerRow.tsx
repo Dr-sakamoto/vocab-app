@@ -35,6 +35,14 @@ export interface TypingAnswerRowProps {
 /**
  * タイピング回答行。日本語IMEで自由記述し、答え合わせ/次への操作は
  * 入力欄右端の⏎/→アイコンに織り込む（ボタンへ視線を外さないため）。
+ *
+ * 配色の方針:
+ * - 送信ボタンは「押せる状態」になって初めて操作色になる。彩度で状態を表し、
+ *   何もしていない間は画面から色を消しておく。
+ * - 正解は静かに（毎回起きるので主張させない）、不正解だけ強く見せる。
+ * - 不正解時、覚えるべき正解の訳語は赤ではなく最高コントラストの文字色で出す。
+ *   赤い文字は地に対する実効コントラストが落ち、いちばん読ませたいものが
+ *   いちばん読みにくくなる。赤はラベル（「不正解」）だけに使う。
  */
 export default function TypingAnswerRow({
   inputRef,
@@ -70,7 +78,7 @@ export default function TypingAnswerRow({
           onBlur={onBlur}
           placeholder="日本語訳を入力..."
           aria-label="日本語訳を入力してください"
-          className="w-full rounded-lg border-2 border-[#9a9a9a] bg-[#0a0a0a] py-3.5 pl-4 pr-16 text-base text-[#e6e6e6] outline-none transition-all placeholder:text-[#7d7d7d] focus:border-[#f5f5f5] focus:shadow-[0_0_12px_rgba(255,255,255,0.35)] disabled:opacity-50"
+          className="answer-field w-full rounded-lg py-3.5 pl-4 pr-16 text-base outline-none disabled:opacity-50"
           onKeyDown={(e) => {
             if (isComposing) return;
             if (e.key !== "Enter") return;
@@ -83,7 +91,11 @@ export default function TypingAnswerRow({
           onClick={checked ? onNext : onCheck}
           disabled={isCheckingAnswer}
           aria-label={checked ? "次の問題へ" : "答え合わせ"}
-          className="brass-btn absolute inset-y-1.5 right-1.5 flex w-12 items-center justify-center rounded-md transition-all disabled:opacity-40"
+          className={`absolute inset-y-1.5 right-1.5 flex w-12 items-center justify-center rounded-md transition-colors disabled:opacity-40 ${
+            checked || input.trim().length > 0
+              ? "btn-accent"
+              : "text-ink-3"
+          }`}
         >
           {isCheckingAnswer ? (
             <span className="ios-spinner" aria-hidden="true">
@@ -143,17 +155,22 @@ export default function TypingAnswerRow({
             className="mt-2"
           >
             {isCorrect ? (
-              <div className="rounded-lg border-2 border-[#f5f5f5] bg-[#1c1c1c] px-4 py-3">
-                <div className="text-sm font-bold text-[#f5f5f5]">
-                  {answerStatus === "ai_approved" ? "〇（AI承認）" : answerStatus === "alternative" ? "◯ 正解（別解）" : "◯ 正解"}
+              /* 正解は10問中ほとんどで起きる。強い枠や塗りで毎回主張させると
+                 そのぶん視線と処理が持っていかれるので、細い罫だけに留める。 */
+              <div className="rounded-r-lg border-l-2 border-positive bg-surface-1 px-3 py-2">
+                <div className="text-sm font-semibold text-positive">
+                  {answerStatus === "ai_approved" ? "◯ 正解（AI承認）" : answerStatus === "alternative" ? "◯ 正解（別解）" : "◯ 正解"}
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border-2 border-[#ff5a5a] bg-[#1f0a0a] px-4 py-3">
-                <div className="mb-0.5 text-xs font-semibold text-[#ff8a8a]">不正解</div>
-                <div className="text-sm font-bold text-[#ff5a5a]">{normalizedAnswers.join(" / ")}</div>
+              <div className="rounded-lg border border-negative bg-negative-surface px-4 py-3">
+                <div className="mb-1 text-xs font-semibold text-negative">✕ 不正解</div>
+                {/* 覚えるべき語。この面の上で 14.4:1 を確保している */}
+                <div className="text-base font-semibold leading-snug text-ink-1">
+                  {normalizedAnswers.join(" / ")}
+                </div>
                 {posViolation && (
-                  <div className="mt-1 text-xs text-[#ffaa7a] opacity-90">{posViolation}</div>
+                  <div className="mt-1 text-xs text-ink-3">{posViolation}</div>
                 )}
                 {!reviewResult && answerStatus !== "skipped" && (
                   <div className="mt-2 flex flex-col gap-1">
@@ -161,7 +178,7 @@ export default function TypingAnswerRow({
                       type="button"
                       onClick={onRequestAiReview}
                       disabled={isRequestingReview}
-                      className="brass-btn flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium transition disabled:opacity-50"
+                      className="btn-quiet flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium disabled:opacity-50"
                     >
                       {isRequestingReview && (
                         <span className="ios-spinner" aria-hidden="true">
@@ -180,12 +197,12 @@ export default function TypingAnswerRow({
                       {isRequestingReview ? "AIが判定中..." : "AIに判定してもらう"}
                     </button>
                     {isRequestingReview && (
-                      <p className="px-1 text-xs text-[#7d7d7d]">判定には少し時間がかかります。そのままお待ちください。</p>
+                      <p className="px-1 text-xs text-ink-3">判定には少し時間がかかります。そのままお待ちください。</p>
                     )}
                   </div>
                 )}
                 {reviewResult && !reviewResult.approved && (
-                  <div className="mt-2 rounded-lg border border-[#9a9a9a]/50 bg-[#0a0a0a] px-3 py-2 text-xs text-[#e6e6e6]">
+                  <div className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs text-ink-2">
                     AI判定: 不正解（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
                   </div>
                 )}

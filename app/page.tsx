@@ -411,10 +411,10 @@ export default function Page() {
 
   if (!q) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-xl rounded-2xl border bg-white p-6">
-          <h1 className="text-xl font-semibold">英単語クイズ</h1>
-          <p className="mt-3 text-zinc-700">問題データがありません。</p>
+      <div className="app-shell flex min-h-screen items-center justify-center p-6">
+        <div className="prompt-card w-full max-w-xl p-6">
+          <h1 className="text-xl font-semibold text-ink-1">英単語クイズ</h1>
+          <p className="mt-3 text-ink-2">問題データがありません。</p>
         </div>
       </div>
     );
@@ -486,22 +486,22 @@ export default function Page() {
       )}
 
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/45 p-4">
-          <div className="w-full max-w-md rounded-2xl border bg-white p-4 shadow-xl">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-line bg-surface-1 p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-zinc-950">設定</h2>
+              <h2 className="text-base font-semibold text-ink-1">設定</h2>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 text-lg leading-none text-zinc-500 hover:bg-zinc-50"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-lg leading-none text-ink-3 transition hover:bg-surface-2 hover:text-ink-1"
                 aria-label="close"
               >
                 ×
               </button>
             </div>
 
-            <div className="mb-4 flex items-center justify-between rounded-xl border border-zinc-200 px-3 py-2.5">
-              <span className="text-sm font-medium text-zinc-900">サウンド</span>
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-line px-3 py-2.5">
+              <span className="text-sm font-medium text-ink-1">サウンド</span>
               <button
                 type="button"
                 role="switch"
@@ -514,7 +514,7 @@ export default function Page() {
                 }}
                 className={[
                   "relative h-7 w-12 shrink-0 rounded-full transition-colors",
-                  soundEnabled ? "bg-emerald-500" : "bg-zinc-300",
+                  soundEnabled ? "bg-accent" : "bg-line-strong",
                 ].join(" ")}
               >
                 <span
@@ -526,10 +526,10 @@ export default function Page() {
               </button>
             </div>
 
-            <div className="mb-4 rounded-xl border border-zinc-200 px-3 py-2.5">
+            <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium text-zinc-900">フラッシュ速度</span>
-                <span className="text-xs tabular-nums text-zinc-500">
+                <span className="text-sm font-medium text-ink-1">フラッシュ速度</span>
+                <span className="text-xs tabular-nums text-ink-3">
                   {flashSpeed.toFixed(1)}秒 / 語
                 </span>
               </div>
@@ -541,11 +541,11 @@ export default function Page() {
                 value={flashSpeed}
                 onChange={(e) => handleFlashSpeedChange(Number(e.target.value))}
                 aria-label="フラッシュ速度（秒/語）"
-                className="w-full"
+                className="w-full accent-[var(--accent)]"
               />
             </div>
 
-            <h3 className="mb-2 text-sm font-semibold text-zinc-700">クラウド同期</h3>
+            <h3 className="mb-2 text-sm font-semibold text-ink-2">クラウド同期</h3>
             <SyncButton
               stats={stats}
               unlockedPoolSize={unlockedPoolSize}

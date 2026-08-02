@@ -10,9 +10,9 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
-// font-fantasy（Lv./ATK/HPなどのシステム表示用）は文字がMedievalSharp、
-// 数字だけMetamorphousになる合成書体。unicode-rangeで文字種を振り分ける
-// 自前の@font-face（globals.css）で構成するため、next/fontでは読み込まない。
+// 英単語（出題語）とスコアの数字だけ Space Grotesk を当てる。日本語本文は
+// OS標準のゴシックに任せる（globals.css の body）。装飾書体は字形の情報量が
+// 落ち、未知語の綴りを読み取る場面で不利になるため使わない。
 
 export const metadata: Metadata = {
   title: "VocabBlitz ― 記述式で答える英単語学習",
@@ -29,7 +29,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#6366f1",
+  // アプリの地の色（--surface-0）と揃える。ブラウザのUIとアプリの間に
+  // 色の段差ができると、そのつど視線が境界に引かれる。
+  themeColor: "#12141a",
 };
 
 export default function RootLayout({
@@ -39,21 +41,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={`h-full antialiased ${spaceGrotesk.variable}`}>
-      <head>
-        {/* EGAレトロRPGスキンのビットマップ（ドット）フォント DotGothic16。
-            日本語（漢字・かな）と英字をドットで表示。実行時に unicode-range で
-            使用文字ぶんだけ取得するため、CJKでもロードは軽い。 */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap"
-          rel="stylesheet"
-        />
-      </head>
       <body className="min-h-dvh flex flex-col safe-area">
         {children}
         <RegisterServiceWorker />
