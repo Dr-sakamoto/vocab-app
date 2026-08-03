@@ -322,13 +322,16 @@ export default function Page() {
     resetSession();
     setResultEvaluation(null);
     setReviewResult(null);
-    const newIndex = pickNextQuestionIndex(null, new Set(), 1.0) ?? 0;
+    // 直前のセットで最後に出した単語（＝直近正解したばかりの単語）を
+    // 次セットの1問目から除外する
+    const newIndex = pickNextQuestionIndex(index, new Set([index]), 1.0) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
     setLastUnlockCount(0);
     resultUnlockAppliedRef.current = false;
     setPhase("quiz");
   }, [
+    index,
     markDailyPlay,
     pickNextQuestionIndex,
     resetSession,
