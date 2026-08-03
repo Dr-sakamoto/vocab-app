@@ -65,7 +65,9 @@
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-negative-surface: var(--negative-surface);
-  --font-display: var(--font-display);
+  /* 出題語専用のセリフ体。UIはすべてサンセリフなので、書体系統の違いが
+     そのまま「コンテンツ／インターフェース」の区別になる。 */
+  --font-word: var(--font-word);
 }
 
 html {

@@ -1,18 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Newsreader } from "next/font/google";
 import "./globals.css";
 import RegisterServiceWorker from "./components/RegisterServiceWorker";
 
-const spaceGrotesk = Space_Grotesk({
+// 出題語だけに当てるセリフ体。UIはすべてサンセリフなので、
+// 「セリフ体で組まれているもの＝読んで答えるべき語」が書体だけで分かる。
+// セリフは字形の差が出やすく、未知語の綴りを読み取る場面でも有利。
+// 使うのは出題語ただ一つに限定する（スコアやXPはUI側なのでサンセリフのまま）。
+const newsreader = Newsreader({
   subsets: ["latin"],
-  weight: ["500", "700"],
-  variable: "--font-display",
+  variable: "--font-word",
   display: "swap",
 });
-
-// 英単語（出題語）とスコアの数字だけ Space Grotesk を当てる。日本語本文は
-// OS標準のゴシックに任せる（globals.css の body）。装飾書体は字形の情報量が
-// 落ち、未知語の綴りを読み取る場面で不利になるため使わない。
 
 export const metadata: Metadata = {
   title: "VocabBlitz ― 記述式で答える英単語学習",
@@ -40,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`h-full antialiased ${spaceGrotesk.variable}`}>
+    <html lang="ja" className={`h-full antialiased ${newsreader.variable}`}>
       <body className="min-h-dvh flex flex-col safe-area">
         {children}
         <RegisterServiceWorker />

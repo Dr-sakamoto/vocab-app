@@ -92,7 +92,7 @@ export default function QuestionCard({
           {partOfSpeech}
         </div>
         <div
-          className={`mt-2 break-words font-display font-medium leading-tight tracking-[0.01em] text-ink-1 ${
+          className={`mt-2 break-words font-word font-medium leading-tight tracking-[0.01em] text-ink-1 ${
             dense ? "text-3xl" : "text-3xl sm:text-5xl"
           }`}
         >

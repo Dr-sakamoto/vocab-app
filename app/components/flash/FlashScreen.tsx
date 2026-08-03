@@ -147,7 +147,7 @@ export default function FlashScreen({
                   <div className="text-[11px] font-medium tracking-[0.16em] text-ink-3">
                     {q.partOfSpeech}
                   </div>
-                  <div className="mt-2 break-words font-display text-3xl font-medium tracking-[0.01em] text-ink-1 sm:text-5xl">
+                  <div className="mt-2 break-words font-word text-3xl font-medium tracking-[0.01em] text-ink-1 sm:text-5xl">
                     {q.target}
                   </div>
                   <div className="mt-4 break-words text-lg font-semibold text-ink-2 sm:text-2xl">

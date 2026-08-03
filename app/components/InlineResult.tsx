@@ -57,7 +57,7 @@ export default function InlineResult({
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, ease: "easeOut", delay: 0.1 }}
-                className="font-display text-3xl font-medium text-ink-1"
+                className="text-3xl font-semibold text-ink-1"
               >
                 {grade}
               </motion.span>
@@ -70,10 +70,10 @@ export default function InlineResult({
 
           <div className="relative mt-2 overflow-hidden rounded-md bg-surface-2 px-3 py-2 text-center">
             <div className="relative flex items-baseline justify-center gap-1.5">
-              <span className="font-display text-3xl font-medium tabular-nums text-ink-1">
+              <span className="text-3xl font-semibold tabular-nums text-ink-1">
                 {(xp ?? 0).toLocaleString()}
               </span>
-              <span className="font-display text-base font-medium text-ink-3">XP</span>
+              <span className="text-base font-medium text-ink-3">XP</span>
             </div>
           </div>
 
