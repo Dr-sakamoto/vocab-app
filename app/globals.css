@@ -1,25 +1,75 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   デザイントークン
+
+   コンセプト（フロー状態 最優先 → 学習効果 → 継続性）から逆算して決めている。
+   色は「好み」ではなく役割で定義し、数値で検証できる根拠を持たせる。
+
+   1. 面は純黒にしない
+      純黒(#000)×純白(#fff)＝21:1 は OLED で白文字がにじむ（ハレーション）。
+      乱視のある人ほど読みづらい。面を #12141A、主要文字を #E8EBF2 とし
+      15.4:1 に落として WCAG AAA(7:1) を大きく超えたまま滲みだけ減らす。
+
+   2. 安静時に彩度を持つ要素をほぼゼロにする
+      出題語を読んでタイプしている間、視野の中で色を持つのは
+      「進捗バー」「Tierバッジ」だけ。彩度＝注意の吸引力なので、
+      注意を割く価値のあるものにだけ配る（コアバリュー1：割り込みを増やさない）。
+
+   3. 彩度は「頻度の逆数」で配る
+      正解は毎回起きるので静かに。不正解は稀で、かつ学習が起きる瞬間なので強く。
+
+   4. すべての色は #12141A 上でのコントラスト比を実測して選ぶ
+      本文 4.5:1 以上（WCAG AA / SC 1.4.3）、
+      境界線・アイコンなどUI部品は 3:1 以上（SC 1.4.11）。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --font-fantasy: "FantasyUI", serif;
+  color-scheme: dark;
+
+  /* ── 面（surface） ─────────────────────────────────────────────────────── */
+  --surface-0: #12141a; /* 画面地。純黒ではなくごく僅かに青を含む中性ダーク */
+  --surface-1: #191c24; /* 出題カード・パネル */
+  --surface-2: #15181f; /* 入力欄など、面より一段沈む領域 */
+
+  /* ── 文字（ink）。括弧内は --surface-0 上のコントラスト比 ──────────────── */
+  --ink-1: #e8ebf2; /* 15.4:1  出題語・正解語など「読ませたい」文字 */
+  --ink-2: #c9cfda; /* 11.8:1  本文 */
+  --ink-3: #8a93a3; /*  5.9:1  補助・メタ情報（スコア、品詞、アイコン） */
+
+  /* ── 線 ───────────────────────────────────────────────────────────────── */
+  --line: #272c36; /* 装飾的な区切り（コントラスト要件なし） */
+  --line-strong: #5e677b; /* 3.2:1  入力欄など操作可能なUI部品の輪郭 */
+
+  /* ── 操作色。安静時に画面上で唯一「進行」を表す色 ──────────────────────── */
+  --accent: #7aa2ff; /* 7.4:1 */
+  --accent-ink: #0f1218;
+
+  /* ── 判定色 ───────────────────────────────────────────────────────────── */
+  --positive: #5ecb8f; /* 9.1:1 */
+  --negative: #ff6b6b; /* 6.6:1 */
+  --negative-surface: #2a1518; /* この上で --ink-1 が 14.4:1 を保つ */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-display);
-  --font-fantasy: var(--font-fantasy);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-negative-surface: var(--negative-surface);
+  /* 出題語以外のすべて（日本語・英数字とも）を受け持つ細めのゴシック */
+  --font-ui: var(--font-ui);
+  /* 出題語専用のセリフ体。UIはすべてサンセリフなので、書体系統の違いが
+     そのまま「コンテンツ／インターフェース」の区別になる。 */
+  --font-word: var(--font-word);
 }
 
 html {
@@ -31,13 +81,20 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 
-    "Hiragino Kaku Gothic ProN",  /* macOS/iOS */
-    "Noto Sans JP",                /* Android/Web */
-    "Yu Gothic",                   /* Windows */
-    Arial, Helvetica, sans-serif;
+  background: var(--surface-0);
+  color: var(--ink-2);
+  /* 和文・欧文を1ファミリーで持つ書体を先頭に置く。system-ui を先頭にすると
+     ラテン文字だけOSのUI書体、日本語だけ和文書体という二重書体になり、
+     「0 / 10 正解」のような混在行で字面と太さが揃わない。
+     フォールバックも和欧文を1書体で持つものだけを並べる。 */
+  font-family:
+    var(--font-ui),
+    "Hiragino Kaku Gothic ProN", /* macOS/iOS */
+    "Yu Gothic",                 /* Windows */
+    sans-serif;
+  /* UI全体を細ゴシック1ウェイトで通す。強弱は太さではなく
+     文字色（--ink-1/2/3）とサイズで付ける。 */
+  font-weight: 300;
   /* iOS Safari で 100vh 問題を回避 */
   height: 100dvh;
   height: 100svh;
@@ -61,10 +118,9 @@ textarea {
 
 /* クイズ画面のシェル（モバイルのみ）。
    通常フロー + sticky だとキーボード表示時に視覚ビューポートだけが
-   縮小・パンして上部のなかまバーが画面外に消えるため、
+   縮小・パンして上部のバーが画面外に消えるため、
    useVisualViewportVars が :root に反映する --vvh / --vvt を使って
-   画面全体を視覚ビューポートにピン留めする。
-   キーボード表示中もなかまバーと回答ボタンが常に画面内に残る。 */
+   画面全体を視覚ビューポートにピン留めする。 */
 @media (width < 40rem) {
   .quiz-shell {
     position: fixed;
@@ -83,41 +139,12 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.15s ease-out forwards;
-}
-
 @keyframes flash-progress {
   from {
     width: 0%;
   }
   to {
     width: 100%;
-  }
-}
-
-/* ── フューチャリスティック UI 用ユーティリティ ───────────────────────────── */
-
-@keyframes aurora-drift {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(3%, -4%) scale(1.08);
-  }
-  100% {
-    transform: translate(0, 0) scale(1);
   }
 }
 
@@ -137,7 +164,7 @@ a {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  color: #6366f1;
+  color: currentColor;
 }
 
 .ios-spinner-bar {
@@ -154,525 +181,80 @@ a {
   animation: ios-spinner-fade 1s linear infinite;
 }
 
-@keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+/* ── コンポーネント ──────────────────────────────────────────────────────── */
+
+/* 画面全体。地の色以外に模様・グラデーション・発光を置かない。
+   背景の情報量はそのまま前景（出題語）の相対的な目立ちにくさになる。 */
+.app-shell {
+  color: var(--ink-2);
+  background-color: var(--surface-0);
 }
 
-@keyframes glow-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.05);
-  }
+/* 出題カード。枠は固定し、中身（単語）だけが入れ替わる。
+   カード自体が動く・光ると、いちばん読ませたい文字の周りで
+   視線が奪われる（動きによる注意の外因性捕捉）。 */
+.prompt-card {
+  background-color: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
 }
 
-.glass-panel {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-}
-
-/* ダークテーマ用（/preview/dramatic デモ専用） */
-.glass-panel-dark {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.aurora-blob {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(60px);
-  opacity: 0.6;
-  animation: aurora-drift 14s ease-in-out infinite;
-  will-change: transform;
-}
-
-/* 動くグラデーションテキスト（見出し・グレード表示など） */
-.gradient-text {
-  background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: gradient-shift 6s ease-in-out infinite;
-}
-
-/* 動くグラデーションのボタン背景（CTA用） */
-.gradient-cta {
-  background-image: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
-  background-size: 200% auto;
-  animation: gradient-shift 4s ease-in-out infinite;
-}
-
-/* フィールドごとの「動く液体クローム」背景。色はここでは決めない（決め打ちしない）。
-   lib/fieldPalette.ts の5色を --field-base/sub/dark/accent/highlight として
-   style props で渡すだけで、扇形グラデーション（conic-gradient）が回転し、
-   渦を巻く液体のような動きになる。要素は position:relative; overflow:hidden;
-   にした上で使う（中身のテキストなどは z-index を1以上にすること） */
-.field-marble {
-  position: relative;
-  overflow: hidden;
-}
-.field-marble::before,
-.field-marble::after {
-  content: "";
-  position: absolute;
-  inset: -60%;
-  z-index: 0;
-  filter: blur(20px);
-}
-.field-marble::before {
-  background: conic-gradient(
-    from 0deg at 45% 50%,
-    var(--field-dark),
-    var(--field-base),
-    var(--field-sub),
-    var(--field-accent),
-    var(--field-dark)
-  );
-  animation: field-spin-a 24s linear infinite;
-}
-.field-marble::after {
-  background: conic-gradient(
-    from 200deg at 58% 42%,
-    var(--field-base),
-    var(--field-accent),
-    var(--field-sub),
-    var(--field-dark),
-    var(--field-base)
-  );
-  opacity: 0.75;
-  animation: field-spin-b 32s linear infinite reverse;
-}
-@keyframes field-spin-a {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes field-spin-b {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* .field-marble の上に重ねる、柔らかい光の粒。ChatGPTの画像生成中
-   インジケーターを参考に、単一の柔らかい「灯り」がゆっくり位置を巡回しつつ、
-   明るさはきちんと0まで消えてまた出てくる（常時点灯ではない）。
-   .field-marble を使う要素の中に .field-dots とその子として
-   .field-dots-1 / .field-dots-2 を並べて使う */
-.field-dots {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6'%3E%3Cpath d='M3 1.2 L3.4 3 L3 4.8 L2.6 3 Z' fill='white' fill-opacity='0.4'/%3E%3Cpath d='M1.2 3 L3 2.6 L4.8 3 L3 3.4 Z' fill='white' fill-opacity='0.4'/%3E%3C/svg%3E"),
-    radial-gradient(circle, var(--field-dots-glow, rgba(255, 255, 255, 0.3)) 0%, transparent 70%);
-  background-size:
-    6px 6px,
-    6px 6px;
-  background-position:
-    1.5px 3px,
-    1.5px 3px;
-  mix-blend-mode: screen;
-  filter: blur(0.5px);
-}
-.field-dots-1 {
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 120px 120px;
-  mask-size: 120px 120px;
-  -webkit-mask-image: radial-gradient(circle, black 0%, black 28%, transparent 68%);
-  mask-image: radial-gradient(circle, black 0%, black 28%, transparent 68%);
-  animation:
-    field-dots-roam-1 34s ease-in-out infinite,
-    field-dots-fade-1 14s ease-in-out infinite;
-}
-.field-dots-2 {
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 90px 90px;
-  mask-size: 90px 90px;
-  -webkit-mask-image: radial-gradient(circle, black 0%, black 24%, transparent 62%);
-  mask-image: radial-gradient(circle, black 0%, black 24%, transparent 62%);
-  animation:
-    field-dots-roam-2 41s ease-in-out infinite,
-    field-dots-fade-2 17s ease-in-out infinite;
-  animation-delay:
-    -15s,
-    -6s;
-}
-@keyframes field-dots-fade-1 {
-  0%,
-  45%,
-  100% {
-    opacity: 0;
-  }
-  59% {
-    opacity: 0.4;
-  }
-  73% {
-    opacity: 0;
-  }
-}
-@keyframes field-dots-fade-2 {
-  0%,
-  42%,
-  100% {
-    opacity: 0;
-  }
-  56% {
-    opacity: 0.34;
-  }
-  70% {
-    opacity: 0;
-  }
-}
-@keyframes field-dots-roam-1 {
-  0% {
-    -webkit-mask-position: 10% 15%;
-    mask-position: 10% 15%;
-  }
-  18% {
-    -webkit-mask-position: 70% 10%;
-    mask-position: 70% 10%;
-  }
-  38% {
-    -webkit-mask-position: 85% 60%;
-    mask-position: 85% 60%;
-  }
-  58% {
-    -webkit-mask-position: 45% 85%;
-    mask-position: 45% 85%;
-  }
-  78% {
-    -webkit-mask-position: 5% 65%;
-    mask-position: 5% 65%;
-  }
-  100% {
-    -webkit-mask-position: 10% 15%;
-    mask-position: 10% 15%;
-  }
-}
-@keyframes field-dots-roam-2 {
-  0% {
-    -webkit-mask-position: 80% 75%;
-    mask-position: 80% 75%;
-  }
-  22% {
-    -webkit-mask-position: 25% 88%;
-    mask-position: 25% 88%;
-  }
-  45% {
-    -webkit-mask-position: 5% 35%;
-    mask-position: 5% 35%;
-  }
-  68% {
-    -webkit-mask-position: 55% 5%;
-    mask-position: 55% 5%;
-  }
-  88% {
-    -webkit-mask-position: 92% 30%;
-    mask-position: 92% 30%;
-  }
-  100% {
-    -webkit-mask-position: 80% 75%;
-    mask-position: 80% 75%;
-  }
-}
-
-/* ── ゲーム風の押し込みボタン（3D） ──────────────────────────────────────
-   下辺に「厚み」を持たせ、押すと physically 沈む。ゲーム機のボタンの触感を
-   CSSだけで再現する。--btn-edge で厚み部分の色をボタンごとに調整できる */
-.btn-3d {
-  --btn-edge: rgba(0, 0, 0, 0.3);
-  transform: translateY(0);
+/* 回答欄。操作可能な境界なので --line-strong（3.1:1）を使う。
+   フォーカス時だけ操作色になり、「いまここが入力できる」ことを示す。 */
+.answer-field {
+  background-color: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-1);
   transition:
-    transform 0.08s ease,
-    box-shadow 0.08s ease,
-    filter 0.15s ease;
-  box-shadow:
-    0 4px 0 var(--btn-edge),
-    0 12px 20px -8px rgba(0, 0, 0, 0.28);
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
 }
-.btn-3d:hover:not(:disabled) {
+.answer-field::placeholder {
+  color: var(--ink-3);
+}
+.answer-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  outline: none;
+}
+
+/* 面から浮かない控えめなボタン。塗りつぶしの操作色は
+   「いま押すべきもの」が一つに定まるときだけ使う（.btn-accent）。 */
+.btn-quiet {
+  background-color: var(--surface-1);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+.btn-quiet:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  color: var(--ink-1);
+}
+.btn-quiet:active:not(:disabled) {
+  background-color: var(--surface-2);
+}
+
+.btn-accent {
+  background-color: var(--accent);
+  color: var(--accent-ink);
+  border: 1px solid transparent;
+  transition:
+    filter 0.12s ease,
+    transform 0.08s ease;
+}
+.btn-accent:hover:not(:disabled) {
   filter: brightness(1.06);
 }
-.btn-3d:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow:
-    0 1px 0 var(--btn-edge),
-    0 4px 8px -4px rgba(0, 0, 0, 0.2);
-}
-.btn-3d:disabled {
-  box-shadow: none;
+.btn-accent:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
-/* ── 背景の奥行きレイヤー ────────────────────────────────────────────────
-   画面中央に向かって薄いドットグリッドが浮かぶ＋外周をほんのり落とす。
-   オーロラブロブと重ねることで「空間の中にUIが浮いている」感を出す */
-.scene-grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: radial-gradient(
-    rgba(30, 41, 59, 0.14) 1px,
-    transparent 1.5px
-  );
-  background-size: 24px 24px;
-  -webkit-mask-image: radial-gradient(
-    ellipse 90% 70% at 50% 38%,
-    black 20%,
-    transparent 78%
-  );
-  mask-image: radial-gradient(
-    ellipse 90% 70% at 50% 38%,
-    black 20%,
-    transparent 78%
-  );
-}
-.scene-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse at 50% 40%,
-    transparent 55%,
-    rgba(49, 46, 129, 0.09) 100%
-  );
-}
-
-/* ネオン風グロー（枠の外側にぼんやり光を落とす） */
-.neon-glow {
-  box-shadow:
-    0 0 0 1px rgba(129, 140, 248, 0.4),
-    0 0 24px rgba(129, 140, 248, 0.45),
-    0 0 48px rgba(168, 85, 247, 0.25);
-}
-
-.glow-dot {
-  position: relative;
-}
-
-.glow-dot::before {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: inherit;
-  background: currentColor;
-  filter: blur(8px);
-  opacity: 0.6;
-  animation: glow-pulse 2.4s ease-in-out infinite;
-  z-index: -1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aurora-blob,
-  .gradient-text,
-  .gradient-cta,
-  .glow-dot::before,
-  .field-marble::before,
-  .field-marble::after,
-  .field-dots-1,
-  .field-dots-2 {
-    animation: none;
-  }
-}
-
-
-
-/* ── EGAレトロRPGスキン（Elvira/古PC-CRPG風・フルカラー） ─────────────────────
-   黒背景に EGA 調の白／琥珀／赤／シアン。装飾は二重のピクセル枠。
-   書体はビットマップ風のモノスペース。可読性優先でスキャンライン等の
-   走査線ノイズは入れない。クラス名は旧スキンから流用して差し替える。 */
-
-:root {
-  --ega-bg: #0a0a0a;
-  --ega-panel: #131313;
-  --ega-fg: #e6e6e6;       /* 本文（読みやすい淡いリン光白） */
-  --ega-bright: #f5f5f5;   /* 強調（EGA明白） */
-  --ega-amber: #ffcf4a;    /* 見出し・地図 */
-  --ega-red: #ff5a5a;      /* 不正解・危険 */
-  --ega-green: #4ade80;    /* HPゲージ・安全 */
-  --ega-cyan: #58d0ff;
-  --ega-dim: #7d7d7d;      /* 補助テキスト */
-  --ega-line: #9a9a9a;     /* 枠線（白） */
-  --ega-line-amber: #b78a2a;
-}
-
-/* 画面全体：黒地＋ドット（ビットマップ）フォント DotGothic16。
-   日本語・英字ともにドットで表示され、EGA/レトロPCの質感になる。 */
-.fantasy-shell,
-.font-dot {
-  font-family:
-    "DotGothic16", "MS Gothic", "Osaka-Mono", ui-monospace, monospace;
-}
-/* 「FantasyUI」= 文字はMedievalSharp・数字はMetamorphousの合成書体。
-   同じfont-familyに2つの@font-faceをunicode-rangeで振り分けて登録することで、
-   1つのテキストの中でも文字種ごとに自動で書体が切り替わる（JSX側の分割は不要）。
-   ウェイトはどちらも400のみのため太字指定はしない（合成ボールドで崩れるため）。 */
-@font-face {
-  font-family: "FantasyUI";
-  src: url("/fonts/medievalsharp-latin-400.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+00-2F, U+3A-FF;
-}
-@font-face {
-  font-family: "FantasyUI";
-  src: url("/fonts/metamorphous-latin-400.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+30-39;
-}
-
-/* 非遭遇時のフレーバーテキスト用「明朝ドット」。Zen Old Mincho(OFL) を
-   ビットマップ化した自作サブセット（フレーバーで使う文字のみ収録）。
-   生成: scripts/gen-mincho-dot.py（tips.ts を編集したら再生成してwoff2更新）。 */
-@font-face {
-  font-family: "MinchoDot";
-  src: url("/fonts/mincho-dot.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-.font-mincho-dot {
-  font-family: "MinchoDot", "DotGothic16", serif;
-  letter-spacing: 0.04em;
-}
-
-/* Lv./ATK/HPなど、単語の出題内容とは無関係な「システム表示」の英数字・記号用。
-   出題本体（.quest-card）には適用しないこと。
-   @layer utilities + :where() でこのクラス自体の詳細度を0にし、text-xs や
-   text-[10px] などのサイズ指定ユーティリティと併用した際は常に後者が優先
-   されるようにする。素の（レイヤーなしの）.font-fantasyだとTailwind v4の
-   cascade layer上、常にtext-*系ユーティリティより優先されてしまい、name側
-   より小さく指定したはずのレベル表示（Lv.）がname側より大きく表示されて
-   しまう。 */
-@layer utilities {
-  :where(.font-fantasy) {
-    font-weight: 400;
-    font-size: 1.2em;
-    letter-spacing: 0.02em;
-  }
-}
-
-.fantasy-shell {
-  letter-spacing: 0.02em;
-  color: var(--ega-fg);
-  background-color: var(--ega-bg);
-  background-image:
-    radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.08), transparent 55%),
-    radial-gradient(ellipse at 12% 108%, rgba(255, 207, 74, 0.06), transparent 50%),
-    radial-gradient(ellipse at 90% 105%, rgba(255, 90, 90, 0.06), transparent 50%),
-    linear-gradient(180deg, #0d0d0d, #0a0a0a 60%, #060606);
-  text-rendering: geometricPrecision;
-}
-
-/* 二重ピクセル枠の共通パネル（黒地＋緑の外枠＋内側ライン） */
-.parchment,
-.wood-panel {
-  background-color: var(--ega-panel);
-  border: 2px solid var(--ega-line);
-  box-shadow:
-    inset 0 0 0 1px #0a0a0a,
-    inset 0 0 0 3px rgba(255, 255, 255, 0.25),
-    0 0 0 1px #000;
-  color: var(--ega-fg);
-}
-
-/* 現在地マップ：琥珀の枠 */
-.old-map {
-  background-color: var(--ega-panel);
-  border: 2px solid var(--ega-line-amber);
-  box-shadow:
-    inset 0 0 0 1px #0a0a0a,
-    inset 0 0 0 3px rgba(183, 138, 42, 0.35),
-    0 0 0 1px #000;
-  color: var(--ega-amber);
-}
-
-/* 見出し（琥珀のスモールキャップス） */
-.fantasy-title {
-  font-variant: small-caps;
-  letter-spacing: 0.18em;
-  color: var(--ega-amber);
-}
-
-/* 出題カード（黒地に明緑の語。EGAの発光） */
-.quest-card {
-  background-color: #0a0a0a;
-  border: 2px solid var(--ega-bright);
-  box-shadow:
-    inset 0 0 0 1px #000,
-    inset 0 0 18px rgba(255, 255, 255, 0.1),
-    0 0 0 1px #000;
-  color: var(--ega-bright);
-}
-
-/* コマンド／ボタン：黒地に緑枠、押下で緑地反転（EGAメニュー風） */
-.brass-btn {
-  background-color: #111111;
-  border: 2px solid var(--ega-line);
-  color: var(--ega-bright);
-  box-shadow: inset 0 0 0 1px #000;
-  transition: background-color 0.08s, color 0.08s;
-}
-.brass-btn:hover:not(:disabled) {
-  background-color: #1e1e1e;
-}
-.brass-btn:active:not(:disabled) {
-  background-color: var(--ega-bright);
-  color: #0a0a0a;
-}
-
-/* 文字盤タイル：黒地に緑枠の英字/かなキー */
-.tile-key {
-  background-color: #111111;
-  border: 2px solid var(--ega-line);
-  color: var(--ega-fg);
-  box-shadow: inset 0 0 0 1px #000, 0 2px 0 #262626;
-  transition: transform 0.05s;
-}
-.tile-key:active:not(:disabled) {
-  transform: translateY(2px);
-  background-color: #1e1e1e;
-  box-shadow: inset 0 0 0 1px #000, 0 0 0 #262626;
-}
-.tile-key:disabled {
-  opacity: 0.22;
-  box-shadow: none;
-}
-
-/* 回答スロット */
-.slot-box {
-  background: #0a0a0a;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-bottom: 2px solid var(--ega-line);
-  color: var(--ega-fg);
+/* 進捗ゲージ */
+.gauge-track {
+  background-color: var(--line);
 }
 
 /* 固定サイズの解答欄：横スクロールバーは見た目上隠す（入力自体は可能） */
@@ -684,9 +266,8 @@ a {
   display: none;
 }
 
-/* ゲージ枠 */
-.gauge-track {
-  background: #0a0a0a;
-  border: 1px solid #262626;
-  box-shadow: inset 0 0 0 1px #000;
+@media (prefers-reduced-motion: reduce) {
+  .ios-spinner-bar {
+    animation: none;
+  }
 }

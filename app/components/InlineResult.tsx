@@ -50,40 +50,41 @@ export default function InlineResult({
       onClick={onContinue}
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 sm:px-6">
-        <div className="rounded-lg border-2 border-[#9a9a9a] bg-[#131313] p-3">
+        <div className="prompt-card p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
               <motion.span
-                initial={{ scale: 0.4, opacity: 0, rotate: -8 }}
-                animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 260, damping: 14, delay: 0.15 }}
-                className="font-fantasy text-3xl font-bold text-[#f5f5f5] drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut", delay: 0.1 }}
+                className="text-3xl text-ink-1"
               >
                 {grade}
               </motion.span>
-              <span className="text-sm font-medium text-[#e6e6e6]">{title}</span>
+              <span className="text-sm text-ink-2">{title}</span>
             </div>
-            <div className="font-fantasy text-sm tabular-nums text-[#7d7d7d]">
+            <div className="text-sm tabular-nums text-ink-3">
               {score} / {playLimit} 正解
             </div>
           </div>
 
-          <div className="relative mt-2 overflow-hidden rounded-md border border-[#9a9a9a]/50 bg-[#0a0a0a] px-3 py-2 text-center">
+          <div className="relative mt-2 overflow-hidden rounded-md bg-surface-2 px-3 py-2 text-center">
             <div className="relative flex items-baseline justify-center gap-1.5">
-              <span className="font-fantasy text-3xl font-bold tabular-nums text-[#f5f5f5]">
+              <span className="text-3xl tabular-nums text-ink-1">
                 {(xp ?? 0).toLocaleString()}
               </span>
-              <span className="font-fantasy text-lg font-bold text-[#ffcf4a]">XP</span>
+              <span className="text-base text-ink-3">XP</span>
             </div>
           </div>
 
           {message && (
-            <p className="mt-2 text-xs leading-relaxed text-[#e6e6e6]">{message}</p>
+            <p className="mt-2 text-xs leading-relaxed text-ink-2">{message}</p>
           )}
 
+          {/* 解放は稀にしか起きない前進の合図。ここは操作色を使ってよい */}
           {unlockedThisRun > 0 && (
-            <div className="mt-2 rounded-md border border-[#ffcf4a] bg-[#1a1400] px-2.5 py-1.5 text-xs font-medium text-[#ffcf4a]">
-              🔓 新たな単語 {unlockedThisRun} 語が封を解かれた
+            <div className="mt-2 rounded-md border-l-2 border-accent bg-surface-2 px-2.5 py-1.5 text-xs text-accent">
+              新たに {unlockedThisRun} 語がプールに追加された
             </div>
           )}
 
@@ -91,11 +92,11 @@ export default function InlineResult({
             {breakdown?.map((item) => (
               <div
                 key={item.label}
-                className="rounded-md border border-[#9a9a9a]/25 bg-[#0a0a0a] px-2.5 py-1.5 text-xs text-[#e6e6e6]"
+                className="rounded-md bg-surface-2 px-2.5 py-1.5 text-xs text-ink-2"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{item.label}</span>
-                  <span className="font-fantasy tabular-nums font-semibold">
+                  <span>{item.label}</span>
+                  <span className="tabular-nums text-ink-3">
                     +{item.points.toLocaleString()} XP
                   </span>
                 </div>
@@ -112,10 +113,10 @@ export default function InlineResult({
             e.stopPropagation();
             onContinue();
           }}
-          className="brass-btn flex h-12 w-full items-center justify-center gap-2 rounded-md text-sm font-bold"
+          className="btn-accent flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm"
         >
           次のセットへ →
-          <span className="font-fantasy flex h-6 w-6 items-center justify-center rounded-full bg-black/25 text-xs tabular-nums text-[#f3e3b5]">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/15 text-xs tabular-nums">
             {secondsLeft}
           </span>
         </button>
