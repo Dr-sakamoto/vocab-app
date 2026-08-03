@@ -6,7 +6,7 @@ function getFlashWeight(stat: WordStat | undefined): number {
   const wrong = stat?.wrong ?? 0;
   const attempts = correct + wrong;
   if (attempts === 0) return 4; // 未挑戦は最優先で見せる
-  if (correct >= 2 && wrong === 0) return 0.3; // 定着済みはほぼ出さない
+  if (wrong === 0) return correct >= 2 ? 0.3 : 0.8; // 定着済み／直近正解は出現を抑える
   return 1.2; // 学習中
 }
 

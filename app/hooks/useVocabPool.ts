@@ -23,7 +23,8 @@ function getQuestionWeight(stat: WordStat | undefined, currentAccuracy: number) 
   const attempts = correct + wrong;
   if (attempts === 0) return currentAccuracy < 0.65 ? 0.25 : 1.8;
   const weakness = wrong / (correct + 1);
-  const confidenceBoost = correct >= 2 && wrong === 0 ? 0.45 : 1;
+  const confidenceBoost =
+    wrong === 0 ? (correct >= 2 ? 0.45 : 0.7) : 1;
   const recoveryBoost = wrong > 0 ? 2.2 + weakness * 3 : 0;
   const stillLearning = Math.max(0, 3 - correct) * 0.35;
   return (1 + recoveryBoost + stillLearning) * confidenceBoost;
