@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import TiltCard from "../quiz/TiltCard";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import { speakEnglishWord, stopSpeaking } from "@/lib/speech";
 import { pickFlashIndex } from "@/lib/flashWeight";
@@ -88,13 +87,13 @@ export default function FlashScreen({
   if (!q) return null;
 
   return (
-    <div className="quiz-shell fantasy-shell relative flex h-dvh flex-col overflow-hidden bg-[#0a0a0a]">
+    <div className="quiz-shell app-shell relative flex h-dvh flex-col overflow-hidden">
       <div className="relative z-10 mx-auto flex h-full w-full max-w-2xl flex-col p-3">
         <header className="shrink-0">
           <div className="mb-1.5 flex justify-start">
             <ModeTabs mode={mode} onChange={onModeChange} />
           </div>
-          <div className="flex items-center justify-between gap-3 text-xs text-[#7d7d7d]">
+          <div className="flex items-center justify-between gap-3 text-xs text-ink-3">
             <div className="flex items-center gap-3">
               {streakDays > 0 && <span className="tabular-nums">連続 {streakDays} 日</span>}
             </div>
@@ -109,7 +108,7 @@ export default function FlashScreen({
                 type="button"
                 onClick={onOpenSettings}
                 aria-label="設定を開く"
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-[#9a9a9a]/50 text-[#9a9a9a] transition hover:bg-white/5"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition hover:bg-surface-1 hover:text-ink-2"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -136,7 +135,7 @@ export default function FlashScreen({
             aria-label={isPaused ? "再開する" : "一時停止する"}
             className="w-full"
           >
-            <TiltCard className="quest-card relative overflow-hidden rounded-lg px-5 py-8 text-center sm:py-12">
+            <div className="prompt-card relative px-5 py-8 text-center sm:py-12">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={index}
@@ -145,31 +144,31 @@ export default function FlashScreen({
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="fantasy-title text-xs font-semibold tracking-[0.2em] text-[#ffcf4a]">
+                  <div className="text-[11px] tracking-[0.16em] text-ink-3">
                     {q.partOfSpeech}
                   </div>
-                  <div className="mt-1.5 break-words text-3xl font-bold tracking-tight text-[#f5f5f5] drop-shadow-[0_0_14px_rgba(255,255,255,0.5)] sm:text-5xl">
+                  <div className="mt-2 break-words font-word text-3xl tracking-[0.01em] text-ink-1 sm:text-5xl">
                     {q.target}
                   </div>
-                  <div className="mt-4 break-words text-lg font-semibold text-[#9affc0] sm:text-2xl">
+                  <div className="mt-4 break-words text-lg text-ink-2 sm:text-2xl">
                     {q.answers[0]}
                   </div>
                 </motion.div>
               </AnimatePresence>
-            </TiltCard>
+            </div>
           </button>
 
-          <div className="mt-3 h-1 w-full max-w-xs overflow-hidden rounded-full bg-white/10">
+          <div className="gauge-track mt-3 h-1 w-full max-w-xs overflow-hidden rounded-full">
             <div
               key={index}
-              className="h-full bg-[#58d0ff]"
+              className="h-full bg-accent"
               style={{
                 animation: isPaused ? "none" : `flash-progress ${speedSeconds}s linear forwards`,
               }}
             />
           </div>
 
-          <p className="mt-2 text-xs text-[#7d7d7d]">
+          <p className="mt-2 text-xs text-ink-3">
             {isPaused
               ? "一時停止中（タップで再開）"
               : `見た単語 ${seenIndices.size} / ${candidates.length} 語・プール内${lap}周目（タップで一時停止）`}

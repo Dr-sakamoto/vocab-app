@@ -163,7 +163,7 @@ export default function SyncButton({
           placeholder="メールアドレス"
           autoComplete="email"
           required
-          className="h-11 w-56 rounded-lg border border-zinc-200 px-3 text-sm outline-none"
+          className="h-11 w-56 rounded-lg border border-line-strong bg-surface-2 px-3 text-sm text-ink-1 outline-none"
         />
         <input
           type="password"
@@ -173,26 +173,26 @@ export default function SyncButton({
           autoComplete={mode === "signup" ? "new-password" : "current-password"}
           minLength={6}
           required
-          className="h-11 w-56 rounded-lg border border-zinc-200 px-3 text-sm outline-none"
+          className="h-11 w-56 rounded-lg border border-line-strong bg-surface-2 px-3 text-sm text-ink-1 outline-none"
         />
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="submit"
             disabled={status === "syncing"}
-            className="inline-flex h-11 min-w-28 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
+            className="btn-quiet inline-flex h-11 min-w-28 items-center justify-center rounded-xl px-5 text-sm disabled:opacity-50"
           >
             {mode === "signup" ? "登録して同期" : "ログインして同期"}
           </button>
           <button
             type="button"
             onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
-            className="text-xs text-zinc-500 underline"
+            className="text-xs text-ink-3 underline"
           >
             {mode === "signup" ? "ログインはこちら" : "はじめての方はこちら"}
           </button>
         </div>
         {message && (
-          <p className={`text-xs ${status === "error" ? "text-rose-600" : "text-zinc-500"}`}>
+          <p className={`text-xs ${status === "error" ? "text-negative" : "text-ink-3"}`}>
             {message}
           </p>
         )}
@@ -207,7 +207,7 @@ export default function SyncButton({
           type="button"
           onClick={syncProgress}
           disabled={status === "syncing"}
-          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm disabled:opacity-50"
         >
           {label}
         </button>
@@ -215,16 +215,16 @@ export default function SyncButton({
           type="button"
           onClick={handleSignOut}
           disabled={status === "syncing"}
-          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm text-ink-3 disabled:opacity-50"
         >
           ログアウト
         </button>
       </div>
-      <p className="max-w-56 truncate text-xs text-zinc-500">
+      <p className="max-w-56 truncate text-xs text-ink-3">
         {user.email ?? "ログイン中"}
       </p>
       {message && (
-        <p className={`text-xs ${status === "error" ? "text-rose-600" : "text-emerald-600"}`}>
+        <p className={`text-xs ${status === "error" ? "text-negative" : "text-positive"}`}>
           {message}
         </p>
       )}

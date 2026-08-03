@@ -14,13 +14,14 @@ interface ModeTabsProps {
  */
 export default function ModeTabs({ mode, onChange }: ModeTabsProps) {
   return (
-    <div className="flex shrink-0 overflow-hidden rounded-full border border-[#9a9a9a]/50 text-xs font-semibold">
+    <div className="flex shrink-0 gap-0.5 rounded-full border border-line bg-surface-1 p-0.5 text-xs">
       <button
         type="button"
         onClick={() => onChange("test")}
         aria-pressed={mode === "test"}
-        className={`min-h-9 px-4 py-2 transition active:scale-95 ${
-          mode === "test" ? "bg-[#f5f5f5] text-[#0a0a0a]" : "text-[#9a9a9a] hover:bg-white/5"
+        className={`min-h-8 rounded-full px-4 py-1.5 transition ${
+          mode === "test" ? "bg-line text-ink-1"
+            : "text-ink-3 hover:text-ink-2"
         }`}
       >
         テスト
@@ -29,8 +30,9 @@ export default function ModeTabs({ mode, onChange }: ModeTabsProps) {
         type="button"
         onClick={() => onChange("flash")}
         aria-pressed={mode === "flash"}
-        className={`min-h-9 px-4 py-2 transition active:scale-95 ${
-          mode === "flash" ? "bg-[#f5f5f5] text-[#0a0a0a]" : "text-[#9a9a9a] hover:bg-white/5"
+        className={`min-h-8 rounded-full px-4 py-1.5 transition ${
+          mode === "flash" ? "bg-line text-ink-1"
+            : "text-ink-3 hover:text-ink-2"
         }`}
       >
         フラッシュ
