@@ -17,11 +17,16 @@
  *      - google-10000-english（一般ウェブコーパス由来）
  *        https://github.com/first20hours/google-10000-english
  *
- * 序列は CEFR バンドを主軸に、頻度をバンド内の並べ替えに使う。
+ * 序列は CEFR バンドを主軸に、バンド内の並べ替えには「出る順」
+ * （英語漬け.com の英検準1級プールにおける元の収録順）を使う。
+ * 元データは出る順に並んでおり、CEFR にも一般頻度表にも無い情報
+ * （英検準1級での出題頻度）を持つため、バンド内タイブレークとしては
+ * 汎用の字幕コーパス頻度より優先する。
  * CEFR は本アプリの語彙の約5割しか収録していないため、未収録語のバンドは
  * 両方が判明している語から作った「頻度帯 → 平均CEFRバンド」の対応表で
- * 補完する。字幕コーパス特有の偏り（lieutenant / colonel など）は、
- * CEFR にも一般ウェブ頻度表にも載らない語への加点で打ち消す。
+ * 補完する（このバンド推定にのみ字幕コーパス頻度を使う）。字幕コーパス
+ * 特有の偏り（lieutenant / colonel など）は、CEFR にも一般ウェブ頻度表にも
+ * 載らない語への加点で打ち消す。
  *
  * 使い方: npx tsx scripts/gen-difficulty-order.mjs
  * （ネットワークから元データを取得する。生成物はコミットするので
@@ -35,11 +40,11 @@ import { VOCAB_ITEMS } from "../lib/vocab/index.ts";
 
 // ── 合成パラメータ（すべてここに集約する）────────────────────────────────
 /**
- * CEFRバンドを主軸に、頻度はバンド内の並べ替えに使う。
- * 頻度が動かせる幅を1バンド未満に抑えることで、
- * 「頻度は高いが学習段階としては上の語」がバンドを飛び越えないようにする。
+ * CEFRバンドを主軸に、出る順（元データの収録順）をバンド内の並べ替えに使う。
+ * 動かせる幅を1バンド未満に抑えることで、
+ * 「出る順は早いが学習段階としては上の語」がバンドを飛び越えないようにする。
  */
-const FREQ_WITHIN_BAND = 0.9;
+const EXAM_ORDER_WITHIN_BAND = 0.9;
 /** 頻度表（50k）に無い語の扱い。実際に稀な語なので最難関帯へ寄せる */
 const MISSING_FREQ_RANK = 60000;
 /**
@@ -226,7 +231,9 @@ async function main() {
   })();
 
   // ── 各語の生データを集める ────────────────────────────────────────────
-  const rows = VOCAB_ITEMS.map((item) => {
+  // VOCAB_ITEMS の配列順＝英語漬け.com の英検準1級プールの収録順（出る順）。
+  // basic.ts → advanced.ts の連結順がそのまま出る順になっている。
+  const rows = VOCAB_ITEMS.map((item, examOrder) => {
     const target = item.target.toLowerCase();
     const isPhrase = /[ '-]/.test(target);
     const parts = isPhrase ? target.split(/[\s'-]+/).filter(Boolean) : [target];
@@ -251,6 +258,9 @@ async function main() {
       cefr,
       inWebFreq,
       freqScore: toFreqScore(freqRank),
+      examOrder,
+      // [0, 1) に収める（1 に達すると次の整数バンドと衝突しうるため）
+      examScore: examOrder / VOCAB_ITEMS.length,
     };
   });
 
@@ -287,14 +297,27 @@ async function main() {
     if (row.isPhrase) band = Math.max(band, phraseFloor) + PHRASE_PENALTY;
 
     row.cefrBand = band;
-    row.score = band + FREQ_WITHIN_BAND * row.freqScore;
+    // 整数バンドを主軸に、バンド内は出る順の小数部で並べる。
+    // examScore は [0, 1) に収まるため、どんな値でも整数バンドをまたがない
+    // （継続値の band に freqScore を線形合成していた旧実装は、頻度が
+    // 難易度と緩く相関する前提に依存していた。出る順は難易度と無相関
+    // ―― 試験に出る語ほど難語なことも多い ―― なので、同じやり方で
+    // 合成するとバンド境界を平気で飛び越えてしまう。整数バンドで
+    // 主軸を固定することで、境界を壊さずに出る順を主要な並べ替え軸にする）
+    //
+    // 複合語・イディオムだけは従来どおり freqScore で並べる。出る順は
+    // 単語の難易度と無相関なので、複合語がこれで先頭付近に出ると
+    // 入門帯にイディオムが混入してしまう（PHRASE_PENALTY /
+    // phraseFloor が守ろうとしている「複合語は入門帯に置かない」を崩す）。
+    const withinBand = row.isPhrase ? row.freqScore : row.examScore;
+    row.score = Math.trunc(band) + EXAM_ORDER_WITHIN_BAND * withinBand;
   }
 
-  // 同点は決定的に解く（頻度 → ID 辞書順）。再生成しても順序がぶれないように。
+  // 同点は決定的に解く（出る順 → ID 辞書順）。再生成しても順序がぶれないように。
   rows.sort(
     (a, b) =>
       a.score - b.score ||
-      a.freqRank - b.freqRank ||
+      a.examOrder - b.examOrder ||
       a.item.id.localeCompare(b.item.id),
   );
 
@@ -304,14 +327,17 @@ async function main() {
   const header = `// 自動生成: npx tsx scripts/gen-difficulty-order.mjs (${generatedAt})
 //
 // 出題順（段階的アンロックの順序）。易しい語から並んでいる。
-// 序列の根拠は以下の公開データ2種の合成で、LLM の主観は入っていない。
+// CEFR バンドを主軸に、バンド内は出る順（英語漬け.com の英検準1級プールの
+// 元の収録順）で並べる。LLM の主観は入っていない。
 //
 //   - CEFR: CEFR-J Vocabulary Profile 1.5 / Octanove Vocabulary Profile C1-C2 1.0
 //           https://github.com/openlanguageprofiles/olp-en-cefrj (CC BY-SA 4.0)
 //   - 頻度: FrequencyWords 2018 en_50k (OpenSubtitles)
+//           ※ CEFR未収録語のバンド推定にのみ使用。バンド内の並べ替えには
+//           使わない（出る順の方が英検準1級への関連度が高いため）
 //           https://github.com/hermitdave/FrequencyWords (MIT)
 //
-// 合成の内訳（CEFRレベル・頻度順位・スコア）は docs/vocab-difficulty.csv に
+// 合成の内訳（CEFRレベル・出る順・スコア）は docs/vocab-difficulty.csv に
 // 全語分を出力してある。語彙を追加したら生成スクリプトを再実行すること。
 // 未知のIDは lib/vocab/index.ts 側で末尾に回るため、再生成し忘れても壊れない。
 
@@ -322,7 +348,7 @@ export const DIFFICULTY_ORDER: readonly string[] = [
   writeFileSync(join(here, "..", "lib", "vocab", "difficultyOrder.ts"), `${header}${body}\n];\n`);
 
   const csv = [
-    "order,id,target,partOfSpeech,cefr,effectiveBand,freqRank,isPhrase,score",
+    "order,id,target,partOfSpeech,cefr,effectiveBand,freqRank,examOrder,isPhrase,score",
     ...rows.map((r, i) =>
       [
         i,
@@ -332,6 +358,7 @@ export const DIFFICULTY_ORDER: readonly string[] = [
         r.imputed ? "" : CEFR_BANDS[r.cefr],
         r.cefrBand.toFixed(2),
         r.freqRank >= MISSING_FREQ_RANK ? "" : r.freqRank,
+        r.examOrder,
         r.isPhrase ? "1" : "",
         r.score.toFixed(4),
       ].join(","),

@@ -104,6 +104,37 @@ test("idiomatic phrases are kept out of the early pool", () => {
   assert.deepEqual(early, [], "複合語・イディオムは入門帯に置かない");
 });
 
+// ── バンド内の並び順が「出る順」を反映していること ──────────────────────────
+//
+// 語彙データ（lib/vocab/basic.ts + advanced.ts）の配列順は、収録元
+// （英語漬け.com の英検準1級プール）における出題頻度順そのもの。
+// この情報を捨てて汎用の字幕コーパス頻度だけで並べ替えると、
+// 準1級の頻出語が難易度バンドの奥深くに埋もれてしまう
+// （例: alleviate / scrutinize / repercussions のような高頻出語）。
+// CEFRバンド（学習段階の主軸）はそのままに、バンド内の順序には
+// 出る順を使うことで、この情報を活かす。
+test("within a band, single words follow exam order (元データの収録順)", () => {
+  const singleWords = auditRows.filter((r) => r.isPhrase !== "1");
+  const offenders = [];
+  let prevBand = null;
+  let prevExamOrder = null;
+  for (const r of singleWords) {
+    const band = Math.trunc(Number(r.effectiveBand));
+    if (band !== prevBand) {
+      prevBand = band;
+      prevExamOrder = Number(r.examOrder);
+      continue;
+    }
+    if (Number(r.examOrder) < prevExamOrder) {
+      offenders.push(
+        `${r.target}: band=${band} examOrder=${r.examOrder} が直前の語(${prevExamOrder})より出る順が早い`,
+      );
+    }
+    prevExamOrder = Number(r.examOrder);
+  }
+  assert.deepEqual(offenders, [], "同一バンド内で出る順が逆転している語がある");
+});
+
 // ── 既存ユーザーの解放状況が壊れないこと ────────────────────────────────────
 
 function emptyStats() {
