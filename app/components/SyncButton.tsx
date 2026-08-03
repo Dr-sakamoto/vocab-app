@@ -6,8 +6,9 @@ import { supabase } from "@/lib/supabase";
 import {
   downloadAndMerge,
   getCurrentUser,
-  signInWithGoogle,
+  signInWithEmail,
   signOut,
+  signUpWithEmail,
   uploadProgress,
   DownloadAndMergeResult,
 } from "@/lib/sync";
@@ -31,6 +32,9 @@ export default function SyncButton({
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const syncProgress = useCallback(async () => {
     setStatus("syncing");
@@ -102,15 +106,26 @@ export default function SyncButton({
     };
   }, [syncProgress]);
 
-  const handleGoogleSignIn = async () => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
     setStatus("syncing");
     setMessage("");
     try {
-      await signInWithGoogle();
+      if (mode === "signup") {
+        await signUpWithEmail(email, password);
+        setMessage("登録しました。");
+      } else {
+        await signInWithEmail(email, password);
+      }
+      setPassword("");
+      setStatus("idle");
     } catch (err) {
-      console.error("Google sign-in error:", err);
+      console.error("Email auth error:", err);
       setStatus("error");
-      setMessage(getErrorMessage(err) ?? "Googleログインを開始できませんでした。");
+      setMessage(
+        getErrorMessage(err) ??
+          (mode === "signup" ? "登録に失敗しました。" : "ログインに失敗しました。"),
+      );
     }
   };
 
@@ -140,21 +155,48 @@ export default function SyncButton({
 
   if (!user) {
     return (
-      <div className="flex flex-col items-start gap-1">
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={status === "syncing"}
-          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm disabled:opacity-50"
-        >
-          Googleで同期
-        </button>
+      <form onSubmit={handleEmailAuth} className="flex flex-col items-start gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="メールアドレス"
+          autoComplete="email"
+          required
+          className="h-11 w-56 rounded-lg border border-line-strong bg-surface-2 px-3 text-sm text-ink-1 outline-none"
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="パスワード"
+          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          minLength={6}
+          required
+          className="h-11 w-56 rounded-lg border border-line-strong bg-surface-2 px-3 text-sm text-ink-1 outline-none"
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="submit"
+            disabled={status === "syncing"}
+            className="btn-quiet inline-flex h-11 min-w-28 items-center justify-center rounded-xl px-5 text-sm disabled:opacity-50"
+          >
+            {mode === "signup" ? "登録して同期" : "ログインして同期"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
+            className="text-xs text-ink-3 underline"
+          >
+            {mode === "signup" ? "ログインはこちら" : "はじめての方はこちら"}
+          </button>
+        </div>
         {message && (
           <p className={`text-xs ${status === "error" ? "text-negative" : "text-ink-3"}`}>
             {message}
           </p>
         )}
-      </div>
+      </form>
     );
   }
 
@@ -179,7 +221,7 @@ export default function SyncButton({
         </button>
       </div>
       <p className="max-w-56 truncate text-xs text-ink-3">
-        {user.email ?? "Googleログイン中"}
+        {user.email ?? "ログイン中"}
       </p>
       {message && (
         <p className={`text-xs ${status === "error" ? "text-negative" : "text-positive"}`}>
