@@ -55,7 +55,7 @@ export default function QuestionCard({
           onClick={onSkip}
           disabled={skipDisabled}
           aria-label="この問題をわからないとして次へ"
-          className="absolute left-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-md text-xs font-semibold text-ink-3 transition hover:bg-surface-2 hover:text-ink-2 disabled:opacity-40"
+          className="absolute left-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-md text-xs text-ink-3 transition hover:bg-surface-2 hover:text-ink-2 disabled:opacity-40"
         >
           ?
         </button>
@@ -88,11 +88,11 @@ export default function QuestionCard({
         transition={{ duration: 0.18, ease: "easeOut" }}
         className="relative z-20"
       >
-        <div className="text-[11px] font-medium tracking-[0.16em] text-ink-3">
+        <div className="text-[11px] tracking-[0.16em] text-ink-3">
           {partOfSpeech}
         </div>
         <div
-          className={`mt-2 break-words font-word font-medium leading-tight tracking-[0.01em] text-ink-1 ${
+          className={`mt-2 break-words font-word leading-tight tracking-[0.01em] text-ink-1 ${
             dense ? "text-3xl" : "text-3xl sm:text-5xl"
           }`}
         >

@@ -57,11 +57,11 @@ export default function InlineResult({
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, ease: "easeOut", delay: 0.1 }}
-                className="text-3xl font-semibold text-ink-1"
+                className="text-3xl text-ink-1"
               >
                 {grade}
               </motion.span>
-              <span className="text-sm font-medium text-ink-2">{title}</span>
+              <span className="text-sm text-ink-2">{title}</span>
             </div>
             <div className="text-sm tabular-nums text-ink-3">
               {score} / {playLimit} 正解
@@ -70,10 +70,10 @@ export default function InlineResult({
 
           <div className="relative mt-2 overflow-hidden rounded-md bg-surface-2 px-3 py-2 text-center">
             <div className="relative flex items-baseline justify-center gap-1.5">
-              <span className="text-3xl font-semibold tabular-nums text-ink-1">
+              <span className="text-3xl tabular-nums text-ink-1">
                 {(xp ?? 0).toLocaleString()}
               </span>
-              <span className="text-base font-medium text-ink-3">XP</span>
+              <span className="text-base text-ink-3">XP</span>
             </div>
           </div>
 
@@ -83,7 +83,7 @@ export default function InlineResult({
 
           {/* 解放は稀にしか起きない前進の合図。ここは操作色を使ってよい */}
           {unlockedThisRun > 0 && (
-            <div className="mt-2 rounded-md border-l-2 border-accent bg-surface-2 px-2.5 py-1.5 text-xs font-medium text-accent">
+            <div className="mt-2 rounded-md border-l-2 border-accent bg-surface-2 px-2.5 py-1.5 text-xs text-accent">
               新たに {unlockedThisRun} 語がプールに追加された
             </div>
           )}
@@ -95,8 +95,8 @@ export default function InlineResult({
                 className="rounded-md bg-surface-2 px-2.5 py-1.5 text-xs text-ink-2"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{item.label}</span>
-                  <span className="tabular-nums font-semibold text-ink-3">
+                  <span>{item.label}</span>
+                  <span className="tabular-nums text-ink-3">
                     +{item.points.toLocaleString()} XP
                   </span>
                 </div>
@@ -113,7 +113,7 @@ export default function InlineResult({
             e.stopPropagation();
             onContinue();
           }}
-          className="btn-accent flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold"
+          className="btn-accent flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm"
         >
           次のセットへ →
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/15 text-xs tabular-nums">

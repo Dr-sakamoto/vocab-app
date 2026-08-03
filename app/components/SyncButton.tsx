@@ -145,7 +145,7 @@ export default function SyncButton({
           type="button"
           onClick={handleGoogleSignIn}
           disabled={status === "syncing"}
-          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm font-medium disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm disabled:opacity-50"
         >
           Googleで同期
         </button>
@@ -165,7 +165,7 @@ export default function SyncButton({
           type="button"
           onClick={syncProgress}
           disabled={status === "syncing"}
-          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm font-medium disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm disabled:opacity-50"
         >
           {label}
         </button>
@@ -173,7 +173,7 @@ export default function SyncButton({
           type="button"
           onClick={handleSignOut}
           disabled={status === "syncing"}
-          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm font-medium text-ink-3 disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm text-ink-3 disabled:opacity-50"
         >
           ログアウト
         </button>

@@ -65,6 +65,8 @@
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-negative-surface: var(--negative-surface);
+  /* 出題語以外のすべて（日本語・英数字とも）を受け持つ細めのゴシック */
+  --font-ui: var(--font-ui);
   /* 出題語専用のセリフ体。UIはすべてサンセリフなので、書体系統の違いが
      そのまま「コンテンツ／インターフェース」の区別になる。 */
   --font-word: var(--font-word);
@@ -81,14 +83,18 @@ html {
 body {
   background: var(--surface-0);
   color: var(--ink-2);
-  /* 日本語を「読む」面なので、装飾書体を使わず各OSの標準ゴシックに任せる。
-     ビットマップ書体は字形の情報量が落ち、未知語の綴りを読み取る場面で不利。 */
+  /* 和文・欧文を1ファミリーで持つ書体を先頭に置く。system-ui を先頭にすると
+     ラテン文字だけOSのUI書体、日本語だけ和文書体という二重書体になり、
+     「0 / 10 正解」のような混在行で字面と太さが揃わない。
+     フォールバックも和欧文を1書体で持つものだけを並べる。 */
   font-family:
-    system-ui,
+    var(--font-ui),
     "Hiragino Kaku Gothic ProN", /* macOS/iOS */
-    "Noto Sans JP",              /* Android/Web */
     "Yu Gothic",                 /* Windows */
-    Arial, Helvetica, sans-serif;
+    sans-serif;
+  /* UI全体を細ゴシック1ウェイトで通す。強弱は太さではなく
+     文字色（--ink-1/2/3）とサイズで付ける。 */
+  font-weight: 300;
   /* iOS Safari で 100vh 問題を回避 */
   height: 100dvh;
   height: 100svh;

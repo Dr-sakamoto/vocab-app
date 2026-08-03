@@ -158,15 +158,15 @@ export default function TypingAnswerRow({
               /* 正解は10問中ほとんどで起きる。強い枠や塗りで毎回主張させると
                  そのぶん視線と処理が持っていかれるので、細い罫だけに留める。 */
               <div className="rounded-r-lg border-l-2 border-positive bg-surface-1 px-3 py-2">
-                <div className="text-sm font-semibold text-positive">
+                <div className="text-sm text-positive">
                   {answerStatus === "ai_approved" ? "◯ 正解（AI承認）" : answerStatus === "alternative" ? "◯ 正解（別解）" : "◯ 正解"}
                 </div>
               </div>
             ) : (
               <div className="rounded-lg border border-negative bg-negative-surface px-4 py-3">
-                <div className="mb-1 text-xs font-semibold text-negative">✕ 不正解</div>
+                <div className="mb-1 text-xs text-negative">✕ 不正解</div>
                 {/* 覚えるべき語。この面の上で 14.4:1 を確保している */}
-                <div className="text-base font-semibold leading-snug text-ink-1">
+                <div className="text-base leading-snug text-ink-1">
                   {normalizedAnswers.join(" / ")}
                 </div>
                 {posViolation && (
@@ -178,7 +178,7 @@ export default function TypingAnswerRow({
                       type="button"
                       onClick={onRequestAiReview}
                       disabled={isRequestingReview}
-                      className="btn-quiet flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium disabled:opacity-50"
+                      className="btn-quiet flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs disabled:opacity-50"
                     >
                       {isRequestingReview && (
                         <span className="ios-spinner" aria-hidden="true">

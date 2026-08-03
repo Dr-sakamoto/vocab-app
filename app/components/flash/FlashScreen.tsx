@@ -144,13 +144,13 @@ export default function FlashScreen({
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="text-[11px] font-medium tracking-[0.16em] text-ink-3">
+                  <div className="text-[11px] tracking-[0.16em] text-ink-3">
                     {q.partOfSpeech}
                   </div>
-                  <div className="mt-2 break-words font-word text-3xl font-medium tracking-[0.01em] text-ink-1 sm:text-5xl">
+                  <div className="mt-2 break-words font-word text-3xl tracking-[0.01em] text-ink-1 sm:text-5xl">
                     {q.target}
                   </div>
-                  <div className="mt-4 break-words text-lg font-semibold text-ink-2 sm:text-2xl">
+                  <div className="mt-4 break-words text-lg text-ink-2 sm:text-2xl">
                     {q.answers[0]}
                   </div>
                 </motion.div>

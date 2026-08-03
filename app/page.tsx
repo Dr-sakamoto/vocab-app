@@ -413,7 +413,7 @@ export default function Page() {
     return (
       <div className="app-shell flex min-h-screen items-center justify-center p-6">
         <div className="prompt-card w-full max-w-xl p-6">
-          <h1 className="text-xl font-semibold text-ink-1">英単語クイズ</h1>
+          <h1 className="text-xl text-ink-1">英単語クイズ</h1>
           <p className="mt-3 text-ink-2">問題データがありません。</p>
         </div>
       </div>
@@ -489,7 +489,7 @@ export default function Page() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-2xl border border-line bg-surface-1 p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-ink-1">設定</h2>
+              <h2 className="text-base text-ink-1">設定</h2>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
@@ -501,7 +501,7 @@ export default function Page() {
             </div>
 
             <div className="mb-4 flex items-center justify-between rounded-xl border border-line px-3 py-2.5">
-              <span className="text-sm font-medium text-ink-1">サウンド</span>
+              <span className="text-sm text-ink-1">サウンド</span>
               <button
                 type="button"
                 role="switch"
@@ -528,7 +528,7 @@ export default function Page() {
 
             <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium text-ink-1">フラッシュ速度</span>
+                <span className="text-sm text-ink-1">フラッシュ速度</span>
                 <span className="text-xs tabular-nums text-ink-3">
                   {flashSpeed.toFixed(1)}秒 / 語
                 </span>
@@ -545,7 +545,7 @@ export default function Page() {
               />
             </div>
 
-            <h3 className="mb-2 text-sm font-semibold text-ink-2">クラウド同期</h3>
+            <h3 className="mb-2 text-sm text-ink-2">クラウド同期</h3>
             <SyncButton
               stats={stats}
               unlockedPoolSize={unlockedPoolSize}

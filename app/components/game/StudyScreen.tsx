@@ -65,7 +65,7 @@ export default function StudyScreen({
           <div className="flex items-center justify-between gap-3 text-xs text-ink-3">
             <div className="flex items-center gap-3">
               <span className="tabular-nums">
-                <span className="font-semibold text-ink-1">{status.score}</span>
+                <span className="text-ink-1">{status.score}</span>
                 {" / "}
                 {status.playLimit} 正解
               </span>

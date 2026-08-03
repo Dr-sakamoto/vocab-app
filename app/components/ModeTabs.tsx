@@ -14,7 +14,7 @@ interface ModeTabsProps {
  */
 export default function ModeTabs({ mode, onChange }: ModeTabsProps) {
   return (
-    <div className="flex shrink-0 gap-0.5 rounded-full border border-line bg-surface-1 p-0.5 text-xs font-medium">
+    <div className="flex shrink-0 gap-0.5 rounded-full border border-line bg-surface-1 p-0.5 text-xs">
       <button
         type="button"
         onClick={() => onChange("test")}
