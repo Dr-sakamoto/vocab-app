@@ -15,7 +15,14 @@ import {
 import { WordStat } from "@/lib/types";
 
 function getErrorMessage(err: unknown): string | undefined {
-  return err instanceof Error ? err.message : undefined;
+  if (!(err instanceof Error)) return undefined;
+  // ブラウザ由来の "String contains non ISO-8859-1 code point" は
+  // ヘッダーに壊れた文字（全角スペースやスマートクォート等）が混入した際の
+  // 生の技術メッセージで、そのまま出しても原因が伝わらない。
+  if (err.message.includes("non ISO-8859-1")) {
+    return "認証情報の送信に失敗しました。ログイン状態が壊れている可能性があります。一度ログアウトしてブラウザのデータを消去してから、再度お試しください。";
+  }
+  return err.message;
 }
 
 interface SyncButtonProps {
