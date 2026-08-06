@@ -4,6 +4,7 @@ import { GAME } from "@/lib/constants";
 import { DIFFICULTY_ORDERED_INDICES } from "@/lib/vocab";
 import { getUnlockedIndices } from "@/lib/vocabPool";
 import { weightedPickIndex } from "@/lib/weightedPick";
+import { getQuestionWeight } from "@/lib/questionWeight";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ヘルパー関数群（旧 page.js から移植）
@@ -15,19 +16,6 @@ function getAttempts(stat?: WordStat) {
 
 function pickRandomIndex(indices: number[]) {
   return indices[Math.floor(Math.random() * indices.length)];
-}
-
-function getQuestionWeight(stat: WordStat | undefined, currentAccuracy: number) {
-  const correct = stat?.correct ?? 0;
-  const wrong = stat?.wrong ?? 0;
-  const attempts = correct + wrong;
-  if (attempts === 0) return currentAccuracy < 0.65 ? 0.25 : 1.8;
-  const weakness = wrong / (correct + 1);
-  const confidenceBoost =
-    wrong === 0 ? (correct >= 2 ? 0.45 : 0.7) : 1;
-  const recoveryBoost = wrong > 0 ? 2.2 + weakness * 3 : 0;
-  const stillLearning = Math.max(0, 3 - correct) * 0.35;
-  return (1 + recoveryBoost + stillLearning) * confidenceBoost;
 }
 
 interface UseVocabPoolProps {
