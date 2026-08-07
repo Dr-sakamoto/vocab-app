@@ -34,7 +34,12 @@ interface BonusResult {
   detail: string | null;
 }
 
-function computeWeaknessBonus(answers: SessionAnswer[], multiplier: number): BonusResult {
+/** 正答率が低いセッションでは表示に「×正答率」を添えて内訳を正直にする */
+function accuracyNote(accuracy: number): string {
+  return accuracy < 1 ? `（×正答率${Math.round(accuracy * 100)}%）` : "";
+}
+
+function computeWeaknessBonus(answers: SessionAnswer[], scale: number, accuracy: number): BonusResult {
   const recovered = answers.filter(a => a.correct && a.previousWrong > 0);
   if (recovered.length === 0) return { points: 0, detail: null };
   const raw = recovered.reduce(
@@ -42,30 +47,44 @@ function computeWeaknessBonus(answers: SessionAnswer[], multiplier: number): Bon
     0
   );
   return {
-    points: Math.round(raw * multiplier),
-    detail: `苦手単語 ${recovered.length}語を正解に転換`,
+    points: Math.round(raw * scale),
+    detail: `苦手単語 ${recovered.length}語を正解に転換${accuracyNote(accuracy)}`,
   };
 }
 
-function computeNewWordBonus(answers: SessionAnswer[], multiplier: number): BonusResult {
+function computeNewWordBonus(answers: SessionAnswer[], scale: number, accuracy: number): BonusResult {
   const newCorrect = answers.filter(
     a => a.correct && a.previousCorrect === 0 && a.previousWrong === 0
   );
   if (newCorrect.length === 0) return { points: 0, detail: null };
   return {
-    points: Math.round(newCorrect.length * XP.NEW_WORD * multiplier),
-    detail: `初見で正解 ${newCorrect.length}語`,
+    points: Math.round(newCorrect.length * XP.NEW_WORD * scale),
+    detail: `初見で正解 ${newCorrect.length}語${accuracyNote(accuracy)}`,
   };
 }
 
-function computeNetRiseBonus(answers: SessionAnswer[], multiplier: number): BonusResult {
+/**
+ * 「定着スコア（正解数 − 誤答数）がプラスへ転換した」語のボーナス。
+ *
+ * 以前の条件は `previousCorrect - previousWrong <= 0` だったが、これはラベルと
+ * 一致していなかった。(正解0, 誤答5) の語は正解しても -5 → -4 でマイナスのまま
+ * なのに加算されていたうえ、苦手回収ボーナスと二重取りになっていた。
+ * 実際に符号が反転するのは差がちょうど 0 の語だけなので `=== 0` で判定する。
+ *
+ * 初見の語 (0, 0) も差は 0 だが、そちらは新単語ボーナスが受け持つ。
+ * 両方に数えると初見正解1語で 50 + 40 の二重取りになるため除外する。
+ */
+function computeNetRiseBonus(answers: SessionAnswer[], scale: number, accuracy: number): BonusResult {
   const risen = answers.filter(
-    a => a.correct && (a.previousCorrect - a.previousWrong) <= 0
+    a =>
+      a.correct &&
+      a.previousCorrect + a.previousWrong > 0 &&
+      a.previousCorrect - a.previousWrong === 0
   );
   if (risen.length === 0) return { points: 0, detail: null };
   return {
-    points: Math.round(risen.length * XP.NET_RISE * multiplier),
-    detail: `${risen.length}語の定着スコアがプラス転換`,
+    points: Math.round(risen.length * XP.NET_RISE * scale),
+    detail: `${risen.length}語の定着スコアがプラス転換${accuracyNote(accuracy)}`,
   };
 }
 
@@ -105,10 +124,19 @@ function computeAllXP({
   // 基本XP
   const baseXP = Math.round(score * XP.BASE_PER_CORRECT * multiplier * fzm);
 
-  // 質ボーナス
-  const weakness = answers ? computeWeaknessBonus(answers, multiplier) : { points: 0, detail: null };
-  const newWord = answers ? computeNewWordBonus(answers, multiplier) : { points: 0, detail: null };
-  const netRise = answers ? computeNetRiseBonus(answers, multiplier) : { points: 0, detail: null };
+  // 質ボーナス。
+  //
+  // 正答率を掛けるのは、誤答に一切コストがないと成績の悪いセッションほど
+  // 高得点になってしまうため。以前は 2/10 正解（グレードD）の 284XP が
+  // 10/10 正解（グレードS）の 220XP を上回っており、グレードと XP が矛盾していた。
+  //
+  // 誤答そのものを減点にすると毎問の失敗が重くなりフローを削ぐので、
+  // 「ボーナスの取り分がセッションの出来に比例する」形でコストを表現する。
+  // 誤答1問につきボーナス全体の10%が減る計算になる。
+  const bonusScale = multiplier * accuracy;
+  const weakness = answers ? computeWeaknessBonus(answers, bonusScale, accuracy) : { points: 0, detail: null };
+  const newWord = answers ? computeNewWordBonus(answers, bonusScale, accuracy) : { points: 0, detail: null };
+  const netRise = answers ? computeNetRiseBonus(answers, bonusScale, accuracy) : { points: 0, detail: null };
 
   const totalXP = baseXP + weakness.points + newWord.points + netRise.points;
 
