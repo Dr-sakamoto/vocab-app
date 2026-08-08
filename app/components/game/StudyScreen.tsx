@@ -17,7 +17,8 @@ export interface StudyScreenProps {
     playLimit: number;
     progressPct: number;
     streakDays: number;
-    unlockedPoolSize: number;
+    /** 実際に出題対象となっている語数（解放カウンタではなくプールの実数） */
+    unlockedWordCount: number;
     totalWords: number;
     tier: PoolTier;
   };
@@ -80,7 +81,7 @@ export default function StudyScreen({
                 {status.tier.label}
               </span>
               <span className="tabular-nums">
-                {status.unlockedPoolSize} / {status.totalWords} 語
+                {status.unlockedWordCount} / {status.totalWords} 語
               </span>
               <button
                 type="button"

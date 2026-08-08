@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import { speakEnglishWord, stopSpeaking } from "@/lib/speech";
 import { pickFlashIndex } from "@/lib/flashWeight";
-import { DIFFICULTY_ORDERED_INDICES } from "@/lib/vocab";
-import { getUnlockedIndices } from "@/lib/vocabPool";
 import { VocabItem, WordStat, PoolTier } from "@/lib/types";
 
 export interface FlashScreenProps {
   vocabItems: VocabItem[];
   stats: WordStat[];
-  unlockedPoolSize: number;
+  /** 出題対象の語（VOCAB_ITEMS の添字）。出題側と同じ配列を受け取る */
+  unlockedIndices: number[];
   totalWords: number;
   tier: PoolTier;
   streakDays: number;
@@ -30,7 +29,7 @@ export interface FlashScreenProps {
 export default function FlashScreen({
   vocabItems,
   stats,
-  unlockedPoolSize,
+  unlockedIndices: candidates,
   totalWords,
   tier,
   streakDays,
@@ -39,11 +38,6 @@ export default function FlashScreen({
   onModeChange,
   onOpenSettings,
 }: FlashScreenProps) {
-  // 出題プールと同じ「難易度順の上位N語 ∪ 既に挑戦した語」を候補にする
-  const candidates = useMemo(
-    () => getUnlockedIndices(DIFFICULTY_ORDERED_INDICES, unlockedPoolSize, stats),
-    [unlockedPoolSize, stats],
-  );
   // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する
   const [progress, setProgress] = useState<{ index: number; seen: Set<number>; lap: number }>(
     () => {
@@ -102,7 +96,7 @@ export default function FlashScreen({
                 {tier.label}
               </span>
               <span className="tabular-nums">
-                {unlockedPoolSize} / {totalWords} 語
+                {candidates.length} / {totalWords} 語
               </span>
               <button
                 type="button"
