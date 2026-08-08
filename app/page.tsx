@@ -85,6 +85,8 @@ export default function Page() {
   const {
     unlockedPoolSize,
     setUnlockedPoolSize,
+    unlockedIndices,
+    unlockMore,
     lastUnlockCount,
     setLastUnlockCount,
     pickNextQuestionIndex,
@@ -261,13 +263,7 @@ export default function Page() {
     if (accuracy >= 1) step = GAME.PERFECT_UNLOCK_STEP;
     else if (accuracy >= GAME.UNLOCK_ACCURACY) step = GAME.UNLOCK_STEP;
 
-    if (step > 0) {
-      const nextPoolSize = Math.min(unlockedPoolSize + step, VOCAB_ITEMS.length);
-      setUnlockedPoolSize(nextPoolSize);
-      setLastUnlockCount(nextPoolSize - unlockedPoolSize);
-    } else {
-      setLastUnlockCount(0);
-    }
+    unlockMore(step);
 
     setPhase("result");
   }, [
@@ -275,8 +271,7 @@ export default function Page() {
     flowPlayCount,
     gameSessionAnswers,
     score,
-    setLastUnlockCount,
-    setUnlockedPoolSize,
+    unlockMore,
     unlockedPoolSize,
   ]);
 
@@ -429,7 +424,7 @@ export default function Page() {
         <FlashScreen
           vocabItems={VOCAB_ITEMS}
           stats={stats}
-          unlockedPoolSize={unlockedPoolSize}
+          unlockedIndices={unlockedIndices}
           totalWords={VOCAB_ITEMS.length}
           tier={currentTier}
           streakDays={displayStreak}
@@ -449,7 +444,7 @@ export default function Page() {
             playLimit: GAME.PLAY_LIMIT,
             progressPct,
             streakDays: displayStreak,
-            unlockedPoolSize,
+            unlockedWordCount: unlockedIndices.length,
             totalWords: VOCAB_ITEMS.length,
             tier: currentTier,
           }}
