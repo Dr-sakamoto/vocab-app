@@ -28,12 +28,14 @@ function getErrorMessage(err: unknown): string | undefined {
 interface SyncButtonProps {
   stats: WordStat[];
   unlockedPoolSize: number;
+  approvedAnswers: Record<string, string[]>;
   onMerged: (merged: DownloadAndMergeResult) => void;
 }
 
 export default function SyncButton({
   stats,
   unlockedPoolSize,
+  approvedAnswers,
   onMerged,
 }: SyncButtonProps) {
   const [user, setUser] = useState<User | null>(null);
@@ -51,6 +53,7 @@ export default function SyncButton({
       const merged = await downloadAndMerge({
         stats,
         unlockedPoolSize,
+        approvedAnswers,
       });
       await uploadProgress(merged);
       onMerged(merged);
@@ -63,7 +66,7 @@ export default function SyncButton({
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
-  }, [onMerged, stats, unlockedPoolSize]);
+  }, [onMerged, stats, unlockedPoolSize, approvedAnswers]);
 
   useEffect(() => {
     let disposed = false;

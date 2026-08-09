@@ -13,6 +13,7 @@ import { LEGACY_WORD_ID_ORDER } from "../lib/vocab/legacyWordIds.js";
 import {
   buildStatsMapFromStoredProgress,
   hydrateStats,
+  mergeApprovedAnswers,
   mergeRemoteWordStats,
   migrateApprovedAnswers,
 } from "../lib/wordProgress.js";
@@ -219,4 +220,34 @@ test("approved answers migration tolerates junk input", () => {
   assert.deepEqual(migrateApprovedAnswers(null), {});
   assert.deepEqual(migrateApprovedAnswers([1, 2]), {});
   assert.deepEqual(migrateApprovedAnswers("x"), {});
+});
+
+test("mergeApprovedAnswers unions local and remote answers per word", () => {
+  const local = { [LEGACY_WORD_ID_ORDER[0]]: ["きびしい"] };
+  const remote = { [LEGACY_WORD_ID_ORDER[0]]: ["厳しい", "きびしい"] };
+
+  const merged = mergeApprovedAnswers(local, remote);
+
+  assert.deepEqual(merged[LEGACY_WORD_ID_ORDER[0]], ["きびしい", "厳しい"]);
+});
+
+test("mergeApprovedAnswers keeps words that only exist on one side", () => {
+  const local = { [LEGACY_WORD_ID_ORDER[0]]: ["ローカルのみ"] };
+  const remote = { [LEGACY_WORD_ID_ORDER[1]]: ["リモートのみ"] };
+
+  const merged = mergeApprovedAnswers(local, remote);
+
+  assert.deepEqual(merged[LEGACY_WORD_ID_ORDER[0]], ["ローカルのみ"]);
+  assert.deepEqual(merged[LEGACY_WORD_ID_ORDER[1]], ["リモートのみ"]);
+});
+
+test("mergeApprovedAnswers resolves legacy ids on the remote side", () => {
+  const merged = mergeApprovedAnswers({}, { w2: ["旧IDの回答"] });
+  assert.deepEqual(merged[LEGACY_WORD_ID_ORDER[2]], ["旧IDの回答"]);
+});
+
+test("mergeApprovedAnswers tolerates junk remote input without touching local data", () => {
+  const local = { [LEGACY_WORD_ID_ORDER[0]]: ["きびしい"] };
+  const merged = mergeApprovedAnswers(local, null);
+  assert.deepEqual(merged, local);
 });
