@@ -11,7 +11,6 @@ import { useVisualViewportVars } from "./hooks/useVisualViewport";
 
 import { evaluatePlay } from "@/lib/playEvaluation";
 import { getPoolTier } from "@/lib/poolTier";
-import { normalizeAnswer } from "@/lib/answerNormalization";
 import { VOCAB_ITEMS } from "@/lib/vocab";
 import {
   buildStatsMapFromStoredProgress,
@@ -40,8 +39,8 @@ function getPartOfSpeech(q: VocabItem | undefined): string {
  * 単一画面の暗記アプリ。
  *
  * 英単語を見て日本語訳をタイピングで答える。完全一致で拾えない表記ゆれは
- * AI（/api/check・/api/ai-review）に判定させる。10問ごとにその場でリザルトへ
- * 中身が入れ替わり、続けて次のセットへ流れる。画面遷移は存在しない。
+ * /api/check が形態素解析→AI判定まで1往復で確定させる。10問ごとにその場で
+ * リザルトへ中身が入れ替わり、続けて次のセットへ流れる。画面遷移は存在しない。
  */
 export default function Page() {
   /** 問題ウィンドウの中身。ページ遷移ではなくブロック内の入れ替え */
@@ -73,10 +72,18 @@ export default function Page() {
       );
     } catch { return {}; }
   });
-  const [isRequestingReview, setIsRequestingReview] = useState<boolean>(false);
-  const [reviewResult, setReviewResult] = useState<{ approved: boolean; score: number; feedback?: string } | null>(null);
-
   const q = VOCAB_ITEMS[index];
+
+  /** AIが認めた回答を記憶し、次回同じ回答をしたときのAI往復を省く */
+  const addApprovedAnswer = useCallback((wordId: string, normalizedAnswer: string) => {
+    setApprovedAnswers((prev) => {
+      const existing = prev[wordId] ?? [];
+      if (existing.includes(normalizedAnswer)) return prev;
+      const next = { ...prev, [wordId]: [...existing, normalizedAnswer] };
+      try { localStorage.setItem(APPROVED_ANSWERS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   const {
     unlockedPoolSize,
@@ -88,21 +95,15 @@ export default function Page() {
 
   const {
     score,
-    setScore,
     total,
     setTotal,
-    setStreak,
     bestStreak,
-    setBestStreak,
     sessionAnswers: gameSessionAnswers,
-    setSessionAnswers: setGameSessionAnswers,
     input,
     setInput,
     checked,
     isCorrect,
-    setIsCorrect,
     answerStatus,
-    setAnswerStatus,
     isCheckingAnswer,
     checkAnswer,
     giveUp,
@@ -110,6 +111,7 @@ export default function Page() {
     prepareNextQuestion,
     normalizedAnswers,
     posViolation,
+    aiFeedback,
   } = useGameSession({
     q,
     index,
@@ -117,6 +119,7 @@ export default function Page() {
     stats,
     setStats,
     approvedAnswers,
+    onAiApproved: addApprovedAnswer,
   });
 
   // ── 音声 ──────────────────────────────────────────────────────────────────
@@ -274,7 +277,6 @@ export default function Page() {
     seenInPlay.add(nextIndex);
     setIndex(nextIndex);
     prepareNextQuestion();
-    setReviewResult(null);
   }, [
     total,
     finishSet,
@@ -296,7 +298,6 @@ export default function Page() {
     setFlowPlayCount((count) => count + 1);
     resetSession();
     setResultEvaluation(null);
-    setReviewResult(null);
     const newIndex = pickNextQuestionIndex(null, new Set(), 1.0) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
@@ -309,62 +310,6 @@ export default function Page() {
     resetSession,
     setLastUnlockCount,
   ]);
-
-  // ── AI判定 ────────────────────────────────────────────────────────────────
-  const addApprovedAnswer = useCallback((wordId: string, normalizedAnswer: string) => {
-    setApprovedAnswers((prev) => {
-      const existing = prev[wordId] ?? [];
-      if (existing.includes(normalizedAnswer)) return prev;
-      const next = { ...prev, [wordId]: [...existing, normalizedAnswer] };
-      try { localStorage.setItem(APPROVED_ANSWERS_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
-  }, []);
-
-  const handleAiApproval = useCallback(() => {
-    if (!q) return;
-    addApprovedAnswer(q.id, normalizeAnswer(input));
-    setIsCorrect(true);
-    setAnswerStatus("ai_approved");
-    setScore((s) => s + 1);
-    setStreak((st) => {
-      const ns = st + 1;
-      setBestStreak((b) => Math.max(b, ns));
-      return ns;
-    });
-    setGameSessionAnswers((a) =>
-      a.map((ans) => (ans.id === q.id ? { ...ans, correct: true } : ans)),
-    );
-    setStats((prev) => {
-      const next = [...prev];
-      const cur = next[index] ?? { correct: 0, wrong: 0 };
-      next[index] = { correct: cur.correct + 1, wrong: Math.max(0, cur.wrong - 1) };
-      return next;
-    });
-  }, [q, input, index, addApprovedAnswer, setIsCorrect, setAnswerStatus, setScore, setStreak, setBestStreak, setGameSessionAnswers, setStats]);
-
-  const requestAiReview = useCallback(async () => {
-    if (isRequestingReview || !q) return;
-    setIsRequestingReview(true);
-    try {
-      const response = await fetch("/api/ai-review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input, target: q.target }),
-      });
-      if (response.ok) {
-        const result = await response.json();
-        setReviewResult(result);
-        if (result.approved) handleAiApproval();
-      } else {
-        setReviewResult({ approved: false, score: 0, feedback: "判定に失敗しました" });
-      }
-    } catch {
-      setReviewResult({ approved: false, score: 0, feedback: "通信エラー" });
-    } finally {
-      setIsRequestingReview(false);
-    }
-  }, [isRequestingReview, q, input, handleAiApproval]);
 
   const handleSyncMerged = useCallback(
     (merged: { stats: WordStat[]; unlockedPoolSize: number }) => {
@@ -429,9 +374,7 @@ export default function Page() {
           isCheckingAnswer,
           normalizedAnswers,
           posViolation,
-          reviewResult,
-          isRequestingReview,
-          onRequestAiReview: requestAiReview,
+          aiFeedback,
           onCheck: () => checkAnswer(),
           onNext: next,
         }}

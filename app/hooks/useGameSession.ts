@@ -9,6 +9,11 @@ interface UseGameSessionProps {
   stats: WordStat[];
   setStats: React.Dispatch<React.SetStateAction<WordStat[]>>;
   approvedAnswers?: Record<string, string[]>;
+  /**
+   * AIが正解と認めた回答を記憶するためのコールバック。
+   * 同じ単語に同じ回答をした次回は、APIもAIも呼ばずに正解にできる。
+   */
+  onAiApproved?: (wordId: string, normalizedAnswer: string) => void;
 }
 
 export function useGameSession({
@@ -18,6 +23,7 @@ export function useGameSession({
   stats,
   setStats,
   approvedAnswers = {},
+  onAiApproved,
 }: UseGameSessionProps) {
   const [score, setScore] = useState<number>(0);
   const [total, setTotal] = useState<number>(1);
@@ -31,6 +37,8 @@ export function useGameSession({
   const [answerStatus, setAnswerStatus] = useState<string | null>(null);
   const [isCheckingAnswer, setIsCheckingAnswer] = useState<boolean>(false);
   const [posViolation, setPosViolation] = useState<string | null>(null);
+  /** AIが不正解と判断したときの短い理由。正解時・AI未実行時は null */
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 
   const normalizedAnswers = useMemo(
     () => (q?.answers ?? []).map(normalizeAnswer),
@@ -51,10 +59,16 @@ export function useGameSession({
     if (checked || isCheckingAnswer || activeView === "result" || !q) return;
     setIsCheckingAnswer(true);
     setPosViolation(null);
+    setAiFeedback(null);
 
     const answerText = typeof overrideInput === "string" ? overrideInput : input;
     const user = normalizeAnswer(answerText);
-    let result: { status: string; normalizedAnswers: string[]; posViolation?: string | null } = {
+    let result: {
+      status: string;
+      normalizedAnswers: string[];
+      posViolation?: string | null;
+      aiFeedback?: string | null;
+    } = {
       status: normalizedAnswers.includes(user) ? "exact" : "wrong",
       normalizedAnswers,
     };
@@ -64,24 +78,34 @@ export function useGameSession({
       // 同じ判定になるため、API 往復を挟まず即座に確定させる。
       // 正解のたびに入力欄がネットワーク待ちで固まるとフローが切れる。
     } else if ((approvedAnswers[q.id] ?? []).includes(user)) {
+      // 過去にAIが認めた回答。AIを呼び直さず即座に正解にする。
       result = { status: "ai_approved", normalizedAnswers };
     } else if (!skipApi) {
       try {
         const response = await fetch("/api/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: answerText, answers: q.answers ?? [], partOfSpeech: q.partOfSpeech }),
+          body: JSON.stringify({
+            input: answerText,
+            target: q.target,
+            answers: q.answers ?? [],
+            partOfSpeech: q.partOfSpeech,
+          }),
         });
 
         if (response.ok) result = await response.json();
       } catch {
         // Keep exact-match grading available if local API fails
-      } finally {
-        setIsCheckingAnswer(false);
       }
     }
 
     if (result.posViolation) setPosViolation(result.posViolation);
+    if (result.aiFeedback) setAiFeedback(result.aiFeedback);
+
+    // AIが認めた回答は記憶して、次回同じ回答をしたときの往復を省く。
+    if (result.status === "ai_approved" && user) {
+      onAiApproved?.(q.id, user);
+    }
 
     const ok = result.status === "exact" || result.status === "alternative" || result.status === "ai_approved";
     const prev = stats[index] ?? { correct: 0, wrong: 0 };
@@ -120,7 +144,7 @@ export function useGameSession({
     }
 
     setIsCheckingAnswer(false);
-  }, [checked, isCheckingAnswer, activeView, q, input, normalizedAnswers, approvedAnswers, stats, index, setStats]);
+  }, [checked, isCheckingAnswer, activeView, q, input, normalizedAnswers, approvedAnswers, onAiApproved, stats, index, setStats]);
 
   /**
    * 「？」ボタン（わからない）押下時の判定。
@@ -132,6 +156,7 @@ export function useGameSession({
     const prev = stats[index] ?? { correct: 0, wrong: 0 };
 
     setPosViolation(null);
+    setAiFeedback(null);
     setIsCorrect(false);
     setAnswerStatus("skipped");
     setChecked(true);
@@ -168,6 +193,7 @@ export function useGameSession({
     setAnswerStatus(null);
     setIsCheckingAnswer(false);
     setPosViolation(null);
+    setAiFeedback(null);
   }, []);
 
   const prepareNextQuestion = useCallback(() => {
@@ -176,6 +202,7 @@ export function useGameSession({
     setIsCorrect(false);
     setAnswerStatus(null);
     setPosViolation(null);
+    setAiFeedback(null);
   }, []);
 
   return {
@@ -200,6 +227,7 @@ export function useGameSession({
     isCheckingAnswer,
     posViolation,
     setPosViolation,
+    aiFeedback,
     checkAnswer,
     giveUp,
     resetSession,

@@ -3,12 +3,6 @@
 import { RefObject } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export interface ReviewResultState {
-  approved: boolean;
-  score: number;
-  feedback?: string;
-}
-
 export interface TypingAnswerRowProps {
   inputRef: RefObject<HTMLInputElement | null>;
   input: string;
@@ -25,9 +19,8 @@ export interface TypingAnswerRowProps {
   isCheckingAnswer: boolean;
   normalizedAnswers: string[];
   posViolation: string | null;
-  reviewResult: ReviewResultState | null;
-  isRequestingReview: boolean;
-  onRequestAiReview: () => void;
+  /** AIが不正解と判断したときの短い理由 */
+  aiFeedback: string | null;
   onCheck: () => void;
   onNext: () => void;
 }
@@ -35,6 +28,10 @@ export interface TypingAnswerRowProps {
 /**
  * タイピング回答行。日本語IMEで自由記述し、答え合わせ/次への操作は
  * 入力欄右端の⏎/→アイコンに織り込む（ボタンへ視線を外さないため）。
+ *
+ * 表記ゆれのAI判定は答え合わせの1往復に含めてサーバー側で完結させる。
+ * ここに「AIに判定してもらう」ボタンは置かない（正解しているのに
+ * ボタンを押させる割り込みがコアループに入るため）。
  */
 export default function TypingAnswerRow({
   inputRef,
@@ -51,9 +48,7 @@ export default function TypingAnswerRow({
   isCheckingAnswer,
   normalizedAnswers,
   posViolation,
-  reviewResult,
-  isRequestingReview,
-  onRequestAiReview,
+  aiFeedback,
   onCheck,
   onNext,
 }: TypingAnswerRowProps) {
@@ -155,39 +150,8 @@ export default function TypingAnswerRow({
                 {posViolation && (
                   <div className="mt-1 text-xs text-[#ffaa7a] opacity-90">{posViolation}</div>
                 )}
-                {!reviewResult && answerStatus !== "skipped" && (
-                  <div className="mt-2 flex flex-col gap-1">
-                    <button
-                      type="button"
-                      onClick={onRequestAiReview}
-                      disabled={isRequestingReview}
-                      className="brass-btn flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium transition disabled:opacity-50"
-                    >
-                      {isRequestingReview && (
-                        <span className="ios-spinner" aria-hidden="true">
-                          {Array.from({ length: 12 }).map((_, i) => (
-                            <span
-                              key={i}
-                              className="ios-spinner-bar"
-                              style={{
-                                transform: `rotate(${i * 30}deg)`,
-                                animationDelay: `${-((12 - i) % 12) / 12}s`,
-                              }}
-                            />
-                          ))}
-                        </span>
-                      )}
-                      {isRequestingReview ? "AIが判定中..." : "AIに判定してもらう"}
-                    </button>
-                    {isRequestingReview && (
-                      <p className="px-1 text-xs text-[#7d7d7d]">判定には少し時間がかかります。そのままお待ちください。</p>
-                    )}
-                  </div>
-                )}
-                {reviewResult && !reviewResult.approved && (
-                  <div className="mt-2 rounded-lg border border-[#9a9a9a]/50 bg-[#0a0a0a] px-3 py-2 text-xs text-[#e6e6e6]">
-                    AI判定: 不正解（{reviewResult.score}点）{reviewResult.feedback ? `— ${reviewResult.feedback}` : ""}
-                  </div>
+                {aiFeedback && (
+                  <div className="mt-1 text-xs text-[#ffaa7a] opacity-90">{aiFeedback}</div>
                 )}
               </div>
             )}
