@@ -6,15 +6,23 @@ import { supabase } from "@/lib/supabase";
 import {
   downloadAndMerge,
   getCurrentUser,
-  signInWithGoogle,
+  signInWithEmail,
   signOut,
+  signUpWithEmail,
   uploadProgress,
   DownloadAndMergeResult,
 } from "@/lib/sync";
 import { WordStat } from "@/lib/types";
 
 function getErrorMessage(err: unknown): string | undefined {
-  return err instanceof Error ? err.message : undefined;
+  if (!(err instanceof Error)) return undefined;
+  // ブラウザ由来の "String contains non ISO-8859-1 code point" は
+  // ヘッダーに壊れた文字（全角スペースやスマートクォート等）が混入した際の
+  // 生の技術メッセージで、そのまま出しても原因が伝わらない。
+  if (err.message.includes("non ISO-8859-1")) {
+    return "認証情報の送信に失敗しました。ログイン状態が壊れている可能性があります。一度ログアウトしてブラウザのデータを消去してから、再度お試しください。";
+  }
+  return err.message;
 }
 
 interface SyncButtonProps {
@@ -31,6 +39,9 @@ export default function SyncButton({
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const syncProgress = useCallback(async () => {
     setStatus("syncing");
@@ -102,15 +113,26 @@ export default function SyncButton({
     };
   }, [syncProgress]);
 
-  const handleGoogleSignIn = async () => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
     setStatus("syncing");
     setMessage("");
     try {
-      await signInWithGoogle();
+      if (mode === "signup") {
+        await signUpWithEmail(email, password);
+        setMessage("登録しました。");
+      } else {
+        await signInWithEmail(email, password);
+      }
+      setPassword("");
+      setStatus("idle");
     } catch (err) {
-      console.error("Google sign-in error:", err);
+      console.error("Email auth error:", err);
       setStatus("error");
-      setMessage(getErrorMessage(err) ?? "Googleログインを開始できませんでした。");
+      setMessage(
+        getErrorMessage(err) ??
+          (mode === "signup" ? "登録に失敗しました。" : "ログインに失敗しました。"),
+      );
     }
   };
 
@@ -140,21 +162,48 @@ export default function SyncButton({
 
   if (!user) {
     return (
-      <div className="flex flex-col items-start gap-1">
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={status === "syncing"}
-          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
-        >
-          Googleで同期
-        </button>
+      <form onSubmit={handleEmailAuth} className="flex flex-col items-start gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="メールアドレス"
+          autoComplete="email"
+          required
+          className="h-11 w-56 rounded-lg border border-line-strong bg-surface-2 px-3 text-sm text-ink-1 outline-none"
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="パスワード"
+          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          minLength={6}
+          required
+          className="h-11 w-56 rounded-lg border border-line-strong bg-surface-2 px-3 text-sm text-ink-1 outline-none"
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="submit"
+            disabled={status === "syncing"}
+            className="btn-quiet inline-flex h-11 min-w-28 items-center justify-center rounded-xl px-5 text-sm disabled:opacity-50"
+          >
+            {mode === "signup" ? "登録して同期" : "ログインして同期"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
+            className="text-xs text-ink-3 underline"
+          >
+            {mode === "signup" ? "ログインはこちら" : "はじめての方はこちら"}
+          </button>
+        </div>
         {message && (
-          <p className={`text-xs ${status === "error" ? "text-rose-600" : "text-zinc-500"}`}>
+          <p className={`text-xs ${status === "error" ? "text-negative" : "text-ink-3"}`}>
             {message}
           </p>
         )}
-      </div>
+      </form>
     );
   }
 
@@ -165,7 +214,7 @@ export default function SyncButton({
           type="button"
           onClick={syncProgress}
           disabled={status === "syncing"}
-          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm disabled:opacity-50"
         >
           {label}
         </button>
@@ -173,16 +222,16 @@ export default function SyncButton({
           type="button"
           onClick={handleSignOut}
           disabled={status === "syncing"}
-          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+          className="btn-quiet inline-flex h-12 min-w-32 items-center justify-center rounded-xl px-5 text-sm text-ink-3 disabled:opacity-50"
         >
           ログアウト
         </button>
       </div>
-      <p className="max-w-56 truncate text-xs text-zinc-500">
-        {user.email ?? "Googleログイン中"}
+      <p className="max-w-56 truncate text-xs text-ink-3">
+        {user.email ?? "ログイン中"}
       </p>
       {message && (
-        <p className={`text-xs ${status === "error" ? "text-rose-600" : "text-emerald-600"}`}>
+        <p className={`text-xs ${status === "error" ? "text-negative" : "text-positive"}`}>
           {message}
         </p>
       )}

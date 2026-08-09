@@ -1,28 +1,54 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Newsreader, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
+import RegisterServiceWorker from "./components/RegisterServiceWorker";
 
-const spaceGrotesk = Space_Grotesk({
+// 出題語以外のすべて（日本語・英数字とも）を受け持つ細めのゴシック。
+//
+// これまでは system-ui を先頭に置いていたため、同じ一行の中でも
+// ラテン文字だけOSのUI書体（SF Pro / Segoe UI）、日本語だけ Hiragino /
+// Yu Gothic という二重書体になっていた。和文と欧文を1ファミリーで持つ
+// Noto Sans JP に寄せることで、字面・太さ・字幅が全文字種で揃う。
+//
+// ウェイトは 300 ひとつだけ。強弱は太さではなく文字色（--ink-1/2/3）と
+// サイズで付ける方針なので、太字は元々不要だった。1ウェイトに絞ることで
+// 見た目が完全に揃い、CJKのサブセット取得量も半分になる
+// （初回表示 251KB → 161KB、10問プレイ後 455KB → 302KB で実測）。
+const notoSansJp = Noto_Sans_JP({
   subsets: ["latin"],
-  weight: ["500", "700"],
-  variable: "--font-display",
+  weight: ["300"],
+  variable: "--font-ui",
   display: "swap",
 });
 
-// font-fantasy（Lv./ATK/HPなどのシステム表示用）は文字がMedievalSharp、
-// 数字だけMetamorphousになる合成書体。unicode-rangeで文字種を振り分ける
-// 自前の@font-face（globals.css）で構成するため、next/fontでは読み込まない。
+// 出題語だけに当てるセリフ体。UIはすべてサンセリフなので、
+// 「セリフ体で組まれているもの＝読んで答えるべき語」が書体だけで分かる。
+// セリフは字形の差が出やすく、未知語の綴りを読み取る場面でも有利。
+// 使うのは出題語ただ一つに限定する（スコアやXPはUI側なのでサンセリフのまま）。
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-word",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "英単語アプリ ― 記述式で答える英単語学習",
+  title: "VocabBlitz ― 記述式で答える英単語学習",
   description:
-    "英単語の日本語訳を記述式で入力し、表記ゆれはAIが判定する英単語学習アプリ",
+    "英単語の日本語訳を記述式で入力し、表記ゆれはAIが判定する英単語学習アプリ「VocabBlitz（ボキャブリッツ）」",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "VocabBlitz",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // アプリの地の色（--surface-0）と揃える。ブラウザのUIとアプリの間に
+  // 色の段差ができると、そのつど視線が境界に引かれる。
+  themeColor: "#12141a",
 };
 
 export default function RootLayout({
@@ -31,23 +57,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`h-full antialiased ${spaceGrotesk.variable}`}>
-      <head>
-        {/* EGAレトロRPGスキンのビットマップ（ドット）フォント DotGothic16。
-            日本語（漢字・かな）と英字をドットで表示。実行時に unicode-range で
-            使用文字ぶんだけ取得するため、CJKでもロードは軽い。 */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="min-h-dvh flex flex-col safe-area">{children}</body>
+    <html
+      lang="ja"
+      className={`h-full antialiased ${notoSansJp.variable} ${newsreader.variable}`}
+    >
+      <body className="min-h-dvh flex flex-col safe-area">
+        {children}
+        <RegisterServiceWorker />
+      </body>
     </html>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import StudyScreen from "./components/game/StudyScreen";
+import FlashScreen from "./components/flash/FlashScreen";
+import { StudyMode } from "./components/ModeTabs";
 import SyncButton from "./components/SyncButton";
 import { useGameSession } from "./hooks/useGameSession";
 import { useVocabPool } from "./hooks/useVocabPool";
@@ -17,7 +19,7 @@ import {
   hydrateStats,
   migrateApprovedAnswers,
 } from "@/lib/wordProgress";
-import { GAME, STORAGE_KEYS } from "@/lib/constants";
+import { GAME, STORAGE_KEYS, FLASH } from "@/lib/constants";
 import {
   EMPTY_STREAK,
   StreakState,
@@ -53,6 +55,8 @@ export default function Page() {
   const [resultEvaluation, setResultEvaluation] = useState<PlayEvaluation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(true);
+  const [mode, setMode] = useState<StudyMode>("test");
+  const [flashSpeed, setFlashSpeedState] = useState<number>(FLASH.DEFAULT_SPEED_SEC);
   const [isComposing, setIsComposing] = useState<boolean>(false);
   /** 同一セッションで連続プレイした回数。多いほどフロー係数が上がる */
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
@@ -147,6 +151,18 @@ export default function Page() {
     });
   }, []);
 
+  const handleFlashSpeedChange = useCallback((value: number) => {
+    const clamped = Math.min(FLASH.MAX_SPEED_SEC, Math.max(FLASH.MIN_SPEED_SEC, value));
+    setFlashSpeedState(clamped);
+    storage.set(STORAGE_KEYS.FLASH_SPEED, clamped);
+  }, []);
+
+  // フラッシュモードもストリーク対象の学習時間として扱う
+  const handleModeChange = useCallback((next: StudyMode) => {
+    setMode(next);
+    if (next === "flash") markDailyPlay();
+  }, [markDailyPlay]);
+
   // 回答欄は常にフォーカスしておく。IMEをすぐ打ち始められる状態を保つ。
   useEffect(() => {
     if (phase !== "quiz" || isCheckingAnswer) return;
@@ -161,6 +177,15 @@ export default function Page() {
       try {
         setSoundEnabledState(isSoundEnabled());
         setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
+
+        const savedSpeed = Number(
+          storage.get(STORAGE_KEYS.FLASH_SPEED, FLASH.DEFAULT_SPEED_SEC),
+        );
+        if (Number.isFinite(savedSpeed)) {
+          setFlashSpeedState(
+            Math.min(FLASH.MAX_SPEED_SEC, Math.max(FLASH.MIN_SPEED_SEC, savedSpeed)),
+          );
+        }
 
         const savedPool = Number(storage.get(STORAGE_KEYS.POOL_SIZE, null));
         if (Number.isFinite(savedPool) && savedPool > 0) {
@@ -298,13 +323,16 @@ export default function Page() {
     setFlowPlayCount((count) => count + 1);
     resetSession();
     setResultEvaluation(null);
-    const newIndex = pickNextQuestionIndex(null, new Set(), 1.0) ?? 0;
+    // 直前のセットで最後に出した単語（＝直近正解したばかりの単語）を
+    // 次セットの1問目から除外する
+    const newIndex = pickNextQuestionIndex(index, new Set([index]), 1.0) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
     setLastUnlockCount(0);
     resultUnlockAppliedRef.current = false;
     setPhase("quiz");
   }, [
+    index,
     markDailyPlay,
     pickNextQuestionIndex,
     resetSession,
@@ -331,10 +359,10 @@ export default function Page() {
 
   if (!q) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-xl rounded-2xl border bg-white p-6">
-          <h1 className="text-xl font-semibold">英単語クイズ</h1>
-          <p className="mt-3 text-zinc-700">問題データがありません。</p>
+      <div className="app-shell flex min-h-screen items-center justify-center p-6">
+        <div className="prompt-card w-full max-w-xl p-6">
+          <h1 className="text-xl text-ink-1">英単語クイズ</h1>
+          <p className="mt-3 text-ink-2">問題データがありません。</p>
         </div>
       </div>
     );
@@ -342,67 +370,84 @@ export default function Page() {
 
   return (
     <>
-      <StudyScreen
-        phase={phase}
-        status={{
-          score,
-          total,
-          playLimit: GAME.PLAY_LIMIT,
-          progressPct,
-          streakDays: displayStreak,
-          unlockedPoolSize,
-          totalWords: VOCAB_ITEMS.length,
-          tier: currentTier,
-        }}
-        question={{
-          questionKey: index,
-          partOfSpeech: getPartOfSpeech(q),
-          word: q.target,
-          onSkip: checked ? undefined : giveUp,
-          skipDisabled: isCheckingAnswer,
-        }}
-        typing={{
-          inputRef,
-          input,
-          onInputChange: setInput,
-          onCompositionStart: () => setIsComposing(true),
-          onCompositionEnd: () => setIsComposing(false),
-          isComposing,
-          checked,
-          isCorrect,
-          answerStatus,
-          isCheckingAnswer,
-          normalizedAnswers,
-          posViolation,
-          aiFeedback,
-          onCheck: () => checkAnswer(),
-          onNext: next,
-        }}
-        result={{
-          evaluation: resultEvaluation,
-          unlockedThisRun: lastUnlockCount,
-          onContinue: continueToNextSet,
-        }}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
+      {mode === "flash" ? (
+        <FlashScreen
+          vocabItems={VOCAB_ITEMS}
+          stats={stats}
+          unlockedPoolSize={unlockedPoolSize}
+          totalWords={VOCAB_ITEMS.length}
+          tier={currentTier}
+          streakDays={displayStreak}
+          speedSeconds={flashSpeed}
+          mode={mode}
+          onModeChange={handleModeChange}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      ) : (
+        <StudyScreen
+          phase={phase}
+          mode={mode}
+          onModeChange={handleModeChange}
+          status={{
+            score,
+            total,
+            playLimit: GAME.PLAY_LIMIT,
+            progressPct,
+            streakDays: displayStreak,
+            unlockedPoolSize,
+            totalWords: VOCAB_ITEMS.length,
+            tier: currentTier,
+          }}
+          question={{
+            questionKey: index,
+            partOfSpeech: getPartOfSpeech(q),
+            word: q.target,
+            onSkip: checked ? undefined : giveUp,
+            skipDisabled: isCheckingAnswer,
+          }}
+          typing={{
+            inputRef,
+            input,
+            onInputChange: setInput,
+            onCompositionStart: () => setIsComposing(true),
+            onCompositionEnd: () => setIsComposing(false),
+            isComposing,
+            checked,
+            isCorrect,
+            answerStatus,
+            isCheckingAnswer,
+            normalizedAnswers,
+            posViolation,
+            aiFeedback,
+            onCheck: () => checkAnswer(),
+            onNext: next,
+          }}
+          result={{
+            evaluation: resultEvaluation,
+            unlockedThisRun: lastUnlockCount,
+            onContinue: continueToNextSet,
+          }}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      )}
 
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/45 p-4">
-          <div className="w-full max-w-md rounded-2xl border bg-white p-4 shadow-xl">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-line bg-surface-1 p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-zinc-950">設定</h2>
+              <h2 className="text-base text-ink-1">設定</h2>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 text-lg leading-none text-zinc-500 hover:bg-zinc-50"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-lg leading-none text-ink-3 transition hover:bg-surface-2 hover:text-ink-1"
                 aria-label="close"
               >
                 ×
               </button>
             </div>
 
-            <div className="mb-4 flex items-center justify-between rounded-xl border border-zinc-200 px-3 py-2.5">
-              <span className="text-sm font-medium text-zinc-900">サウンド</span>
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-line px-3 py-2.5">
+              <span className="text-sm text-ink-1">サウンド</span>
               <button
                 type="button"
                 role="switch"
@@ -415,7 +460,7 @@ export default function Page() {
                 }}
                 className={[
                   "relative h-7 w-12 shrink-0 rounded-full transition-colors",
-                  soundEnabled ? "bg-emerald-500" : "bg-zinc-300",
+                  soundEnabled ? "bg-accent" : "bg-line-strong",
                 ].join(" ")}
               >
                 <span
@@ -427,7 +472,26 @@ export default function Page() {
               </button>
             </div>
 
-            <h3 className="mb-2 text-sm font-semibold text-zinc-700">クラウド同期</h3>
+            <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm text-ink-1">フラッシュ速度</span>
+                <span className="text-xs tabular-nums text-ink-3">
+                  {flashSpeed.toFixed(1)}秒 / 語
+                </span>
+              </div>
+              <input
+                type="range"
+                min={FLASH.MIN_SPEED_SEC}
+                max={FLASH.MAX_SPEED_SEC}
+                step={0.1}
+                value={flashSpeed}
+                onChange={(e) => handleFlashSpeedChange(Number(e.target.value))}
+                aria-label="フラッシュ速度（秒/語）"
+                className="w-full accent-[var(--accent)]"
+              />
+            </div>
+
+            <h3 className="mb-2 text-sm text-ink-2">クラウド同期</h3>
             <SyncButton
               stats={stats}
               unlockedPoolSize={unlockedPoolSize}

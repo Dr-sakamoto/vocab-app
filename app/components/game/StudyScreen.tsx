@@ -1,12 +1,15 @@
 "use client";
 
 import InlineResult from "../InlineResult";
+import ModeTabs, { StudyMode } from "../ModeTabs";
 import QuestionCard from "./QuestionCard";
 import TypingAnswerRow, { TypingAnswerRowProps } from "./TypingAnswerRow";
 import { PlayEvaluation, PoolTier } from "@/lib/types";
 
 export interface StudyScreenProps {
   phase: "quiz" | "result";
+  mode: StudyMode;
+  onModeChange: (mode: StudyMode) => void;
   /** ヘッダーに出す学習の進み具合 */
   status: {
     score: number;
@@ -44,6 +47,8 @@ export interface StudyScreenProps {
  */
 export default function StudyScreen({
   phase,
+  mode,
+  onModeChange,
   status,
   question,
   typing,
@@ -51,13 +56,16 @@ export default function StudyScreen({
   onOpenSettings,
 }: StudyScreenProps) {
   return (
-    <div className="quiz-shell fantasy-shell relative flex h-dvh flex-col overflow-hidden bg-[#0a0a0a]">
+    <div className="quiz-shell app-shell relative flex h-dvh flex-col overflow-hidden">
       <div className="relative z-10 mx-auto flex h-full w-full max-w-2xl flex-col p-3">
         <header className="shrink-0">
-          <div className="flex items-center justify-between gap-3 text-xs text-[#7d7d7d]">
+          <div className="mb-1.5 flex justify-start">
+            <ModeTabs mode={mode} onChange={onModeChange} />
+          </div>
+          <div className="flex items-center justify-between gap-3 text-xs text-ink-3">
             <div className="flex items-center gap-3">
               <span className="tabular-nums">
-                <span className="font-bold text-[#f5f5f5]">{status.score}</span>
+                <span className="text-ink-1">{status.score}</span>
                 {" / "}
                 {status.playLimit} 正解
               </span>
@@ -66,6 +74,8 @@ export default function StudyScreen({
               )}
             </div>
             <div className="flex items-center gap-3">
+              {/* 到達段階（CEFR）だけは色で示す。順序尺度なので明度が単調に上がる
+                  連続スケールにしてある（lib/poolTier.ts）。 */}
               <span className="tabular-nums" style={{ color: status.tier.color }}>
                 {status.tier.label}
               </span>
@@ -76,7 +86,7 @@ export default function StudyScreen({
                 type="button"
                 onClick={onOpenSettings}
                 aria-label="設定を開く"
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-[#9a9a9a]/50 text-[#9a9a9a] transition hover:bg-white/5"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition hover:bg-surface-1 hover:text-ink-2"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -96,14 +106,14 @@ export default function StudyScreen({
           </div>
 
           <div
-            className="gauge-track mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+            className="gauge-track mt-2 h-1 w-full overflow-hidden rounded-full"
             role="progressbar"
             aria-valuenow={status.total}
             aria-valuemin={1}
             aria-valuemax={status.playLimit}
           >
             <div
-              className="h-full rounded-full bg-[#f5f5f5] transition-all duration-300"
+              className="h-full rounded-full bg-accent transition-all duration-300"
               style={{ width: `${status.progressPct}%` }}
             />
           </div>

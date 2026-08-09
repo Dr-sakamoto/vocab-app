@@ -199,6 +199,44 @@ function isKanaOnly(value: string): boolean {
   return /^[ぁ-ゖー〜]+$/.test(String(value ?? ""));
 }
 
+// タイピング中の単純な誤字（1文字の置換・脱字・衍字）を吸収するための編集距離。
+// 短い語ほど1文字の違いが別の語になりやすいため、長さに応じて許容量を絞る。
+function levenshteinDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+
+  let prevRow = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const currRow = [i];
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      currRow[j] = Math.min(currRow[j - 1] + 1, prevRow[j] + 1, prevRow[j - 1] + cost);
+    }
+    prevRow = currRow;
+  }
+  return prevRow[n];
+}
+
+function allowedTypoDistance(length: number): number {
+  if (length >= 7) return 2;
+  if (length >= 3) return 1;
+  return 0;
+}
+
+function isCloseReading(kana: string, readingKey: string): boolean {
+  if (!kana || !readingKey) return false;
+  if (kana === readingKey) return true;
+
+  const tolerance = allowedTypoDistance(Math.min(kana.length, readingKey.length));
+  if (tolerance === 0) return false;
+  if (Math.abs(kana.length - readingKey.length) > tolerance) return false;
+
+  return levenshteinDistance(kana, readingKey) <= tolerance;
+}
+
 export interface Term {
   surface: string;
   base: string;
@@ -332,8 +370,8 @@ function hasSharedSynonym(leftKeys: string[], rightKeys: string[]): boolean {
 
 function isAlternativeMatch(userAnalysis: AnswerAnalysis, answerAnalysis: AnswerAnalysis): boolean {
   if (userAnalysis.baseKey === answerAnalysis.baseKey) return true;
-  if (isKanaOnly(userAnalysis.normalized) && userAnalysis.normalized === answerAnalysis.readingKey) return true;
-  if (isKanaOnly(answerAnalysis.normalized) && answerAnalysis.normalized === userAnalysis.readingKey) return true;
+  if (isKanaOnly(userAnalysis.normalized) && isCloseReading(userAnalysis.normalized, answerAnalysis.readingKey)) return true;
+  if (isKanaOnly(answerAnalysis.normalized) && isCloseReading(answerAnalysis.normalized, userAnalysis.readingKey)) return true;
 
   const userKeys = unique([
     userAnalysis.normalized,

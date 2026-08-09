@@ -7,7 +7,7 @@ AI（Gemini）が判定するため、選択式より「思い出す」負荷を
 - 判定は `/api/check` の1往復で確定する（完全一致 → 形態素解析＋同義語 → AI判定）
 - 10問ごとに画面遷移せずリザルトへ中身だけ入れ替わり、続けて次のセットへ
 - 正答率に応じて出題プールが段階的に解放される
-- 進捗は localStorage 保存。Googleログインで Supabase へクラウド同期
+- 進捗は localStorage 保存。メール+パスワードでログインすると Supabase へクラウド同期
 
 詳しい方針は [`CLAUDE.md`](./CLAUDE.md)、収益化計画は
 [`MONETIZATION.md`](./MONETIZATION.md) を参照。

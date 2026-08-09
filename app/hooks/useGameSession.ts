@@ -77,6 +77,9 @@ export function useGameSession({
       // 完全一致はサーバ側 evaluateAnswer でも同じ normalizeAnswer による
       // 同じ判定になるため、API 往復を挟まず即座に確定させる。
       // 正解のたびに入力欄がネットワーク待ちで固まるとフローが切れる。
+    } else if (!user) {
+      // 未入力（空白のみ含む）は表記ゆれ判定の余地がなく必ず不正解のため、
+      // API 往復を挟まず即座に確定させる。
     } else if ((approvedAnswers[q.id] ?? []).includes(user)) {
       // 過去にAIが認めた回答。AIを呼び直さず即座に正解にする。
       result = { status: "ai_approved", normalizedAnswers };

@@ -1,6 +1,10 @@
 import { useState, useCallback } from "react";
 import { WordStat } from "@/lib/types";
 import { GAME } from "@/lib/constants";
+import { DIFFICULTY_ORDERED_INDICES } from "@/lib/vocab";
+import { getUnlockedIndices } from "@/lib/vocabPool";
+import { weightedPickIndex } from "@/lib/weightedPick";
+import { getQuestionWeight } from "@/lib/questionWeight";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ヘルパー関数群（旧 page.js から移植）
@@ -12,32 +16,6 @@ function getAttempts(stat?: WordStat) {
 
 function pickRandomIndex(indices: number[]) {
   return indices[Math.floor(Math.random() * indices.length)];
-}
-
-function weightedPickIndex(indices: number[], getWeight: (i: number) => number) {
-  const weighted = indices.map((i) => ({
-    index: i,
-    weight: Math.max(0.01, getWeight(i)),
-  }));
-  const total = weighted.reduce((s, x) => s + x.weight, 0);
-  let cursor = Math.random() * total;
-  for (const item of weighted) {
-    cursor -= item.weight;
-    if (cursor <= 0) return item.index;
-  }
-  return weighted.at(-1)?.index ?? null;
-}
-
-function getQuestionWeight(stat: WordStat | undefined, currentAccuracy: number) {
-  const correct = stat?.correct ?? 0;
-  const wrong = stat?.wrong ?? 0;
-  const attempts = correct + wrong;
-  if (attempts === 0) return currentAccuracy < 0.65 ? 0.25 : 1.8;
-  const weakness = wrong / (correct + 1);
-  const confidenceBoost = correct >= 2 && wrong === 0 ? 0.45 : 1;
-  const recoveryBoost = wrong > 0 ? 2.2 + weakness * 3 : 0;
-  const stillLearning = Math.max(0, 3 - correct) * 0.35;
-  return (1 + recoveryBoost + stillLearning) * confidenceBoost;
 }
 
 interface UseVocabPoolProps {
@@ -57,10 +35,13 @@ export function useVocabPool({ stats, vocabItemsLength }: UseVocabPoolProps) {
       seenSet: Set<number>,
       currentSessionAccuracy: number,
     ): number | null => {
+      // 出題プールは配列の先頭からではなく、難易度順の先頭から取る
       const poolLimit = Math.max(1, Math.min(unlockedPoolSize, vocabItemsLength));
-      let candidates = Array.from({ length: poolLimit }, (_, i) => i).filter(
-        (i) => !seenSet?.has(i),
-      );
+      let candidates = getUnlockedIndices(
+        DIFFICULTY_ORDERED_INDICES,
+        poolLimit,
+        stats,
+      ).filter((i) => !seenSet?.has(i));
       if (typeof avoidIndex === "number" && candidates.length > 1) {
         candidates = candidates.filter((i) => i !== avoidIndex);
       }

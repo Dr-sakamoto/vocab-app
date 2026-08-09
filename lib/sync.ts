@@ -4,17 +4,22 @@ import { VOCAB_IDS } from "./vocab";
 import { mergeRemoteWordStats } from "./wordProgress";
 import { WordStat } from "./types";
 
-export async function signInWithGoogle(): Promise<void> {
-  const redirectTo =
-    typeof window === "undefined" ? undefined : window.location.origin;
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+): Promise<void> {
+  const { error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+}
 
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo,
-    },
+export async function signInWithEmail(
+  email: string,
+  password: string,
+): Promise<void> {
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   });
-
   if (error) throw error;
 }
 
