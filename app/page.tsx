@@ -395,9 +395,20 @@ export default function Page() {
   }, [isRequestingReview, q, input, handleAiApproval]);
 
   const handleSyncMerged = useCallback(
-    (merged: { stats: WordStat[]; unlockedPoolSize: number }) => {
+    (merged: {
+      stats: WordStat[];
+      unlockedPoolSize: number;
+      approvedAnswers: Record<string, string[]>;
+    }) => {
       setStats(merged.stats);
       setUnlockedPoolSize(merged.unlockedPoolSize);
+      setApprovedAnswers(merged.approvedAnswers);
+      try {
+        localStorage.setItem(
+          APPROVED_ANSWERS_KEY,
+          JSON.stringify(merged.approvedAnswers),
+        );
+      } catch {}
     },
     [setUnlockedPoolSize],
   );
@@ -552,6 +563,7 @@ export default function Page() {
             <SyncButton
               stats={stats}
               unlockedPoolSize={unlockedPoolSize}
+              approvedAnswers={approvedAnswers}
               onMerged={handleSyncMerged}
             />
           </div>

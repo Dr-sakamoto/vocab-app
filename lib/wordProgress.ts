@@ -98,6 +98,28 @@ export function migrateApprovedAnswers(raw: unknown): Record<string, string[]> {
   return migrated;
 }
 
+/**
+ * ローカルとリモートのAI承認済み回答を単語ごとに和集合でマージする。
+ *
+ * リモート側も migrateApprovedAnswers に通してから合流させるので、
+ * 旧IDで残っている行があっても安定IDへ解決してから突き合わせられる。
+ */
+export function mergeApprovedAnswers(
+  local: Record<string, string[]>,
+  remote: unknown,
+): Record<string, string[]> {
+  const migratedRemote = migrateApprovedAnswers(remote);
+  const merged: Record<string, string[]> = {};
+  for (const [wordId, answers] of Object.entries(local)) {
+    merged[wordId] = [...answers];
+  }
+  for (const [wordId, answers] of Object.entries(migratedRemote)) {
+    const existing = merged[wordId] ?? [];
+    merged[wordId] = [...existing, ...answers.filter((a) => !existing.includes(a))];
+  }
+  return merged;
+}
+
 export interface RemoteWordStatRow {
   word_id: string;
   correct: number;
