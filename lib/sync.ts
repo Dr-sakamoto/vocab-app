@@ -101,17 +101,47 @@ export interface DownloadAndMergeResult {
   unlockedPoolSize: number;
 }
 
+// PostgRESTは1回のリクエストで最大1000行しか返さないため、
+// 挑戦済み語数がそれを超えるユーザーの分を取りこぼさないようページングする。
+export const WORD_STATS_PAGE_SIZE = 1000;
+
+type WordStatsRow = { word_id: string; correct: number; wrong: number };
+type FetchWordStatsPage = (
+  from: number,
+  to: number,
+) => Promise<{ data: WordStatsRow[] | null; error: { message: string } | null }>;
+
+export async function fetchAllPages(
+  fetchPage: FetchWordStatsPage,
+  pageSize: number = WORD_STATS_PAGE_SIZE,
+): Promise<WordStatsRow[]> {
+  const rows: WordStatsRow[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await fetchPage(from, from + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) break;
+  }
+  return rows;
+}
+
+function fetchAllWordStats(userId: string): Promise<WordStatsRow[]> {
+  return fetchAllPages(async (from, to) =>
+    supabase
+      .from("word_stats")
+      .select("word_id, correct, wrong")
+      .eq("user_id", userId)
+      .range(from, to),
+  );
+}
+
 export async function downloadAndMerge({
   stats,
   unlockedPoolSize,
 }: DownloadAndMergeProps): Promise<DownloadAndMergeResult> {
   const user = await requireSignedInUser();
 
-  const { data: remoteWords, error: wordsError } = await supabase
-    .from("word_stats")
-    .select("word_id, correct, wrong")
-    .eq("user_id", user.id);
-  if (wordsError) throw wordsError;
+  const remoteWords = await fetchAllWordStats(user.id);
 
   const { data: remoteMeta, error: metaError } = await supabase
     .from("user_meta")

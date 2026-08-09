@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildWordStatsRows } from "../lib/sync.js";
+import { buildWordStatsRows, fetchAllPages } from "../lib/sync.js";
 import { VOCAB_IDS } from "../lib/vocab/index.js";
 
 // word_id は `target:品詞` の安定ID（旧 `w${i}` から移行済み）。
@@ -35,4 +35,48 @@ test("tags every row with the given user id and stops at stats length via defaul
 test("returns an empty array when nothing has been attempted", () => {
   const rows = buildWordStatsRows("user-1", []);
   assert.deepEqual(rows, []);
+});
+
+test("fetchAllPages follows pagination past a single page's worth of rows", async () => {
+  const makeRow = (i) => ({ word_id: `w${i}`, correct: i, wrong: 0 });
+  const allRows = Array.from({ length: 2500 }, (_, i) => makeRow(i));
+  const requestedRanges = [];
+
+  const fetchPage = async (from, to) => {
+    requestedRanges.push([from, to]);
+    return { data: allRows.slice(from, to + 1), error: null };
+  };
+
+  const rows = await fetchAllPages(fetchPage, 1000);
+
+  assert.equal(rows.length, 2500);
+  assert.deepEqual(rows[0], makeRow(0));
+  assert.deepEqual(rows[2499], makeRow(2499));
+  assert.deepEqual(requestedRanges, [
+    [0, 999],
+    [1000, 1999],
+    [2000, 2999],
+  ]);
+});
+
+test("fetchAllPages stops after a single short page", async () => {
+  const fetchPage = async () => ({
+    data: [{ word_id: "a", correct: 1, wrong: 0 }],
+    error: null,
+  });
+
+  const rows = await fetchAllPages(fetchPage, 1000);
+  assert.equal(rows.length, 1);
+});
+
+test("fetchAllPages surfaces an error from any page", async () => {
+  const fetchPage = async (from) =>
+    from === 0
+      ? { data: Array(1000).fill({ word_id: "a", correct: 1, wrong: 0 }), error: null }
+      : { data: null, error: { message: "boom" } };
+
+  await assert.rejects(
+    () => fetchAllPages(fetchPage, 1000),
+    (err) => err.message === "boom",
+  );
 });
