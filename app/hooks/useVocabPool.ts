@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { WordStat } from "@/lib/types";
 import { GAME } from "@/lib/constants";
 import { DIFFICULTY_ORDERED_INDICES } from "@/lib/vocab";
@@ -29,19 +29,54 @@ export function useVocabPool({ stats, vocabItemsLength }: UseVocabPoolProps) {
   );
   const [lastUnlockCount, setLastUnlockCount] = useState<number>(0);
 
+  const poolLimit = Math.max(1, Math.min(unlockedPoolSize, vocabItemsLength));
+
+  /**
+   * 実際に出題対象となる語（VOCAB_ITEMS の添字）。
+   *
+   * 中身は「難易度順の上位N語 ∪ 挑戦済みの語」なので、語数は解放カウンタ
+   * （unlockedPoolSize）とは一致しない。上位N語の外で挑戦した語がある分だけ多い。
+   * 出題・フラッシュ・画面表示のすべてがこの1本の配列を見ることで、
+   * 「ヘッダーの語数」と「実際のプール」が食い違わないようにする。
+   */
+  const unlockedIndices = useMemo(
+    () => getUnlockedIndices(DIFFICULTY_ORDERED_INDICES, poolLimit, stats),
+    [poolLimit, stats],
+  );
+
+  /**
+   * 解放カウンタを step だけ進め、それによってプールへ実際に加わった語数を
+   * lastUnlockCount に記録する。
+   *
+   * 新たに解放される順位帯に挑戦済みの語が含まれていると、その語はすでに
+   * プールに入っているため、実際の増分は step より小さくなる。リザルトの
+   * 「新たに◯語がプールに追加された」を実数に合わせる。
+   */
+  const unlockMore = useCallback(
+    (step: number) => {
+      if (step <= 0) {
+        setLastUnlockCount(0);
+        return;
+      }
+      const nextPoolSize = Math.min(unlockedPoolSize + step, vocabItemsLength);
+      const nextIndices = getUnlockedIndices(
+        DIFFICULTY_ORDERED_INDICES,
+        Math.max(1, Math.min(nextPoolSize, vocabItemsLength)),
+        stats,
+      );
+      setUnlockedPoolSize(nextPoolSize);
+      setLastUnlockCount(nextIndices.length - unlockedIndices.length);
+    },
+    [stats, unlockedIndices, unlockedPoolSize, vocabItemsLength],
+  );
+
   const pickNextQuestionIndex = useCallback(
     (
       avoidIndex: number | null,
       seenSet: Set<number>,
       currentSessionAccuracy: number,
     ): number | null => {
-      // 出題プールは配列の先頭からではなく、難易度順の先頭から取る
-      const poolLimit = Math.max(1, Math.min(unlockedPoolSize, vocabItemsLength));
-      let candidates = getUnlockedIndices(
-        DIFFICULTY_ORDERED_INDICES,
-        poolLimit,
-        stats,
-      ).filter((i) => !seenSet?.has(i));
+      let candidates = unlockedIndices.filter((i) => !seenSet?.has(i));
       if (typeof avoidIndex === "number" && candidates.length > 1) {
         candidates = candidates.filter((i) => i !== avoidIndex);
       }
@@ -60,12 +95,14 @@ export function useVocabPool({ stats, vocabItemsLength }: UseVocabPoolProps) {
             getQuestionWeight(stats[i], currentSessionAccuracy),
           );
     },
-    [stats, unlockedPoolSize, vocabItemsLength],
+    [stats, unlockedIndices],
   );
 
   return {
     unlockedPoolSize,
     setUnlockedPoolSize,
+    unlockedIndices,
+    unlockMore,
     lastUnlockCount,
     setLastUnlockCount,
     pickNextQuestionIndex,
