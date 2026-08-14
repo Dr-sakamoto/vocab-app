@@ -10,8 +10,10 @@ export const FLASH = {
   DEFAULT_SPEED_SEC: 1.0,
   MIN_SPEED_SEC: 0.8,
   MAX_SPEED_SEC: 2.0,
-  /** この回数以上間違えている語を「よく間違える語」として扱う */
-  MISTAKE_MIN_WRONG: 2,
+  /** 苦手フラッシュ：wrong数がこの値以上の語を出題範囲に含める（スライダーで調節） */
+  MISTAKE_THRESHOLD_MIN: 1,
+  MISTAKE_THRESHOLD_MAX: 5,
+  MISTAKE_THRESHOLD_DEFAULT: 2,
 } as const;
 
 export const XP = {
@@ -28,6 +30,7 @@ export const STORAGE_KEYS = {
   STREAK: "vocab-daily-streak",
   SOUND_ENABLED: "vocab-sound-enabled",
   FLASH_SPEED: "vocab-flash-speed",
+  MISTAKE_THRESHOLD: "vocab-mistake-threshold",
 } as const;
 
 export const BUTTON_CLASSES = {

@@ -81,6 +81,19 @@ test("filterMistakeIndices keeps only frequently-missed words from the candidate
   assert.deepEqual(filterMistakeIndices([0, 1], stats), []);
 });
 
+test("isMistakeWord and filterMistakeIndices honor a custom threshold", () => {
+  const stats = [
+    { correct: 0, wrong: 1 },
+    { correct: 0, wrong: 3 },
+    { correct: 0, wrong: 5 },
+  ];
+  assert.equal(isMistakeWord(stats[0], 1), true);
+  assert.equal(isMistakeWord(stats[0], 3), false);
+  assert.deepEqual(filterMistakeIndices([0, 1, 2], stats, 1), [0, 1, 2]);
+  assert.deepEqual(filterMistakeIndices([0, 1, 2], stats, 3), [1, 2]);
+  assert.deepEqual(filterMistakeIndices([0, 1, 2], stats, 5), [2]);
+});
+
 test("weightedPickIndex rarely selects a near-zero-weight index over a heavily weighted one", () => {
   const indices = [0, 1];
   let zeroWeightPicks = 0;

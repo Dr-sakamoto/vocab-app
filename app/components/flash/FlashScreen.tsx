@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import { speakEnglishWord, stopSpeaking } from "@/lib/speech";
 import { pickFlashIndex, filterMistakeIndices } from "@/lib/flashWeight";
+import { FLASH } from "@/lib/constants";
 import { VocabItem, WordStat, PoolTier } from "@/lib/types";
 
 export interface FlashScreenProps {
@@ -19,6 +20,8 @@ export interface FlashScreenProps {
   mode: StudyMode;
   /** true の場合、よく間違える語（苦手語）だけに絞って出題する */
   mistakeOnly?: boolean;
+  /** mistakeOnly時の出題範囲。wrong数がこの値以上の語を対象にする */
+  mistakeThreshold?: number;
   onModeChange: (mode: StudyMode) => void;
   onOpenSettings: () => void;
 }
@@ -38,10 +41,13 @@ export default function FlashScreen({
   speedSeconds,
   mode,
   mistakeOnly = false,
+  mistakeThreshold = FLASH.MISTAKE_THRESHOLD_DEFAULT,
   onModeChange,
   onOpenSettings,
 }: FlashScreenProps) {
-  const candidates = mistakeOnly ? filterMistakeIndices(unlockedIndices, stats) : unlockedIndices;
+  const candidates = mistakeOnly
+    ? filterMistakeIndices(unlockedIndices, stats, mistakeThreshold)
+    : unlockedIndices;
 
   // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する
   const [progress, setProgress] = useState<{ index: number; seen: Set<number>; lap: number }>(
@@ -99,7 +105,7 @@ export default function FlashScreen({
                 {tier.label}
               </span>
               <span className="tabular-nums">
-                {candidates.length} / {totalWords} 語
+                {unlockedIndices.length} / {totalWords} 語
               </span>
               <button
                 type="button"
@@ -123,6 +129,12 @@ export default function FlashScreen({
               </button>
             </div>
           </div>
+          {mistakeOnly && (
+            <p className="mt-1.5 text-xs text-ink-3">
+              苦手度: {mistakeThreshold}回以上間違えた語が対象・該当{" "}
+              <span className="tabular-nums">{candidates.length}</span> 語
+            </p>
+          )}
         </header>
 
         <main className="mt-3 flex min-h-0 flex-1 flex-col items-center justify-center">
@@ -176,10 +188,10 @@ export default function FlashScreen({
           ) : (
             <div className="prompt-card px-5 py-8 text-center sm:py-12">
               <p className="text-ink-2">
-                よく間違える単語はまだありません。
+                {mistakeThreshold}回以上間違えた単語はまだありません。
               </p>
               <p className="mt-2 text-xs text-ink-3">
-                テストやフラッシュを進めると、間違えた語がここに出るようになります。
+                テストやフラッシュを進めるか、設定で苦手度を下げると対象が増えます。
               </p>
             </div>
           )}

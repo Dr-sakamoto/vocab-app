@@ -57,6 +57,9 @@ export default function Page() {
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(true);
   const [mode, setMode] = useState<StudyMode>("test");
   const [flashSpeed, setFlashSpeedState] = useState<number>(FLASH.DEFAULT_SPEED_SEC);
+  const [mistakeThreshold, setMistakeThresholdState] = useState<number>(
+    FLASH.MISTAKE_THRESHOLD_DEFAULT,
+  );
   const [isComposing, setIsComposing] = useState<boolean>(false);
   /** 同一セッションで連続プレイした回数。多いほどフロー係数が上がる */
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
@@ -159,6 +162,15 @@ export default function Page() {
     storage.set(STORAGE_KEYS.FLASH_SPEED, clamped);
   }, []);
 
+  const handleMistakeThresholdChange = useCallback((value: number) => {
+    const clamped = Math.min(
+      FLASH.MISTAKE_THRESHOLD_MAX,
+      Math.max(FLASH.MISTAKE_THRESHOLD_MIN, Math.round(value)),
+    );
+    setMistakeThresholdState(clamped);
+    storage.set(STORAGE_KEYS.MISTAKE_THRESHOLD, clamped);
+  }, []);
+
   // フラッシュモードもストリーク対象の学習時間として扱う
   const handleModeChange = useCallback((next: StudyMode) => {
     setMode(next);
@@ -186,6 +198,18 @@ export default function Page() {
         if (Number.isFinite(savedSpeed)) {
           setFlashSpeedState(
             Math.min(FLASH.MAX_SPEED_SEC, Math.max(FLASH.MIN_SPEED_SEC, savedSpeed)),
+          );
+        }
+
+        const savedThreshold = Number(
+          storage.get(STORAGE_KEYS.MISTAKE_THRESHOLD, FLASH.MISTAKE_THRESHOLD_DEFAULT),
+        );
+        if (Number.isFinite(savedThreshold)) {
+          setMistakeThresholdState(
+            Math.min(
+              FLASH.MISTAKE_THRESHOLD_MAX,
+              Math.max(FLASH.MISTAKE_THRESHOLD_MIN, Math.round(savedThreshold)),
+            ),
           );
         }
 
@@ -387,6 +411,7 @@ export default function Page() {
           speedSeconds={flashSpeed}
           mode={mode}
           mistakeOnly={mode === "mistakeFlash"}
+          mistakeThreshold={mistakeThreshold}
           onModeChange={handleModeChange}
           onOpenSettings={() => setIsSettingsOpen(true)}
         />
@@ -496,6 +521,28 @@ export default function Page() {
                 aria-label="フラッシュ速度（秒/語）"
                 className="w-full accent-[var(--accent)]"
               />
+            </div>
+
+            <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm text-ink-1">苦手フラッシュの苦手度</span>
+                <span className="text-xs tabular-nums text-ink-3">
+                  {mistakeThreshold}回以上
+                </span>
+              </div>
+              <input
+                type="range"
+                min={FLASH.MISTAKE_THRESHOLD_MIN}
+                max={FLASH.MISTAKE_THRESHOLD_MAX}
+                step={1}
+                value={mistakeThreshold}
+                onChange={(e) => handleMistakeThresholdChange(Number(e.target.value))}
+                aria-label="苦手フラッシュの苦手度（間違えた回数のしきい値）"
+                className="w-full accent-[var(--accent)]"
+              />
+              <p className="mt-1.5 text-[11px] text-ink-3">
+                下げるほど、少し間違えただけの語も苦手フラッシュの対象に入る
+              </p>
             </div>
 
             <h3 className="mb-2 text-sm text-ink-2">クラウド同期</h3>

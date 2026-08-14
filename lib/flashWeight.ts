@@ -11,14 +11,21 @@ function getFlashWeight(stat: WordStat | undefined): number {
   return 1.2; // 学習中
 }
 
-/** 既定回数以上間違えている「よく間違える語」かどうか */
-export function isMistakeWord(stat: WordStat | undefined): boolean {
-  return (stat?.wrong ?? 0) >= FLASH.MISTAKE_MIN_WRONG;
+/** threshold回数以上間違えている「よく間違える語」かどうか */
+export function isMistakeWord(
+  stat: WordStat | undefined,
+  threshold: number = FLASH.MISTAKE_THRESHOLD_DEFAULT,
+): boolean {
+  return (stat?.wrong ?? 0) >= threshold;
 }
 
-/** candidates のうち「よく間違える語」だけを抜き出す */
-export function filterMistakeIndices(candidates: number[], stats: WordStat[]): number[] {
-  return candidates.filter((i) => isMistakeWord(stats[i]));
+/** candidates のうち「よく間違える語」（wrong数がthreshold以上）だけを抜き出す */
+export function filterMistakeIndices(
+  candidates: number[],
+  stats: WordStat[],
+  threshold: number = FLASH.MISTAKE_THRESHOLD_DEFAULT,
+): number[] {
+  return candidates.filter((i) => isMistakeWord(stats[i], threshold));
 }
 
 /**
