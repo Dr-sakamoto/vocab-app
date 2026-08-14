@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import { speakEnglishWord, stopSpeaking } from "@/lib/speech";
-import { pickFlashIndex } from "@/lib/flashWeight";
+import { pickFlashIndex, filterMistakeIndices } from "@/lib/flashWeight";
+import { FLASH } from "@/lib/constants";
 import { VocabItem, WordStat, PoolTier } from "@/lib/types";
 
 export interface FlashScreenProps {
@@ -17,6 +18,10 @@ export interface FlashScreenProps {
   streakDays: number;
   speedSeconds: number;
   mode: StudyMode;
+  /** true の場合、よく間違える語（苦手語）だけに絞って出題する */
+  mistakeOnly?: boolean;
+  /** mistakeOnly時の出題範囲。wrong数がこの値以上の語を対象にする */
+  mistakeThreshold?: number;
   onModeChange: (mode: StudyMode) => void;
   onOpenSettings: () => void;
 }
@@ -29,15 +34,21 @@ export interface FlashScreenProps {
 export default function FlashScreen({
   vocabItems,
   stats,
-  unlockedIndices: candidates,
+  unlockedIndices,
   totalWords,
   tier,
   streakDays,
   speedSeconds,
   mode,
+  mistakeOnly = false,
+  mistakeThreshold = FLASH.MISTAKE_THRESHOLD_DEFAULT,
   onModeChange,
   onOpenSettings,
 }: FlashScreenProps) {
+  const candidates = mistakeOnly
+    ? filterMistakeIndices(unlockedIndices, stats, mistakeThreshold)
+    : unlockedIndices;
+
   // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する
   const [progress, setProgress] = useState<{ index: number; seen: Set<number>; lap: number }>(
     () => {
@@ -56,7 +67,7 @@ export default function FlashScreen({
   }
 
   useEffect(() => {
-    if (isPaused) return undefined;
+    if (isPaused || candidates.length === 0) return undefined;
     const timer = window.setTimeout(() => {
       setProgress((prev) => {
         const nextIndex = pickFlashIndex(candidates, stats, prev.index, prev.seen) ?? prev.index;
@@ -70,15 +81,13 @@ export default function FlashScreen({
     return () => window.clearTimeout(timer);
   }, [index, isPaused, candidates, stats, speedSeconds]);
 
-  const q = vocabItems[index];
+  const q = candidates.length > 0 ? vocabItems[index] : undefined;
 
   useEffect(() => {
     if (!q) return undefined;
     speakEnglishWord(q.target);
     return () => stopSpeaking();
   }, [index, q]);
-
-  if (!q) return null;
 
   return (
     <div className="quiz-shell app-shell relative flex h-dvh flex-col overflow-hidden">
@@ -96,7 +105,7 @@ export default function FlashScreen({
                 {tier.label}
               </span>
               <span className="tabular-nums">
-                {candidates.length} / {totalWords} 語
+                {unlockedIndices.length} / {totalWords} 語
               </span>
               <button
                 type="button"
@@ -120,53 +129,72 @@ export default function FlashScreen({
               </button>
             </div>
           </div>
+          {mistakeOnly && (
+            <p className="mt-1.5 text-xs text-ink-3">
+              苦手度: {mistakeThreshold}回以上間違えた語が対象・該当{" "}
+              <span className="tabular-nums">{candidates.length}</span> 語
+            </p>
+          )}
         </header>
 
         <main className="mt-3 flex min-h-0 flex-1 flex-col items-center justify-center">
-          <button
-            type="button"
-            onClick={() => setIsPaused((p) => !p)}
-            aria-label={isPaused ? "再開する" : "一時停止する"}
-            className="w-full"
-          >
-            <div className="prompt-card relative px-5 py-8 text-center sm:py-12">
-              <AnimatePresence mode="wait">
-                <motion.div
+          {q ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsPaused((p) => !p)}
+                aria-label={isPaused ? "再開する" : "一時停止する"}
+                className="w-full"
+              >
+                <div className="prompt-card relative px-5 py-8 text-center sm:py-12">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="text-[11px] tracking-[0.16em] text-ink-3">
+                        {q.partOfSpeech}
+                      </div>
+                      <div className="mt-2 break-words font-word text-3xl tracking-[0.01em] text-ink-1 sm:text-5xl">
+                        {q.target}
+                      </div>
+                      <div className="mt-4 break-words text-lg text-ink-2 sm:text-2xl">
+                        {q.answers[0]}
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </button>
+
+              <div className="gauge-track mt-3 h-1 w-full max-w-xs overflow-hidden rounded-full">
+                <div
                   key={index}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="text-[11px] tracking-[0.16em] text-ink-3">
-                    {q.partOfSpeech}
-                  </div>
-                  <div className="mt-2 break-words font-word text-3xl tracking-[0.01em] text-ink-1 sm:text-5xl">
-                    {q.target}
-                  </div>
-                  <div className="mt-4 break-words text-lg text-ink-2 sm:text-2xl">
-                    {q.answers[0]}
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+                  className="h-full bg-accent"
+                  style={{
+                    animation: isPaused ? "none" : `flash-progress ${speedSeconds}s linear forwards`,
+                  }}
+                />
+              </div>
+
+              <p className="mt-2 text-xs text-ink-3">
+                {isPaused
+                  ? "一時停止中（タップで再開）"
+                  : `見た単語 ${seenIndices.size} / ${candidates.length} 語・プール内${lap}周目（タップで一時停止）`}
+              </p>
+            </>
+          ) : (
+            <div className="prompt-card px-5 py-8 text-center sm:py-12">
+              <p className="text-ink-2">
+                {mistakeThreshold}回以上間違えた単語はまだありません。
+              </p>
+              <p className="mt-2 text-xs text-ink-3">
+                テストやフラッシュを進めるか、設定で苦手度を下げると対象が増えます。
+              </p>
             </div>
-          </button>
-
-          <div className="gauge-track mt-3 h-1 w-full max-w-xs overflow-hidden rounded-full">
-            <div
-              key={index}
-              className="h-full bg-accent"
-              style={{
-                animation: isPaused ? "none" : `flash-progress ${speedSeconds}s linear forwards`,
-              }}
-            />
-          </div>
-
-          <p className="mt-2 text-xs text-ink-3">
-            {isPaused
-              ? "一時停止中（タップで再開）"
-              : `見た単語 ${seenIndices.size} / ${candidates.length} 語・プール内${lap}周目（タップで一時停止）`}
-          </p>
+          )}
         </main>
       </div>
     </div>

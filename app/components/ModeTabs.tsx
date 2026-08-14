@@ -1,6 +1,6 @@
 "use client";
 
-export type StudyMode = "test" | "flash";
+export type StudyMode = "test" | "flash" | "mistakeFlash";
 
 interface ModeTabsProps {
   mode: StudyMode;
@@ -36,6 +36,17 @@ export default function ModeTabs({ mode, onChange }: ModeTabsProps) {
         }`}
       >
         フラッシュ
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("mistakeFlash")}
+        aria-pressed={mode === "mistakeFlash"}
+        className={`min-h-8 rounded-full px-4 py-1.5 transition ${
+          mode === "mistakeFlash" ? "bg-line text-ink-1"
+            : "text-ink-3 hover:text-ink-2"
+        }`}
+      >
+        苦手フラッシュ
       </button>
     </div>
   );

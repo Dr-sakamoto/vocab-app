@@ -1,5 +1,6 @@
 import { WordStat } from "./types";
 import { weightedPickIndex } from "./weightedPick";
+import { FLASH } from "./constants";
 
 function getFlashWeight(stat: WordStat | undefined): number {
   const correct = stat?.correct ?? 0;
@@ -8,6 +9,23 @@ function getFlashWeight(stat: WordStat | undefined): number {
   if (attempts === 0) return 4; // 未挑戦は最優先で見せる
   if (wrong === 0) return correct >= 2 ? 0.3 : 0.8; // 定着済み／直近正解は出現を抑える
   return 1.2; // 学習中
+}
+
+/** threshold回数以上間違えている「よく間違える語」かどうか */
+export function isMistakeWord(
+  stat: WordStat | undefined,
+  threshold: number = FLASH.MISTAKE_THRESHOLD_DEFAULT,
+): boolean {
+  return (stat?.wrong ?? 0) >= threshold;
+}
+
+/** candidates のうち「よく間違える語」（wrong数がthreshold以上）だけを抜き出す */
+export function filterMistakeIndices(
+  candidates: number[],
+  stats: WordStat[],
+  threshold: number = FLASH.MISTAKE_THRESHOLD_DEFAULT,
+): number[] {
+  return candidates.filter((i) => isMistakeWord(stats[i], threshold));
 }
 
 /**
