@@ -10,6 +10,8 @@ export const FLASH = {
   DEFAULT_SPEED_SEC: 1.0,
   MIN_SPEED_SEC: 0.8,
   MAX_SPEED_SEC: 2.0,
+  /** この回数以上間違えている語を「よく間違える語」として扱う */
+  MISTAKE_MIN_WRONG: 2,
 } as const;
 
 export const XP = {

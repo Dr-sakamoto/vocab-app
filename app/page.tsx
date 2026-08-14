@@ -162,7 +162,7 @@ export default function Page() {
   // フラッシュモードもストリーク対象の学習時間として扱う
   const handleModeChange = useCallback((next: StudyMode) => {
     setMode(next);
-    if (next === "flash") markDailyPlay();
+    if (next === "flash" || next === "mistakeFlash") markDailyPlay();
   }, [markDailyPlay]);
 
   // 回答欄は常にフォーカスしておく。IMEをすぐ打ち始められる状態を保つ。
@@ -376,7 +376,7 @@ export default function Page() {
 
   return (
     <>
-      {mode === "flash" ? (
+      {mode === "flash" || mode === "mistakeFlash" ? (
         <FlashScreen
           vocabItems={VOCAB_ITEMS}
           stats={stats}
@@ -386,6 +386,7 @@ export default function Page() {
           streakDays={displayStreak}
           speedSeconds={flashSpeed}
           mode={mode}
+          mistakeOnly={mode === "mistakeFlash"}
           onModeChange={handleModeChange}
           onOpenSettings={() => setIsSettingsOpen(true)}
         />

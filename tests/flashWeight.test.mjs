@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { pickFlashIndex } from "../lib/flashWeight.js";
+import { pickFlashIndex, isMistakeWord, filterMistakeIndices } from "../lib/flashWeight.js";
 import { weightedPickIndex } from "../lib/weightedPick.js";
 
 test("pickFlashIndex only returns indices from the given candidate list", () => {
@@ -60,6 +60,25 @@ test("pickFlashIndex does not repeat a word within the same lap even when heavil
     seen.add(picked);
     prevIndex = picked;
   }
+});
+
+test("isMistakeWord is true once wrong count reaches the threshold", () => {
+  assert.equal(isMistakeWord(undefined), false);
+  assert.equal(isMistakeWord({ correct: 0, wrong: 0 }), false);
+  assert.equal(isMistakeWord({ correct: 5, wrong: 1 }), false);
+  assert.equal(isMistakeWord({ correct: 5, wrong: 2 }), true);
+  assert.equal(isMistakeWord({ correct: 0, wrong: 3 }), true);
+});
+
+test("filterMistakeIndices keeps only frequently-missed words from the candidate list", () => {
+  const stats = [
+    { correct: 0, wrong: 0 }, // 未挑戦
+    { correct: 5, wrong: 0 }, // 定着済み
+    { correct: 1, wrong: 2 }, // よく間違える
+    { correct: 0, wrong: 4 }, // よく間違える
+  ];
+  assert.deepEqual(filterMistakeIndices([0, 1, 2, 3], stats), [2, 3]);
+  assert.deepEqual(filterMistakeIndices([0, 1], stats), []);
 });
 
 test("weightedPickIndex rarely selects a near-zero-weight index over a heavily weighted one", () => {
