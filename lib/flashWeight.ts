@@ -52,3 +52,45 @@ export function pickFlashIndex(
   }
   return weightedPickIndex(pool, (i) => getFlashWeight(stats[i]));
 }
+
+/** フラッシュの進行状態。1周ぶんの既出集合と周回数を持つ */
+export interface FlashProgress {
+  index: number;
+  seen: ReadonlySet<number>;
+  lap: number;
+  /**
+   * 1コマ進むたびに単調増加するカウンタ。
+   * 候補が1語しかない場合など「次も同じ index」になる場面でも状態の変化を
+   * 表現でき、これを依存に入れることで自動送りのタイマーが必ず張り直される。
+   */
+  step: number;
+}
+
+/** フラッシュ開始時の進行状態を作る */
+export function createFlashProgress(
+  candidates: number[],
+  stats: WordStat[],
+): FlashProgress {
+  const index = pickFlashIndex(candidates, stats, null) ?? candidates[0] ?? 0;
+  return { index, seen: new Set([index]), lap: 1, step: 0 };
+}
+
+/**
+ * フラッシュを1コマ進める。1周し切ったら既出集合をリセットして周回数を上げる。
+ * 候補が1語だけのときは同じ index を返すが、step は必ず進む。
+ */
+export function advanceFlashProgress(
+  prev: FlashProgress,
+  candidates: number[],
+  stats: WordStat[],
+): FlashProgress {
+  const nextIndex = pickFlashIndex(candidates, stats, prev.index, prev.seen) ?? prev.index;
+  const seen = prev.seen.has(nextIndex)
+    ? prev.seen
+    : new Set(prev.seen).add(nextIndex);
+  const step = prev.step + 1;
+  if (candidates.length > 0 && seen.size >= candidates.length) {
+    return { index: nextIndex, seen: new Set([nextIndex]), lap: prev.lap + 1, step };
+  }
+  return { index: nextIndex, seen, lap: prev.lap, step };
+}

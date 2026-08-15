@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import { speakEnglishWord, stopSpeaking } from "@/lib/speech";
-import { pickFlashIndex, filterMistakeIndices } from "@/lib/flashWeight";
+import {
+  filterMistakeIndices,
+  createFlashProgress,
+  advanceFlashProgress,
+  FlashProgress,
+} from "@/lib/flashWeight";
 import { FLASH } from "@/lib/constants";
 import { VocabItem, WordStat, PoolTier } from "@/lib/types";
 
@@ -53,36 +58,33 @@ export default function FlashScreen({
   );
 
   // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する
-  const [progress, setProgress] = useState<{ index: number; seen: Set<number>; lap: number }>(
-    () => {
-      const initialIndex = pickFlashIndex(candidates, stats, null) ?? candidates[0] ?? 0;
-      return { index: initialIndex, seen: new Set([initialIndex]), lap: 1 };
-    },
+  const [progress, setProgress] = useState<FlashProgress>(() =>
+    createFlashProgress(candidates, stats),
   );
-  const { index, seen: seenIndices, lap } = progress;
+  const { index, seen: seenIndices, lap, step } = progress;
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
   // 解放プール自体が変わったら（レベルアップ等）周回カウントをやり直す
   const [poolSnapshot, setPoolSnapshot] = useState(candidates);
   if (candidates !== poolSnapshot) {
     setPoolSnapshot(candidates);
-    setProgress((prev) => ({ index: prev.index, seen: new Set([prev.index]), lap: 1 }));
+    setProgress((prev) => ({
+      index: prev.index,
+      seen: new Set([prev.index]),
+      lap: 1,
+      step: prev.step + 1,
+    }));
   }
 
+  // step を依存に入れることで、候補が1語しかなく index が変わらない場合でも
+  // 毎コマ必ずタイマーを張り直す（張り直さないと1コマで自動送りが止まる）。
   useEffect(() => {
     if (isPaused || candidates.length === 0) return undefined;
     const timer = window.setTimeout(() => {
-      setProgress((prev) => {
-        const nextIndex = pickFlashIndex(candidates, stats, prev.index, prev.seen) ?? prev.index;
-        const seen = prev.seen.has(nextIndex) ? prev.seen : new Set(prev.seen).add(nextIndex);
-        if (candidates.length > 0 && seen.size >= candidates.length) {
-          return { index: nextIndex, seen: new Set([nextIndex]), lap: prev.lap + 1 };
-        }
-        return { index: nextIndex, seen, lap: prev.lap };
-      });
+      setProgress((prev) => advanceFlashProgress(prev, candidates, stats));
     }, speedSeconds * 1000);
     return () => window.clearTimeout(timer);
-  }, [index, isPaused, candidates, stats, speedSeconds]);
+  }, [step, isPaused, candidates, stats, speedSeconds]);
 
   const q = candidates.length > 0 ? vocabItems[index] : undefined;
 
@@ -174,7 +176,7 @@ export default function FlashScreen({
 
               <div className="gauge-track mt-3 h-1 w-full max-w-xs overflow-hidden rounded-full">
                 <div
-                  key={index}
+                  key={step}
                   className="h-full bg-accent"
                   style={{
                     animation: isPaused ? "none" : `flash-progress ${speedSeconds}s linear forwards`,
