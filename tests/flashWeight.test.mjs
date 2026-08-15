@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { pickFlashIndex, isMistakeWord, filterMistakeIndices } from "../lib/flashWeight.js";
+import {
+  pickFlashIndex,
+  isMistakeWord,
+  filterMistakeIndices,
+  createFlashProgress,
+  advanceFlashProgress,
+} from "../lib/flashWeight.js";
 import { weightedPickIndex } from "../lib/weightedPick.js";
 
 test("pickFlashIndex only returns indices from the given candidate list", () => {
@@ -92,6 +98,53 @@ test("isMistakeWord and filterMistakeIndices honor a custom threshold", () => {
   assert.deepEqual(filterMistakeIndices([0, 1, 2], stats, 1), [0, 1, 2]);
   assert.deepEqual(filterMistakeIndices([0, 1, 2], stats, 3), [1, 2]);
   assert.deepEqual(filterMistakeIndices([0, 1, 2], stats, 5), [2]);
+});
+
+test("advanceFlashProgress keeps advancing step when only one word is a candidate", () => {
+  // 苦手フラッシュで該当語が1語しかない場合、pickFlashIndex は同じ index を返す。
+  // step が進まないと FlashScreen のタイマー依存配列が変化せず、1コマで自動送りが
+  // 止まってしまう（=「1問したら落ちる」）ため、step の単調増加を保証する。
+  const stats = [{ correct: 0, wrong: 3 }];
+  const candidates = [0];
+  let progress = createFlashProgress(candidates, stats);
+  assert.equal(progress.index, 0);
+  assert.equal(progress.step, 0);
+
+  for (let i = 1; i <= 5; i++) {
+    progress = advanceFlashProgress(progress, candidates, stats);
+    assert.equal(progress.index, 0, "single candidate should stay on the same word");
+    assert.equal(progress.step, i, "step must increase on every advance");
+    assert.equal(progress.lap, i + 1, "a one-word pool completes a lap every advance");
+  }
+});
+
+test("advanceFlashProgress increments step for multi-word pools too", () => {
+  const stats = Array.from({ length: 4 }, () => ({ correct: 0, wrong: 3 }));
+  const candidates = [0, 1, 2, 3];
+  let progress = createFlashProgress(candidates, stats);
+  for (let i = 1; i <= 12; i++) {
+    const prev = progress;
+    progress = advanceFlashProgress(progress, candidates, stats);
+    assert.equal(progress.step, i);
+    assert.notEqual(progress.index, prev.index, "should not show the same word twice in a row");
+    assert.ok(candidates.includes(progress.index));
+  }
+});
+
+test("advanceFlashProgress resets the seen set once a lap completes", () => {
+  const stats = Array.from({ length: 3 }, () => ({ correct: 0, wrong: 3 }));
+  const candidates = [0, 1, 2];
+  let progress = createFlashProgress(candidates, stats);
+  const seenFirstLap = new Set(progress.seen);
+  // 3語プールなので2回進めると1周し切る
+  progress = advanceFlashProgress(progress, candidates, stats);
+  seenFirstLap.add(progress.index);
+  progress = advanceFlashProgress(progress, candidates, stats);
+  seenFirstLap.add(progress.index);
+
+  assert.equal(seenFirstLap.size, 3, "a lap should cover every candidate exactly once");
+  assert.equal(progress.lap, 2);
+  assert.deepEqual([...progress.seen], [progress.index], "seen resets to the current word");
 });
 
 test("weightedPickIndex rarely selects a near-zero-weight index over a heavily weighted one", () => {
