@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import { speakEnglishWord, stopSpeaking } from "@/lib/speech";
@@ -45,9 +45,12 @@ export default function FlashScreen({
   onModeChange,
   onOpenSettings,
 }: FlashScreenProps) {
-  const candidates = mistakeOnly
-    ? filterMistakeIndices(unlockedIndices, stats, mistakeThreshold)
-    : unlockedIndices;
+  // filterMistakeIndices は毎回新しい配列を返すため、useMemo で参照を安定させる。
+  // そうしないと下の poolSnapshot 比較が毎レンダー不一致になり無限ループする。
+  const candidates = useMemo(
+    () => (mistakeOnly ? filterMistakeIndices(unlockedIndices, stats, mistakeThreshold) : unlockedIndices),
+    [mistakeOnly, unlockedIndices, stats, mistakeThreshold],
+  );
 
   // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する
   const [progress, setProgress] = useState<{ index: number; seen: Set<number>; lap: number }>(
