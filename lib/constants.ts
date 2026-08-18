@@ -31,6 +31,7 @@ export const STORAGE_KEYS = {
   SOUND_ENABLED: "vocab-sound-enabled",
   FLASH_SPEED: "vocab-flash-speed",
   MISTAKE_THRESHOLD: "vocab-mistake-threshold",
+  FLASH_PROGRESS: "vocab-flash-progress",
 } as const;
 
 export const BUTTON_CLASSES = {
