@@ -9,6 +9,7 @@ import { useGameSession } from "./hooks/useGameSession";
 import { useVocabPool } from "./hooks/useVocabPool";
 import { useClickSound } from "./hooks/useClickSound";
 import { isSoundEnabled, setSoundEnabled } from "@/lib/clickSound";
+import { isPronunciationEnabled, setPronunciationEnabled } from "@/lib/speech";
 import { useVisualViewportVars } from "./hooks/useVisualViewport";
 
 import { evaluatePlay } from "@/lib/playEvaluation";
@@ -55,6 +56,7 @@ export default function Page() {
   const [resultEvaluation, setResultEvaluation] = useState<PlayEvaluation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(true);
+  const [pronunciationEnabled, setPronunciationEnabledState] = useState<boolean>(true);
   const [mode, setMode] = useState<StudyMode>("test");
   const [flashSpeed, setFlashSpeedState] = useState<number>(FLASH.DEFAULT_SPEED_SEC);
   const [mistakeThreshold, setMistakeThresholdState] = useState<number>(
@@ -190,6 +192,7 @@ export default function Page() {
     queueMicrotask(() => {
       try {
         setSoundEnabledState(isSoundEnabled());
+        setPronunciationEnabledState(isPronunciationEnabled());
         setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
 
         const savedSpeed = Number(
@@ -479,12 +482,12 @@ export default function Page() {
             </div>
 
             <div className="mb-4 flex items-center justify-between rounded-xl border border-line px-3 py-2.5">
-              <span className="text-sm text-ink-1">サウンド</span>
+              <span className="text-sm text-ink-1">効果音</span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={soundEnabled}
-                aria-label="サウンドのオン・オフ"
+                aria-label="効果音のオン・オフ"
                 onClick={() => {
                   const nextEnabled = !soundEnabled;
                   setSoundEnabled(nextEnabled);
@@ -497,8 +500,34 @@ export default function Page() {
               >
                 <span
                   className={[
-                    "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
-                    soundEnabled ? "translate-x-5" : "translate-x-0.5",
+                    "absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                    soundEnabled ? "translate-x-5" : "translate-x-0",
+                  ].join(" ")}
+                />
+              </button>
+            </div>
+
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-line px-3 py-2.5">
+              <span className="text-sm text-ink-1">発音</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={pronunciationEnabled}
+                aria-label="英語の発音読み上げのオン・オフ"
+                onClick={() => {
+                  const nextEnabled = !pronunciationEnabled;
+                  setPronunciationEnabled(nextEnabled);
+                  setPronunciationEnabledState(nextEnabled);
+                }}
+                className={[
+                  "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+                  pronunciationEnabled ? "bg-accent" : "bg-line-strong",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                    pronunciationEnabled ? "translate-x-5" : "translate-x-0",
                   ].join(" ")}
                 />
               </button>
