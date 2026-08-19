@@ -29,6 +29,7 @@ export const STORAGE_KEYS = {
   POOL_SIZE: "vocab-active-pool-size",
   STREAK: "vocab-daily-streak",
   SOUND_ENABLED: "vocab-sound-enabled",
+  PRONUNCIATION_ENABLED: "vocab-pronunciation-enabled",
   FLASH_SPEED: "vocab-flash-speed",
   MISTAKE_THRESHOLD: "vocab-mistake-threshold",
 } as const;
