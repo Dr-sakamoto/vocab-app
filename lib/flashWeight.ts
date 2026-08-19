@@ -94,3 +94,34 @@ export function advanceFlashProgress(
   }
   return { index: nextIndex, seen, lap: prev.lap, step };
 }
+
+/** localStorage に保存する形（Set は配列にする）。どちらのモードで保存したかも持つ */
+export interface StoredFlashProgress {
+  index: number;
+  seen: number[];
+  lap: number;
+  mistakeOnly: boolean;
+}
+
+export function toStoredFlashProgress(
+  progress: FlashProgress,
+  mistakeOnly: boolean,
+): StoredFlashProgress {
+  return { index: progress.index, seen: Array.from(progress.seen), lap: progress.lap, mistakeOnly };
+}
+
+/**
+ * 保存済みの進行状態を復元する。モードが違う・出題対象がその index を
+ * もう含まない（プール変化や苦手語卒業）場合は復元せず null を返す。
+ */
+export function fromStoredFlashProgress(
+  stored: StoredFlashProgress | null,
+  candidates: number[],
+  mistakeOnly: boolean,
+): FlashProgress | null {
+  if (!stored || stored.mistakeOnly !== mistakeOnly) return null;
+  if (!candidates.includes(stored.index)) return null;
+  const seen = new Set(stored.seen.filter((i) => candidates.includes(i)));
+  seen.add(stored.index);
+  return { index: stored.index, seen, lap: Math.max(1, stored.lap), step: 0 };
+}

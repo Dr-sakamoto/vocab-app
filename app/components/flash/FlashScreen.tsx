@@ -8,9 +8,13 @@ import {
   filterMistakeIndices,
   createFlashProgress,
   advanceFlashProgress,
+  toStoredFlashProgress,
+  fromStoredFlashProgress,
   FlashProgress,
+  StoredFlashProgress,
 } from "@/lib/flashWeight";
-import { FLASH } from "@/lib/constants";
+import { FLASH, STORAGE_KEYS } from "@/lib/constants";
+import storage from "@/lib/storage";
 import { VocabItem, WordStat, PoolTier } from "@/lib/types";
 
 export interface FlashScreenProps {
@@ -57,12 +61,21 @@ export default function FlashScreen({
     [mistakeOnly, unlockedIndices, stats, mistakeThreshold],
   );
 
-  // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する
-  const [progress, setProgress] = useState<FlashProgress>(() =>
-    createFlashProgress(candidates, stats),
-  );
+  // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する。
+  // 前回終了時の続きから再開できるよう、localStorage に保存した進行状態があれば復元する。
+  const [progress, setProgress] = useState<FlashProgress>(() => {
+    const stored = storage.get<StoredFlashProgress | null>(STORAGE_KEYS.FLASH_PROGRESS, null);
+    return (
+      fromStoredFlashProgress(stored, candidates, mistakeOnly) ?? createFlashProgress(candidates, stats)
+    );
+  });
   const { index, seen: seenIndices, lap, step } = progress;
   const [isPaused, setIsPaused] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (candidates.length === 0) return;
+    storage.set(STORAGE_KEYS.FLASH_PROGRESS, toStoredFlashProgress(progress, mistakeOnly));
+  }, [progress, mistakeOnly, candidates.length]);
 
   // 解放プール自体が変わったら（レベルアップ等）周回カウントをやり直す
   const [poolSnapshot, setPoolSnapshot] = useState(candidates);
