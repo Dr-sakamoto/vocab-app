@@ -120,6 +120,24 @@ export function mergeApprovedAnswers(
   return merged;
 }
 
+/** AI不承認済み回答のキー（単語ID）を安定IDへ移行する */
+export function migrateRejectedAnswers(raw: unknown): Record<string, string[]> {
+  return migrateApprovedAnswers(raw);
+}
+
+/**
+ * ローカルとリモートのAI不承認済み回答を単語ごとに和集合でマージする。
+ *
+ * 承認済み回答と同じ構造（単語ID → 正規化済み文字列の配列）なので、
+ * マージロジックもそのまま流用する。
+ */
+export function mergeRejectedAnswers(
+  local: Record<string, string[]>,
+  remote: unknown,
+): Record<string, string[]> {
+  return mergeApprovedAnswers(local, remote);
+}
+
 export interface RemoteWordStatRow {
   word_id: string;
   correct: number;

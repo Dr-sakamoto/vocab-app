@@ -1,7 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { VOCAB_IDS } from "./vocab";
-import { mergeApprovedAnswers, mergeRemoteWordStats } from "./wordProgress";
+import { mergeApprovedAnswers, mergeRejectedAnswers, mergeRemoteWordStats } from "./wordProgress";
 import { WordStat } from "./types";
 
 export async function signUpWithEmail(
@@ -50,6 +50,7 @@ interface UploadProgressProps {
   stats: WordStat[];
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
+  rejectedAnswers: Record<string, string[]>;
 }
 
 // 未挑戦の単語（correct/wrongともに0）はDB側で行が存在しないのと同義
@@ -71,6 +72,7 @@ export async function uploadProgress({
   stats,
   unlockedPoolSize,
   approvedAnswers,
+  rejectedAnswers,
 }: UploadProgressProps): Promise<void> {
   const user = await requireSignedInUser();
 
@@ -88,6 +90,7 @@ export async function uploadProgress({
       user_id: user.id,
       unlocked_pool_size: unlockedPoolSize,
       approved_answers: approvedAnswers,
+      rejected_answers: rejectedAnswers,
     },
     { onConflict: "user_id" },
   );
@@ -98,12 +101,14 @@ interface DownloadAndMergeProps {
   stats: WordStat[];
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
+  rejectedAnswers: Record<string, string[]>;
 }
 
 export interface DownloadAndMergeResult {
   stats: WordStat[];
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
+  rejectedAnswers: Record<string, string[]>;
 }
 
 // PostgRESTは1回のリクエストで最大1000行しか返さないため、
@@ -144,6 +149,7 @@ export async function downloadAndMerge({
   stats,
   unlockedPoolSize,
   approvedAnswers,
+  rejectedAnswers,
 }: DownloadAndMergeProps): Promise<DownloadAndMergeResult> {
   const user = await requireSignedInUser();
 
@@ -151,7 +157,7 @@ export async function downloadAndMerge({
 
   const { data: remoteMeta, error: metaError } = await supabase
     .from("user_meta")
-    .select("unlocked_pool_size, approved_answers")
+    .select("unlocked_pool_size, approved_answers, rejected_answers")
     .eq("user_id", user.id)
     .maybeSingle();
   if (metaError) throw metaError;
@@ -170,6 +176,10 @@ export async function downloadAndMerge({
     approvedAnswers: mergeApprovedAnswers(
       approvedAnswers,
       remoteMeta?.approved_answers,
+    ),
+    rejectedAnswers: mergeRejectedAnswers(
+      rejectedAnswers,
+      remoteMeta?.rejected_answers,
     ),
   };
 }
