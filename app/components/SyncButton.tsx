@@ -29,6 +29,7 @@ interface SyncButtonProps {
   stats: WordStat[];
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
+  rejectedAnswers: Record<string, string[]>;
   onMerged: (merged: DownloadAndMergeResult) => void;
 }
 
@@ -36,6 +37,7 @@ export default function SyncButton({
   stats,
   unlockedPoolSize,
   approvedAnswers,
+  rejectedAnswers,
   onMerged,
 }: SyncButtonProps) {
   const [user, setUser] = useState<User | null>(null);
@@ -54,6 +56,7 @@ export default function SyncButton({
         stats,
         unlockedPoolSize,
         approvedAnswers,
+        rejectedAnswers,
       });
       await uploadProgress(merged);
       onMerged(merged);
@@ -66,7 +69,7 @@ export default function SyncButton({
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
-  }, [onMerged, stats, unlockedPoolSize, approvedAnswers]);
+  }, [onMerged, stats, unlockedPoolSize, approvedAnswers, rejectedAnswers]);
 
   useEffect(() => {
     let disposed = false;

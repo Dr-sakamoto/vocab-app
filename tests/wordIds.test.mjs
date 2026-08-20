@@ -14,8 +14,10 @@ import {
   buildStatsMapFromStoredProgress,
   hydrateStats,
   mergeApprovedAnswers,
+  mergeRejectedAnswers,
   mergeRemoteWordStats,
   migrateApprovedAnswers,
+  migrateRejectedAnswers,
 } from "../lib/wordProgress.js";
 
 // ── ID生成規則 ──────────────────────────────────────────────────────────────
@@ -250,4 +252,24 @@ test("mergeApprovedAnswers tolerates junk remote input without touching local da
   const local = { [LEGACY_WORD_ID_ORDER[0]]: ["きびしい"] };
   const merged = mergeApprovedAnswers(local, null);
   assert.deepEqual(merged, local);
+});
+
+// rejected_answers は approved_answers と同じ構造・マージ規則を使うため、
+// 委譲先の approved 版はここまでのテストで既に網羅されている。
+// ここでは委譲そのものが機能していることだけ確認する。
+test("migrateRejectedAnswers migrates legacy ids the same way as approved answers", () => {
+  const migrated = migrateRejectedAnswers({
+    w0: ["やさしい"],
+    [LEGACY_WORD_ID_ORDER[0]]: ["緩い"],
+  });
+  assert.deepEqual(migrated[LEGACY_WORD_ID_ORDER[0]], ["やさしい", "緩い"]);
+});
+
+test("mergeRejectedAnswers unions local and remote answers per word", () => {
+  const local = { [LEGACY_WORD_ID_ORDER[0]]: ["やさしい"] };
+  const remote = { [LEGACY_WORD_ID_ORDER[0]]: ["緩い", "やさしい"] };
+
+  const merged = mergeRejectedAnswers(local, remote);
+
+  assert.deepEqual(merged[LEGACY_WORD_ID_ORDER[0]], ["やさしい", "緩い"]);
 });

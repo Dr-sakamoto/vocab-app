@@ -31,6 +31,11 @@ create table if not exists user_meta (
 
 alter table user_meta add column if not exists approved_answers jsonb not null default '{}'::jsonb;
 
+-- AIが不正解と判定した回答（単語IDごとの配列）。
+-- 同じ誤答を再び入力したとき、クライアントがAPI/AIを呼ばずに即座に
+-- 不正解へ倒すためのキャッシュ。approved_answers と対になる構造。
+alter table user_meta add column if not exists rejected_answers jsonb not null default '{}'::jsonb;
+
 -- 旧・モンスター収集機能の列（monster_total_xp / active_monster_id /
 -- monster_collection / professor_transfers）はアプリから読み書きしなくなった。
 -- 既存環境のデータを壊さないため drop はせず、そのまま放置する。

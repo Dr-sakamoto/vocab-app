@@ -19,6 +19,7 @@ import {
   buildStatsMapFromStoredProgress,
   hydrateStats,
   migrateApprovedAnswers,
+  migrateRejectedAnswers,
 } from "@/lib/wordProgress";
 import { GAME, STORAGE_KEYS, FLASH } from "@/lib/constants";
 import {
@@ -33,6 +34,7 @@ import { WordStat, PlayEvaluation, VocabItem } from "@/lib/types";
 import storage from "@/lib/storage";
 
 const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
+const REJECTED_ANSWERS_KEY = "vocab-rejected-answers";
 
 function getPartOfSpeech(q: VocabItem | undefined): string {
   return q?.partOfSpeech ?? "word";
@@ -81,6 +83,13 @@ export default function Page() {
       );
     } catch { return {}; }
   });
+  const [rejectedAnswers, setRejectedAnswers] = useState<Record<string, string[]>>(() => {
+    try {
+      return migrateRejectedAnswers(
+        JSON.parse(localStorage.getItem(REJECTED_ANSWERS_KEY) ?? "{}"),
+      );
+    } catch { return {}; }
+  });
   const q = VOCAB_ITEMS[index];
 
   /** AIが認めた回答を記憶し、次回同じ回答をしたときのAI往復を省く */
@@ -90,6 +99,17 @@ export default function Page() {
       if (existing.includes(normalizedAnswer)) return prev;
       const next = { ...prev, [wordId]: [...existing, normalizedAnswer] };
       try { localStorage.setItem(APPROVED_ANSWERS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  /** AIが不正解と判定した回答を記憶し、次回同じ誤答をしたときのAPI/AI往復を省く */
+  const addRejectedAnswer = useCallback((wordId: string, normalizedAnswer: string) => {
+    setRejectedAnswers((prev) => {
+      const existing = prev[wordId] ?? [];
+      if (existing.includes(normalizedAnswer)) return prev;
+      const next = { ...prev, [wordId]: [...existing, normalizedAnswer] };
+      try { localStorage.setItem(REJECTED_ANSWERS_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
   }, []);
@@ -130,7 +150,9 @@ export default function Page() {
     stats,
     setStats,
     approvedAnswers,
+    rejectedAnswers,
     onAiApproved: addApprovedAnswer,
+    onAiRejected: addRejectedAnswer,
   });
 
   // ── 音声 ──────────────────────────────────────────────────────────────────
@@ -366,14 +388,20 @@ export default function Page() {
       stats: WordStat[];
       unlockedPoolSize: number;
       approvedAnswers: Record<string, string[]>;
+      rejectedAnswers: Record<string, string[]>;
     }) => {
       setStats(merged.stats);
       setUnlockedPoolSize(merged.unlockedPoolSize);
       setApprovedAnswers(merged.approvedAnswers);
+      setRejectedAnswers(merged.rejectedAnswers);
       try {
         localStorage.setItem(
           APPROVED_ANSWERS_KEY,
           JSON.stringify(merged.approvedAnswers),
+        );
+        localStorage.setItem(
+          REJECTED_ANSWERS_KEY,
+          JSON.stringify(merged.rejectedAnswers),
         );
       } catch {}
     },
@@ -579,6 +607,7 @@ export default function Page() {
               stats={stats}
               unlockedPoolSize={unlockedPoolSize}
               approvedAnswers={approvedAnswers}
+              rejectedAnswers={rejectedAnswers}
               onMerged={handleSyncMerged}
             />
           </div>

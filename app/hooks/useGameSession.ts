@@ -9,11 +9,17 @@ interface UseGameSessionProps {
   stats: WordStat[];
   setStats: React.Dispatch<React.SetStateAction<WordStat[]>>;
   approvedAnswers?: Record<string, string[]>;
+  rejectedAnswers?: Record<string, string[]>;
   /**
    * AIが正解と認めた回答を記憶するためのコールバック。
    * 同じ単語に同じ回答をした次回は、APIもAIも呼ばずに正解にできる。
    */
   onAiApproved?: (wordId: string, normalizedAnswer: string) => void;
+  /**
+   * AIが不正解と判定した回答を記憶するためのコールバック。
+   * 同じ単語に同じ誤答をした次回は、APIもAIも呼ばずに即座に不正解にできる。
+   */
+  onAiRejected?: (wordId: string, normalizedAnswer: string) => void;
 }
 
 export function useGameSession({
@@ -23,7 +29,9 @@ export function useGameSession({
   stats,
   setStats,
   approvedAnswers = {},
+  rejectedAnswers = {},
   onAiApproved,
+  onAiRejected,
 }: UseGameSessionProps) {
   const [score, setScore] = useState<number>(0);
   const [total, setTotal] = useState<number>(1);
@@ -68,6 +76,7 @@ export function useGameSession({
       normalizedAnswers: string[];
       posViolation?: string | null;
       aiFeedback?: string | null;
+      aiScore?: number;
     } = {
       status: normalizedAnswers.includes(user) ? "exact" : "wrong",
       normalizedAnswers,
@@ -83,6 +92,9 @@ export function useGameSession({
     } else if ((approvedAnswers[q.id] ?? []).includes(user)) {
       // 過去にAIが認めた回答。AIを呼び直さず即座に正解にする。
       result = { status: "ai_approved", normalizedAnswers };
+    } else if ((rejectedAnswers[q.id] ?? []).includes(user)) {
+      // 過去にAIが不正解と判定した回答と同じ。API/AIを呼び直さず即座に不正解にする。
+      result = { status: "wrong", normalizedAnswers };
     } else if (!skipApi) {
       try {
         const response = await fetch("/api/check", {
@@ -108,6 +120,13 @@ export function useGameSession({
     // AIが認めた回答は記憶して、次回同じ回答をしたときの往復を省く。
     if (result.status === "ai_approved" && user) {
       onAiApproved?.(q.id, user);
+    }
+
+    // AIが不正解と判定した回答も記憶して、次回同じ誤答をしたときの
+    // API/AI往復を省く。aiScore が付いているのはAIが実際に判定を
+    // 返したときのみ（レート制限・未設定・タイムアウト時は付かない）。
+    if (result.status === "wrong" && typeof result.aiScore === "number" && user) {
+      onAiRejected?.(q.id, user);
     }
 
     const ok = result.status === "exact" || result.status === "alternative" || result.status === "ai_approved";
@@ -147,7 +166,7 @@ export function useGameSession({
     }
 
     setIsCheckingAnswer(false);
-  }, [checked, isCheckingAnswer, activeView, q, input, normalizedAnswers, approvedAnswers, onAiApproved, stats, index, setStats]);
+  }, [checked, isCheckingAnswer, activeView, q, input, normalizedAnswers, approvedAnswers, rejectedAnswers, onAiApproved, onAiRejected, stats, index, setStats]);
 
   /**
    * 「？」ボタン（わからない）押下時の判定。
