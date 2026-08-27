@@ -107,20 +107,26 @@ export function createFlashProgress(
 /**
  * フラッシュを1コマ進める。1周し切ったら既出集合をリセットして周回数を上げる。
  * 候補が1語だけのときは同じ index を返すが、step は必ず進む。
+ *
+ * 既出集合がちょうど1周分埋まった回（例: 60語プールで60語目）は、リセットを
+ * 1コマ遅らせてそのまま返す。ここで即リセットすると進捗表示が
+ * 「59/60→1/60」のように満了表示（60/60）を一切見せずに飛んでしまうため。
  */
 export function advanceFlashProgress(
   prev: FlashProgress,
   candidates: number[],
   stats: WordStat[],
 ): FlashProgress {
+  const step = prev.step + 1;
+  const prevLapComplete = candidates.length > 0 && prev.seen.size >= candidates.length;
+  if (prevLapComplete) {
+    const nextIndex = pickFlashIndex(candidates, stats, prev.index) ?? prev.index;
+    return { index: nextIndex, seen: new Set([nextIndex]), lap: prev.lap + 1, step };
+  }
   const nextIndex = pickFlashIndex(candidates, stats, prev.index, prev.seen) ?? prev.index;
   const seen = prev.seen.has(nextIndex)
     ? prev.seen
     : new Set(prev.seen).add(nextIndex);
-  const step = prev.step + 1;
-  if (candidates.length > 0 && seen.size >= candidates.length) {
-    return { index: nextIndex, seen: new Set([nextIndex]), lap: prev.lap + 1, step };
-  }
   return { index: nextIndex, seen, lap: prev.lap, step };
 }
 
