@@ -145,6 +145,42 @@ export function toStoredFlashProgress(
   return { index: progress.index, seen: Array.from(progress.seen), lap: progress.lap, mistakeOnly };
 }
 
+/** クラウドから戻ってきた値を StoredFlashProgress として安全に読む */
+export function normalizeStoredFlashProgress(raw: unknown): StoredFlashProgress | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const stored = raw as Partial<StoredFlashProgress>;
+  if (!Number.isInteger(stored.index) || (stored.index as number) < 0) return null;
+  const seen = Array.isArray(stored.seen)
+    ? stored.seen.filter((i): i is number => Number.isInteger(i) && i >= 0)
+    : [];
+  const lap = Number.isFinite(stored.lap) ? Math.max(1, Math.floor(stored.lap as number)) : 1;
+  return {
+    index: stored.index as number,
+    seen,
+    lap,
+    mistakeOnly: stored.mistakeOnly === true,
+  };
+}
+
+/**
+ * 端末をまたいだフラッシュの進行位置を合流させる。
+ *
+ * 「周回数 → その周で見た語数」の順に進んでいる方を採る。同点はローカルを残す。
+ * モードが違う・プールがその index を含まない場合は fromStoredFlashProgress が
+ * 復元を断るので、噛み合わない位置を持ち込んでも先頭から始まるだけで済む。
+ */
+export function mergeStoredFlashProgress(
+  local: unknown,
+  remote: unknown,
+): StoredFlashProgress | null {
+  const here = normalizeStoredFlashProgress(local);
+  const there = normalizeStoredFlashProgress(remote);
+  if (!here) return there;
+  if (!there) return here;
+  if (there.lap !== here.lap) return there.lap > here.lap ? there : here;
+  return there.seen.length > here.seen.length ? there : here;
+}
+
 /**
  * 保存済みの進行状態を復元する。モードが違う・出題対象がその index を
  * もう含まない（プール変化や苦手語卒業）場合は復元せず null を返す。

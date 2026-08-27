@@ -2,6 +2,8 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { VOCAB_IDS } from "./vocab";
 import { mergeApprovedAnswers, mergeRejectedAnswers, mergeRemoteWordStats } from "./wordProgress";
+import { StreakState, mergeStreaks } from "./streak";
+import { StoredFlashProgress, mergeStoredFlashProgress } from "./flashWeight";
 import { WordStat } from "./types";
 
 export async function signUpWithEmail(
@@ -51,6 +53,8 @@ interface UploadProgressProps {
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
   rejectedAnswers: Record<string, string[]>;
+  dailyStreak: StreakState;
+  flashProgress: StoredFlashProgress | null;
 }
 
 // 未挑戦の単語（correct/wrongともに0）はDB側で行が存在しないのと同義
@@ -91,6 +95,8 @@ export async function uploadProgress({
   unlockedPoolSize,
   approvedAnswers,
   rejectedAnswers,
+  dailyStreak,
+  flashProgress,
 }: UploadProgressProps): Promise<SyncMetaOutcome> {
   const user = await requireSignedInUser();
 
@@ -109,6 +115,8 @@ export async function uploadProgress({
       unlocked_pool_size: unlockedPoolSize,
       approved_answers: approvedAnswers,
       rejected_answers: rejectedAnswers,
+      daily_streak: dailyStreak,
+      flash_progress: flashProgress,
     },
     { onConflict: "user_id" },
   );
@@ -122,6 +130,8 @@ interface DownloadAndMergeProps {
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
   rejectedAnswers: Record<string, string[]>;
+  dailyStreak: StreakState;
+  flashProgress: StoredFlashProgress | null;
 }
 
 export interface DownloadAndMergeResult extends SyncMetaOutcome {
@@ -129,6 +139,8 @@ export interface DownloadAndMergeResult extends SyncMetaOutcome {
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
   rejectedAnswers: Record<string, string[]>;
+  dailyStreak: StreakState;
+  flashProgress: StoredFlashProgress | null;
 }
 
 // PostgRESTは1回のリクエストで最大1000行しか返さないため、
@@ -176,6 +188,8 @@ export function readRemoteMeta(row: unknown): {
   unlockedPoolSize: number;
   approvedAnswers: unknown;
   rejectedAnswers: unknown;
+  dailyStreak: unknown;
+  flashProgress: unknown;
 } {
   const meta = (row ?? {}) as Record<string, unknown>;
   const poolSize = Number(meta.unlocked_pool_size);
@@ -183,6 +197,8 @@ export function readRemoteMeta(row: unknown): {
     unlockedPoolSize: Number.isFinite(poolSize) && poolSize > 0 ? poolSize : 0,
     approvedAnswers: meta.approved_answers,
     rejectedAnswers: meta.rejected_answers,
+    dailyStreak: meta.daily_streak,
+    flashProgress: meta.flash_progress,
   };
 }
 
@@ -191,6 +207,8 @@ export async function downloadAndMerge({
   unlockedPoolSize,
   approvedAnswers,
   rejectedAnswers,
+  dailyStreak,
+  flashProgress,
 }: DownloadAndMergeProps): Promise<DownloadAndMergeResult> {
   const user = await requireSignedInUser();
 
@@ -216,6 +234,8 @@ export async function downloadAndMerge({
     unlockedPoolSize: Math.max(unlockedPoolSize, remoteMeta.unlockedPoolSize),
     approvedAnswers: mergeApprovedAnswers(approvedAnswers, remoteMeta.approvedAnswers),
     rejectedAnswers: mergeRejectedAnswers(rejectedAnswers, remoteMeta.rejectedAnswers),
+    dailyStreak: mergeStreaks(dailyStreak, remoteMeta.dailyStreak),
+    flashProgress: mergeStoredFlashProgress(flashProgress, remoteMeta.flashProgress),
     metaError: metaError ? describeError(metaError) : null,
   };
 }

@@ -390,11 +390,14 @@ export default function Page() {
       unlockedPoolSize: number;
       approvedAnswers: Record<string, string[]>;
       rejectedAnswers: Record<string, string[]>;
+      dailyStreak: StreakState;
     }) => {
       setStats(merged.stats);
       setUnlockedPoolSize(merged.unlockedPoolSize);
       setApprovedAnswers(merged.approvedAnswers);
       setRejectedAnswers(merged.rejectedAnswers);
+      setDailyStreak(merged.dailyStreak);
+      storage.set(STORAGE_KEYS.STREAK, merged.dailyStreak);
       try {
         localStorage.setItem(
           APPROVED_ANSWERS_KEY,
@@ -414,6 +417,7 @@ export default function Page() {
     unlockedPoolSize,
     approvedAnswers,
     rejectedAnswers,
+    dailyStreak,
     isReady: isLoaded,
     onMerged: handleSyncMerged,
   });
