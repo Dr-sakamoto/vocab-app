@@ -45,3 +45,7 @@ next-env.d.ts
 
 # 明朝ドット生成の元フォントキャッシュ（コミットしない）
 scripts/.cache-*.ttf
+
+# supabase CLI のローカル作業ファイル（migrations/ と config.toml はコミットする）
+supabase/.branches
+supabase/.temp
