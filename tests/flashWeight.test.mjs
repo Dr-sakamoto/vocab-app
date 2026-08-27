@@ -172,18 +172,26 @@ test("advanceFlashProgress increments step for multi-word pools too", () => {
   }
 });
 
-test("advanceFlashProgress resets the seen set once a lap completes", () => {
+test("advanceFlashProgress shows the full lap (e.g. 3/3) before resetting on the next word", () => {
+  // 59/60 の次が 1/60 に飛ばず、まず 60/60 を表示してから次のコマで 1/60 に
+  // リセットされることを確認する（表示上の境目の飛びを防ぐ）。
   const stats = Array.from({ length: 3 }, () => ({ correct: 0, wrong: 3 }));
   const candidates = [0, 1, 2];
   let progress = createFlashProgress(candidates, stats);
   const seenFirstLap = new Set(progress.seen);
-  // 3語プールなので2回進めると1周し切る
+
+  // 3語プールなので2回進めると3語すべて出そろうが、まだリセットはされない
   progress = advanceFlashProgress(progress, candidates, stats);
   seenFirstLap.add(progress.index);
   progress = advanceFlashProgress(progress, candidates, stats);
   seenFirstLap.add(progress.index);
 
   assert.equal(seenFirstLap.size, 3, "a lap should cover every candidate exactly once");
+  assert.equal(progress.seen.size, 3, "seen should still show the full lap (e.g. 3/3), not reset yet");
+  assert.equal(progress.lap, 1, "lap should not increment until the full-lap state has been shown");
+
+  // 次のコマでようやくリセットされ、周回数が上がる
+  progress = advanceFlashProgress(progress, candidates, stats);
   assert.equal(progress.lap, 2);
   assert.deepEqual([...progress.seen], [progress.index], "seen resets to the current word");
 });
