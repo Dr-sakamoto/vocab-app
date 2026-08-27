@@ -11,6 +11,7 @@ import { useClickSound } from "./hooks/useClickSound";
 import { isSoundEnabled, setSoundEnabled } from "@/lib/clickSound";
 import { isPronunciationEnabled, setPronunciationEnabled } from "@/lib/speech";
 import { useVisualViewportVars } from "./hooks/useVisualViewport";
+import { useCloudSync } from "./hooks/useCloudSync";
 
 import { evaluatePlay } from "@/lib/playEvaluation";
 import { getPoolTier } from "@/lib/poolTier";
@@ -408,6 +409,24 @@ export default function Page() {
     [setUnlockedPoolSize],
   );
 
+  const cloudSync = useCloudSync({
+    stats,
+    unlockedPoolSize,
+    approvedAnswers,
+    rejectedAnswers,
+    isReady: isLoaded,
+    onMerged: handleSyncMerged,
+  });
+  const { syncAuto } = cloudSync;
+
+  // 10問セットの区切りで裏側から同期する。設定を開かなくても、
+  // 別の端末を開いた時点で最新の進捗が乗っている状態にする。
+  // 画面遷移も待ち時間も挟まないので、コアループは止まらない。
+  useEffect(() => {
+    if (phase !== "result") return;
+    syncAuto();
+  }, [phase, syncAuto]);
+
   // 全ボタン共通のクリック音
   useClickSound();
 
@@ -604,13 +623,7 @@ export default function Page() {
             </div>
 
             <h3 className="mb-2 text-sm text-ink-2">クラウド同期</h3>
-            <SyncButton
-              stats={stats}
-              unlockedPoolSize={unlockedPoolSize}
-              approvedAnswers={approvedAnswers}
-              rejectedAnswers={rejectedAnswers}
-              onMerged={handleSyncMerged}
-            />
+            <SyncButton sync={cloudSync} />
           </div>
         </div>
       )}
