@@ -111,10 +111,17 @@ export function useCloudSync({
     setMessage("");
     try {
       const merged = await downloadAndMerge(snapshotRef.current);
-      await uploadProgress(merged);
+      const uploaded = await uploadProgress(merged);
       onMergedRef.current(merged);
       setStatus("done");
-      setMessage("同期しました。");
+      // 単語の進捗（word_stats）は通ったが user_meta が通らなかった場合は、
+      // 「同期しました」と言い切らずに、何が同期できていないかを見せる。
+      const metaError = merged.metaError ?? uploaded.metaError;
+      setMessage(
+        metaError
+          ? "単語の進捗だけ同期しました。（解放プールとAI判定キャッシュは未同期）"
+          : "同期しました。",
+      );
     } catch (err) {
       console.error("Sync error:", err);
       setStatus("error");
