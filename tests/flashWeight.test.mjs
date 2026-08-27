@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   pickFlashIndex,
   isMistakeWord,
+  hasRecoveredFromMistakes,
   filterMistakeIndices,
   createFlashProgress,
   advanceFlashProgress,
@@ -72,8 +73,47 @@ test("isMistakeWord is true once wrong count reaches the threshold", () => {
   assert.equal(isMistakeWord(undefined), false);
   assert.equal(isMistakeWord({ correct: 0, wrong: 0 }), false);
   assert.equal(isMistakeWord({ correct: 5, wrong: 1 }), false);
-  assert.equal(isMistakeWord({ correct: 5, wrong: 2 }), true);
+  // 誤答2回に対して正解5回は「定着し直した」側なので苦手には含めない
+  assert.equal(isMistakeWord({ correct: 5, wrong: 2 }), false);
+  assert.equal(isMistakeWord({ correct: 1, wrong: 2 }), true);
   assert.equal(isMistakeWord({ correct: 0, wrong: 3 }), true);
+});
+
+test("hasRecoveredFromMistakes needs twice as many correct answers as mistakes", () => {
+  assert.equal(hasRecoveredFromMistakes(undefined), true);
+  assert.equal(hasRecoveredFromMistakes({ correct: 0, wrong: 0 }), true);
+  assert.equal(hasRecoveredFromMistakes({ correct: 1, wrong: 1 }), false);
+  assert.equal(hasRecoveredFromMistakes({ correct: 2, wrong: 1 }), true);
+  assert.equal(hasRecoveredFromMistakes({ correct: 9, wrong: 5 }), false);
+  assert.equal(hasRecoveredFromMistakes({ correct: 10, wrong: 5 }), true);
+});
+
+test("isMistakeWord separates recovered words from ones still being missed", () => {
+  // 「5回間違えたがその後は定着した語」と「その後も落とし続けている語」は
+  // 累計 wrong だけ見ると区別できず、どちらも苦手フラッシュに残ってしまう。
+  const recovered = { correct: 12, wrong: 5 };
+  const stillMissing = { correct: 2, wrong: 6 };
+
+  for (const threshold of [1, 2, 3, 4, 5]) {
+    assert.equal(
+      isMistakeWord(recovered, threshold),
+      false,
+      `recovered word should graduate at threshold ${threshold}`,
+    );
+    assert.equal(
+      isMistakeWord(stillMissing, threshold),
+      true,
+      `still-missed word should stay at threshold ${threshold}`,
+    );
+  }
+});
+
+test("isMistakeWord keeps a word until enough correct answers pile up after the mistakes", () => {
+  // 誤答5回の語は、正解を積み上げていく途中では苦手に残り、10回で卒業する
+  for (let correct = 0; correct < 10; correct++) {
+    assert.equal(isMistakeWord({ correct, wrong: 5 }, 5), true, `correct=${correct}`);
+  }
+  assert.equal(isMistakeWord({ correct: 10, wrong: 5 }, 5), false);
 });
 
 test("filterMistakeIndices keeps only frequently-missed words from the candidate list", () => {
@@ -82,8 +122,9 @@ test("filterMistakeIndices keeps only frequently-missed words from the candidate
     { correct: 5, wrong: 0 }, // 定着済み
     { correct: 1, wrong: 2 }, // よく間違える
     { correct: 0, wrong: 4 }, // よく間違える
+    { correct: 12, wrong: 5 }, // よく間違えたが、その後定着した
   ];
-  assert.deepEqual(filterMistakeIndices([0, 1, 2, 3], stats), [2, 3]);
+  assert.deepEqual(filterMistakeIndices([0, 1, 2, 3, 4], stats), [2, 3]);
   assert.deepEqual(filterMistakeIndices([0, 1], stats), []);
 });
 
