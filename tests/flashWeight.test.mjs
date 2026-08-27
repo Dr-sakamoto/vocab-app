@@ -8,6 +8,8 @@ import {
   filterMistakeIndices,
   createFlashProgress,
   advanceFlashProgress,
+  mergeStoredFlashProgress,
+  normalizeStoredFlashProgress,
 } from "../lib/flashWeight.js";
 import { weightedPickIndex } from "../lib/weightedPick.js";
 
@@ -204,4 +206,48 @@ test("weightedPickIndex rarely selects a near-zero-weight index over a heavily w
     if (weightedPickIndex(indices, (i) => (i === 0 ? 0 : 100)) === 0) zeroWeightPicks++;
   }
   assert.ok(zeroWeightPicks / trials < 0.05, `zero-weight ratio too high: ${zeroWeightPicks / trials}`);
+});
+
+// ── 端末をまたいだ合流 ──────────────────────────────────────────────────────
+test("mergeStoredFlashProgress prefers the further lap", () => {
+  const here = { index: 5, seen: [1, 2, 3, 4, 5], lap: 1, mistakeOnly: false };
+  const there = { index: 2, seen: [2], lap: 3, mistakeOnly: false };
+  assert.deepEqual(mergeStoredFlashProgress(here, there), there);
+});
+
+test("mergeStoredFlashProgress prefers more seen words within the same lap", () => {
+  const here = { index: 5, seen: [1, 2, 3], lap: 2, mistakeOnly: false };
+  const there = { index: 9, seen: [1, 2, 3, 4, 9], lap: 2, mistakeOnly: false };
+  assert.deepEqual(mergeStoredFlashProgress(here, there), there);
+});
+
+test("mergeStoredFlashProgress keeps the local side on a tie", () => {
+  const here = { index: 5, seen: [1, 5], lap: 2, mistakeOnly: false };
+  const there = { index: 9, seen: [1, 9], lap: 2, mistakeOnly: true };
+  assert.deepEqual(mergeStoredFlashProgress(here, there), here);
+});
+
+test("mergeStoredFlashProgress falls back to whichever side exists", () => {
+  const stored = { index: 5, seen: [5], lap: 1, mistakeOnly: false };
+  assert.deepEqual(mergeStoredFlashProgress(null, stored), stored);
+  assert.deepEqual(mergeStoredFlashProgress(stored, null), stored);
+  assert.equal(mergeStoredFlashProgress(null, null), null);
+});
+
+test("normalizeStoredFlashProgress rejects junk and repairs partial rows", () => {
+  assert.equal(normalizeStoredFlashProgress(null), null);
+  assert.equal(normalizeStoredFlashProgress({ seen: [1] }), null);
+  assert.equal(normalizeStoredFlashProgress({ index: -1 }), null);
+  assert.deepEqual(normalizeStoredFlashProgress({ index: 4 }), {
+    index: 4,
+    seen: [],
+    lap: 1,
+    mistakeOnly: false,
+  });
+  assert.deepEqual(normalizeStoredFlashProgress({ index: 4, seen: [1, "x", 2], lap: 0 }), {
+    index: 4,
+    seen: [1, 2],
+    lap: 1,
+    mistakeOnly: false,
+  });
 });

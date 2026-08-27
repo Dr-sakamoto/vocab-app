@@ -88,6 +88,8 @@ test("readRemoteMeta treats a missing row as untouched meta", () => {
     unlockedPoolSize: 0,
     approvedAnswers: undefined,
     rejectedAnswers: undefined,
+    dailyStreak: undefined,
+    flashProgress: undefined,
   });
 });
 
@@ -96,6 +98,8 @@ test("readRemoteMeta tolerates a row that predates the newer columns", () => {
   assert.equal(meta.unlockedPoolSize, 953);
   assert.deepEqual(meta.approvedAnswers, { "a:noun": ["x"] });
   assert.equal(meta.rejectedAnswers, undefined);
+  assert.equal(meta.dailyStreak, undefined);
+  assert.equal(meta.flashProgress, undefined);
 });
 
 test("readRemoteMeta ignores a junk pool size instead of poisoning the merge", () => {

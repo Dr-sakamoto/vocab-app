@@ -5,6 +5,7 @@ import {
   EMPTY_STREAK,
   getDisplayStreak,
   hasPlayedToday,
+  mergeStreaks,
   normalizeStreak,
   recordPlay,
   toDateKey,
@@ -76,4 +77,51 @@ test("normalizeStreak repairs malformed data", () => {
 test("toDateKey formats a local date", () => {
   const key = toDateKey(new Date(2026, 6, 7));
   assert.equal(key, "2026-07-07");
+});
+
+// ── 端末をまたいだ合流 ──────────────────────────────────────────────────────
+test("mergeStreaks keeps the later play date", () => {
+  const pc = { current: 3, longest: 5, lastPlayedDate: "2026-08-25" };
+  const phone = { current: 1, longest: 2, lastPlayedDate: "2026-08-26" };
+  const merged = mergeStreaks(pc, phone);
+  assert.equal(merged.lastPlayedDate, "2026-08-26");
+});
+
+test("mergeStreaks bridges a streak continued on the other device the next day", () => {
+  const pc = { current: 4, longest: 4, lastPlayedDate: "2026-08-25" };
+  const phone = { current: 1, longest: 1, lastPlayedDate: "2026-08-26" };
+  const merged = mergeStreaks(pc, phone);
+  // PCで4日続けた翌日にスマホでプレイ＝5日連続。1日にリセットしない
+  assert.equal(merged.current, 5);
+  assert.equal(merged.longest, 5);
+});
+
+test("mergeStreaks does not bridge across a gap of two days or more", () => {
+  const pc = { current: 9, longest: 9, lastPlayedDate: "2026-08-20" };
+  const phone = { current: 2, longest: 3, lastPlayedDate: "2026-08-26" };
+  const merged = mergeStreaks(pc, phone);
+  assert.equal(merged.current, 2);
+  assert.equal(merged.longest, 9);
+});
+
+test("mergeStreaks takes the bigger count when both played the same day", () => {
+  const merged = mergeStreaks(
+    { current: 7, longest: 7, lastPlayedDate: "2026-08-26" },
+    { current: 2, longest: 4, lastPlayedDate: "2026-08-26" },
+  );
+  assert.deepEqual(merged, { current: 7, longest: 7, lastPlayedDate: "2026-08-26" });
+});
+
+test("mergeStreaks falls back to whichever side has ever been played", () => {
+  const played = { current: 3, longest: 3, lastPlayedDate: "2026-08-26" };
+  assert.deepEqual(mergeStreaks(EMPTY_STREAK, played), played);
+  assert.deepEqual(mergeStreaks(played, EMPTY_STREAK), played);
+  assert.deepEqual(mergeStreaks(EMPTY_STREAK, EMPTY_STREAK), EMPTY_STREAK);
+});
+
+test("mergeStreaks tolerates junk from the cloud", () => {
+  const local = { current: 3, longest: 3, lastPlayedDate: "2026-08-26" };
+  assert.deepEqual(mergeStreaks(local, null), local);
+  assert.deepEqual(mergeStreaks(local, "nonsense"), local);
+  assert.deepEqual(mergeStreaks(local, { current: -1, lastPlayedDate: "not-a-date" }), local);
 });

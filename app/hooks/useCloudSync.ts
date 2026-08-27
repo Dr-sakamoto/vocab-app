@@ -13,6 +13,10 @@ import {
   uploadProgress,
 } from "@/lib/sync";
 import { createSyncRunner } from "@/lib/syncRunner";
+import { StoredFlashProgress } from "@/lib/flashWeight";
+import { StreakState } from "@/lib/streak";
+import { STORAGE_KEYS } from "@/lib/constants";
+import storage from "@/lib/storage";
 import { WordStat } from "@/lib/types";
 
 export type SyncStatus = "idle" | "syncing" | "done" | "error";
@@ -38,6 +42,7 @@ interface UseCloudSyncProps {
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
   rejectedAnswers: Record<string, string[]>;
+  dailyStreak: StreakState;
   /**
    * localStorage の復元が終わったか。復元前に同期すると、空の進捗を
    * クラウドへ書き戻してしまうため、それまで自動同期は始めない。
@@ -74,6 +79,7 @@ export function useCloudSync({
   unlockedPoolSize,
   approvedAnswers,
   rejectedAnswers,
+  dailyStreak,
   isReady,
   onMerged,
 }: UseCloudSyncProps): CloudSyncController {
@@ -83,12 +89,12 @@ export function useCloudSync({
 
   // 同期処理そのものは再生成せず、送る中身だけ ref で最新に保つ。
   // こうしないと1問ごとに認証購読が張り直されてしまう。
-  const snapshotRef = useRef({ stats, unlockedPoolSize, approvedAnswers, rejectedAnswers });
+  const snapshotRef = useRef({ stats, unlockedPoolSize, approvedAnswers, rejectedAnswers, dailyStreak });
   const onMergedRef = useRef(onMerged);
   const statusTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    snapshotRef.current = { stats, unlockedPoolSize, approvedAnswers, rejectedAnswers };
+    snapshotRef.current = { stats, unlockedPoolSize, approvedAnswers, rejectedAnswers, dailyStreak };
     onMergedRef.current = onMerged;
   });
 
@@ -110,8 +116,19 @@ export function useCloudSync({
     setStatus("syncing");
     setMessage("");
     try {
-      const merged = await downloadAndMerge(snapshotRef.current);
+      // フラッシュ進捗だけは React state ではなく localStorage が置き場所
+      // （FlashScreen が自前で持つ）。同期の直前に読み、結果は書き戻す。
+      // FlashScreen はマウント時にしか読まないので、再生中に書き換えても
+      // 表示は飛ばない＝フローを止めない。
+      const flashProgress = storage.get<StoredFlashProgress | null>(
+        STORAGE_KEYS.FLASH_PROGRESS,
+        null,
+      );
+      const merged = await downloadAndMerge({ ...snapshotRef.current, flashProgress });
       const uploaded = await uploadProgress(merged);
+      if (merged.flashProgress) {
+        storage.set(STORAGE_KEYS.FLASH_PROGRESS, merged.flashProgress);
+      }
       onMergedRef.current(merged);
       setStatus("done");
       // 単語の進捗（word_stats）は通ったが user_meta が通らなかった場合は、
