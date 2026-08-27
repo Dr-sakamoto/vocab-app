@@ -10,7 +10,10 @@ export const FLASH = {
   DEFAULT_SPEED_SEC: 1.0,
   MIN_SPEED_SEC: 0.8,
   MAX_SPEED_SEC: 2.0,
-  /** 苦手フラッシュ：wrong数がこの値以上の語を出題範囲に含める（スライダーで調節） */
+  /**
+   * 苦手フラッシュ：wrong数がこの値以上で、かつまだ定着し直していない語を
+   * 出題範囲に含める（スライダーで調節）。定着の判定は hasRecoveredFromMistakes。
+   */
   MISTAKE_THRESHOLD_MIN: 1,
   MISTAKE_THRESHOLD_MAX: 5,
   MISTAKE_THRESHOLD_DEFAULT: 2,

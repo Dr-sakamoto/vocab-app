@@ -598,7 +598,8 @@ export default function Page() {
                 className="w-full accent-[var(--accent)]"
               />
               <p className="mt-1.5 text-[11px] text-ink-3">
-                下げるほど、少し間違えただけの語も苦手フラッシュの対象に入る
+                下げるほど、少し間違えただけの語も苦手フラッシュの対象に入る。
+                誤答の2倍以上正解できた語は、回数に関わらず卒業して対象から外れる
               </p>
             </div>
 

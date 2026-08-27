@@ -149,7 +149,7 @@ export default function FlashScreen({
           </div>
           {mistakeOnly && (
             <p className="mt-1.5 text-xs text-ink-3">
-              苦手度: {mistakeThreshold}回以上間違えた語が対象・該当{" "}
+              苦手度: {mistakeThreshold}回以上間違えて未定着の語が対象・該当{" "}
               <span className="tabular-nums">{candidates.length}</span> 語
             </p>
           )}
@@ -206,7 +206,7 @@ export default function FlashScreen({
           ) : (
             <div className="prompt-card px-5 py-8 text-center sm:py-12">
               <p className="text-ink-2">
-                {mistakeThreshold}回以上間違えた単語はまだありません。
+                {mistakeThreshold}回以上間違えて、まだ定着していない単語はありません。
               </p>
               <p className="mt-2 text-xs text-ink-3">
                 テストやフラッシュを進めるか、設定で苦手度を下げると対象が増えます。

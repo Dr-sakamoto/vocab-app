@@ -11,15 +11,44 @@ function getFlashWeight(stat: WordStat | undefined): number {
   return 1.2; // 学習中
 }
 
-/** threshold回数以上間違えている「よく間違える語」かどうか */
+/**
+ * 苦手語の「卒業」ライン。誤答1回につきこの回数だけ正解を積み上げていれば、
+ * 累計の誤答回数がいくつであってももう苦手語とはみなさない。
+ */
+const RECOVERY_CORRECT_PER_WRONG = 2;
+
+/**
+ * 誤答したあとに正解を積み直して定着したか。
+ *
+ * 統計は累計の correct/wrong しか持たない（誤答の「あと」に何があったかは
+ * 記録していない）ため、正解と誤答の比で近似する。これを見ないと苦手判定が
+ * 累計誤答回数だけになり、「5回落としたがその後は毎回正解している語」と
+ * 「その後も落とし続けている語」が同じ扱いのまま苦手フラッシュに残り続ける。
+ *
+ * 累計しか持たない以上「昔たくさん正解したが最近落とし始めた語」は
+ * 卒業と判定されうるが、その語は通常の出題側（getQuestionWeight）が
+ * weakness で拾うため、ここでは比のシンプルさを取る。
+ */
+export function hasRecoveredFromMistakes(stat: WordStat | undefined): boolean {
+  const correct = stat?.correct ?? 0;
+  const wrong = stat?.wrong ?? 0;
+  if (wrong === 0) return true;
+  return correct >= wrong * RECOVERY_CORRECT_PER_WRONG;
+}
+
+/**
+ * 「よく間違える語」かどうか。
+ * threshold回数以上間違えていて、かつまだ定着し直していない語だけを苦手とみなす。
+ */
 export function isMistakeWord(
   stat: WordStat | undefined,
   threshold: number = FLASH.MISTAKE_THRESHOLD_DEFAULT,
 ): boolean {
-  return (stat?.wrong ?? 0) >= threshold;
+  if ((stat?.wrong ?? 0) < threshold) return false;
+  return !hasRecoveredFromMistakes(stat);
 }
 
-/** candidates のうち「よく間違える語」（wrong数がthreshold以上）だけを抜き出す */
+/** candidates のうち「よく間違える語」（threshold以上間違えて未定着）だけを抜き出す */
 export function filterMistakeIndices(
   candidates: number[],
   stats: WordStat[],
