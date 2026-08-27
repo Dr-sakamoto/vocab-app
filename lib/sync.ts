@@ -68,12 +68,30 @@ export function buildWordStatsRows(
   });
 }
 
+/**
+ * user_meta（解放プール・AI判定キャッシュ）は単語の進捗に付随するデータ。
+ * ここが落ちても word_stats の同期は成立させたいので、失敗は投げずに
+ * 理由だけ持ち帰り、呼び出し側が「部分的に同期した」と伝えられるようにする。
+ *
+ * 実際に、rejected_answers 列を本番へ流し忘れていた期間は user_meta の
+ * 読み書きが常に失敗し、それが同期全体を巻き込んで単語の進捗まで
+ * 一切保存されなくなっていた。
+ */
+export interface SyncMetaOutcome {
+  /** user_meta の読み書きに失敗した理由。成功なら null */
+  metaError: string | null;
+}
+
+function describeError(error: { message?: string } | null | undefined): string {
+  return error?.message ?? "不明なエラー";
+}
+
 export async function uploadProgress({
   stats,
   unlockedPoolSize,
   approvedAnswers,
   rejectedAnswers,
-}: UploadProgressProps): Promise<void> {
+}: UploadProgressProps): Promise<SyncMetaOutcome> {
   const user = await requireSignedInUser();
 
   const rows = buildWordStatsRows(user.id, stats);
@@ -94,7 +112,9 @@ export async function uploadProgress({
     },
     { onConflict: "user_id" },
   );
-  if (metaError) throw metaError;
+  if (metaError) console.error("user_meta upload error:", metaError);
+
+  return { metaError: metaError ? describeError(metaError) : null };
 }
 
 interface DownloadAndMergeProps {
@@ -104,7 +124,7 @@ interface DownloadAndMergeProps {
   rejectedAnswers: Record<string, string[]>;
 }
 
-export interface DownloadAndMergeResult {
+export interface DownloadAndMergeResult extends SyncMetaOutcome {
   stats: WordStat[];
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
@@ -145,6 +165,27 @@ function fetchAllWordStats(userId: string): Promise<WordStatsRow[]> {
   );
 }
 
+/**
+ * user_meta の1行から必要な値だけ取り出す。
+ *
+ * 列名を並べて select すると、列がまだ無い環境では行そのものが取れずに
+ * エラーになる。`select("*")` で受けたうえで、欠けているキーは
+ * 「未設定」として素通しできるようにここで正規化する。
+ */
+export function readRemoteMeta(row: unknown): {
+  unlockedPoolSize: number;
+  approvedAnswers: unknown;
+  rejectedAnswers: unknown;
+} {
+  const meta = (row ?? {}) as Record<string, unknown>;
+  const poolSize = Number(meta.unlocked_pool_size);
+  return {
+    unlockedPoolSize: Number.isFinite(poolSize) && poolSize > 0 ? poolSize : 0,
+    approvedAnswers: meta.approved_answers,
+    rejectedAnswers: meta.rejected_answers,
+  };
+}
+
 export async function downloadAndMerge({
   stats,
   unlockedPoolSize,
@@ -153,14 +194,17 @@ export async function downloadAndMerge({
 }: DownloadAndMergeProps): Promise<DownloadAndMergeResult> {
   const user = await requireSignedInUser();
 
+  // 単語の進捗は同期の本体。ここが取れなければ同期は成立しないので投げる。
   const remoteWords = await fetchAllWordStats(user.id);
 
-  const { data: remoteMeta, error: metaError } = await supabase
+  const { data: remoteMetaRow, error: metaError } = await supabase
     .from("user_meta")
-    .select("unlocked_pool_size, approved_answers, rejected_answers")
+    .select("*")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (metaError) throw metaError;
+  if (metaError) console.error("user_meta download error:", metaError);
+
+  const remoteMeta = readRemoteMeta(remoteMetaRow);
 
   // 移行前に保存された旧ID `w${i}` の行も安定IDへ解決してから突き合わせる。
   // 旧行は削除しない（解決は凍結スナップショット経由で恒久的に正しく、
@@ -169,17 +213,9 @@ export async function downloadAndMerge({
 
   return {
     stats: mergedStats,
-    unlockedPoolSize: Math.max(
-      unlockedPoolSize,
-      remoteMeta?.unlocked_pool_size ?? 0,
-    ),
-    approvedAnswers: mergeApprovedAnswers(
-      approvedAnswers,
-      remoteMeta?.approved_answers,
-    ),
-    rejectedAnswers: mergeRejectedAnswers(
-      rejectedAnswers,
-      remoteMeta?.rejected_answers,
-    ),
+    unlockedPoolSize: Math.max(unlockedPoolSize, remoteMeta.unlockedPoolSize),
+    approvedAnswers: mergeApprovedAnswers(approvedAnswers, remoteMeta.approvedAnswers),
+    rejectedAnswers: mergeRejectedAnswers(rejectedAnswers, remoteMeta.rejectedAnswers),
+    metaError: metaError ? describeError(metaError) : null,
   };
 }
