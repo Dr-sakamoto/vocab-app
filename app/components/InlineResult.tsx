@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import RetentionRing from "./game/RetentionRing";
+import { RETENTION_LEVELS } from "@/lib/retention";
 import { PlayEvaluation } from "@/lib/types";
 
 const AUTO_CONTINUE_SECONDS = 10;
@@ -14,7 +15,7 @@ export interface RetentionSummary {
   poolSize: number;
   /** このセットで定着済みが何語増えたか。減った場合は負の数 */
   gain: number;
-  /** 出題プールの語を定着レベル（5段階）ごとに数えたもの。添字 0 が Lv.1、4 が Lv.5 */
+  /** 出題プールの語を定着レベル（未出題＋Lv.1〜Lv.5の6段階）ごとに数えたもの。添字は level と一致 */
   levelCounts: number[];
 }
 
@@ -132,6 +133,21 @@ export default function InlineResult({
             </div>
           </div>
 
+          {/* ドーナツの色分けが何を指しているかを、実数つきの凡例として文字でも出す。
+              色の意味を色だけに頼らせない（判定色の凡例と同じ考え方）。 */}
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 px-1">
+            {RETENTION_LEVELS.map(({ level, label, color }) => (
+              <div key={level} className="flex items-center gap-1 text-[11px] text-ink-3">
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+                <span>{label}</span>
+                <span className="tabular-nums">{(levelCounts[level] ?? 0).toLocaleString()}語</span>
+              </div>
+            ))}
+          </div>
+
           {message && (
             <p className="mt-2 text-xs leading-relaxed text-ink-2">{message}</p>
           )}
@@ -149,12 +165,8 @@ export default function InlineResult({
                 key={item.label}
                 className="rounded-md bg-surface-2 px-2.5 py-1.5 text-xs text-ink-2"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span>{item.label}</span>
-                  <span className="tabular-nums text-ink-3">
-                    +{item.points.toLocaleString()} XP
-                  </span>
-                </div>
+                <div>{item.label}</div>
+                <div className="mt-0.5 text-[11px] text-ink-3">{item.detail}</div>
               </div>
             ))}
           </div>
