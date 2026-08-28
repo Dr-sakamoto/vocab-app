@@ -411,6 +411,39 @@ export default function Page() {
     setLastUnlockCount,
   ]);
 
+  // PCで問題枠（入力欄）からフォーカスが外れていてもEnterで進められるようにする。
+  // クリックでフォーカスが外れた状態や、リザルト画面（次のセットへ）でも
+  // Enterキーが効かないと操作が止まってしまうため、キー入力はウィンドウ全体で拾う。
+  useEffect(() => {
+    if (mode !== "test" || isSettingsOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || isComposing) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.("button")) return;
+
+      if (phase === "quiz") {
+        if (isCheckingAnswer) return;
+        if (checked) next();
+        else checkAnswer();
+      } else if (phase === "result") {
+        continueToNextSet();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    mode,
+    isSettingsOpen,
+    isComposing,
+    phase,
+    checked,
+    isCheckingAnswer,
+    checkAnswer,
+    next,
+    continueToNextSet,
+  ]);
+
   const handleSyncMerged = useCallback(
     (merged: {
       stats: WordStat[];
@@ -537,7 +570,6 @@ export default function Page() {
             onInputChange: setInput,
             onCompositionStart: () => setIsComposing(true),
             onCompositionEnd: () => setIsComposing(false),
-            isComposing,
             checked,
             isCorrect,
             answerStatus,

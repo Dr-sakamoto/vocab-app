@@ -9,8 +9,6 @@ export interface TypingAnswerRowProps {
   onInputChange: (value: string) => void;
   onCompositionStart: () => void;
   onCompositionEnd: () => void;
-  /** IME変換中はEnterで判定しないため、親が合成状態を握る */
-  isComposing: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
   checked: boolean;
@@ -47,7 +45,6 @@ export default function TypingAnswerRow({
   onInputChange,
   onCompositionStart,
   onCompositionEnd,
-  isComposing,
   onFocus,
   onBlur,
   checked,
@@ -84,12 +81,6 @@ export default function TypingAnswerRow({
           placeholder="日本語訳を入力..."
           aria-label="日本語訳を入力してください"
           className="answer-field w-full rounded-lg py-3.5 pl-4 pr-16 text-base outline-none disabled:opacity-50"
-          onKeyDown={(e) => {
-            if (isComposing) return;
-            if (e.key !== "Enter") return;
-            if (checked) onNext();
-            else onCheck();
-          }}
         />
         <button
           type="button"
