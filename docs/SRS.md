@@ -90,9 +90,17 @@ ease factor に当たるが、**専用の永続データは増やさず既存の
 **この変更を入れた時点では出題はまったく変わらない**。解答するたびに時刻が
 入り、数日かけて効き始める。
 
-同期先の Supabase には列を2つ足す（`supabase_setup.sql` に
-`alter table ... add column if not exists` として記載）。
-既存環境では SQL Editor で再実行が必要。
+同期先の Supabase には列を2つ足す。マイグレーションは
+`supabase/migrations/20260828011632_add_review_schedule_to_word_stats.sql`。
+**このコードをマージしたら同じタイミングで `npx supabase@latest db push` すること**
+（README の手順どおり）。コードだけ先に出ると存在しない列を要求して同期が
+止まる、というのは 8/20〜8/27 に `rejected_answers` で実際に起きている。
+
+その再発をコード側でも抑えるため、`word_stats` の取得は列名を並べず
+`select("*")` にした。`user_meta` が同じ理由で先に `select("*")` へ移って
+いるが、`word_stats` のエラーは同期全体を止める（投げる）ぶん影響が大きい。
+列が無くても取得自体は成功し、欠けた列は「復習状態を持たない語」として
+素通しされる。
 
 ### 複数端末のマージ規則
 
