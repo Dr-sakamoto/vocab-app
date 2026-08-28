@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useEffect, useRef } from "react";
+import { RefObject, useLayoutEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface TypingAnswerRowProps {
@@ -9,8 +9,6 @@ export interface TypingAnswerRowProps {
   onInputChange: (value: string) => void;
   onCompositionStart: () => void;
   onCompositionEnd: () => void;
-  /** IME変換中はEnterで判定しないため、親が合成状態を握る */
-  isComposing: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
   checked: boolean;
@@ -47,7 +45,6 @@ export default function TypingAnswerRow({
   onInputChange,
   onCompositionStart,
   onCompositionEnd,
-  isComposing,
   onFocus,
   onBlur,
   checked,
@@ -63,9 +60,10 @@ export default function TypingAnswerRow({
   const feedbackRef = useRef<HTMLDivElement | null>(null);
 
   // iPhone SEなど画面が低い端末では、キーボード表示中に判定結果が
-  // スクロール領域の下端からはみ出して隠れる。判定が出た瞬間に
-  // その要素だけをビューに収める（入力欄のフォーカスは奪わない）。
-  useEffect(() => {
+  // スクロール領域の下端からはみ出して隠れる。判定結果のDOMが確定した
+  // 描画前（ペイント前）にスクロール位置を合わせることで、隠れた状態が
+  // 一瞬でも見えてから画面がズレる、という体感上の「割り込み」を消す。
+  useLayoutEffect(() => {
     if (!checked) return;
     feedbackRef.current?.scrollIntoView({ block: "nearest" });
   }, [checked, isCorrect]);
@@ -84,12 +82,6 @@ export default function TypingAnswerRow({
           placeholder="日本語訳を入力..."
           aria-label="日本語訳を入力してください"
           className="answer-field w-full rounded-lg py-3.5 pl-4 pr-16 text-base outline-none disabled:opacity-50"
-          onKeyDown={(e) => {
-            if (isComposing) return;
-            if (e.key !== "Enter") return;
-            if (checked) onNext();
-            else onCheck();
-          }}
         />
         <button
           type="button"

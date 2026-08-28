@@ -5,7 +5,6 @@
  */
 
 import { SOUND, STORAGE_KEYS } from "./constants";
-import { touchSetting } from "./settings";
 import storage from "./storage";
 
 let audioContext: AudioContext | null = null;
@@ -16,19 +15,10 @@ export function getSoundVolume(): number {
   return soundVolume;
 }
 
-/**
- * 同期で受け取った音量を反映する。保存と変更時刻は lib/settings.ts が持つので、
- * ここではモジュールが抱えている値だけを差し替える。
- */
-export function adoptSoundVolume(volume: number): void {
-  soundVolume = Math.min(SOUND.MAX_VOLUME, Math.max(SOUND.MIN_VOLUME, volume));
-}
-
-/** ユーザー操作による変更。変更時刻を残し、他端末との合流で新しい方が勝つようにする */
 export function setSoundVolume(volume: number): void {
-  adoptSoundVolume(volume);
-  storage.set(STORAGE_KEYS.SOUND_VOLUME, soundVolume);
-  touchSetting("soundVolume");
+  const clamped = Math.min(SOUND.MAX_VOLUME, Math.max(SOUND.MIN_VOLUME, volume));
+  soundVolume = clamped;
+  storage.set(STORAGE_KEYS.SOUND_VOLUME, clamped);
 }
 
 function getAudioContext(): AudioContext | null {

@@ -7,7 +7,7 @@ import {
   mergeSettings,
   normalizeStoredSettings,
 } from "../lib/settings.js";
-import { FLASH, SOUND } from "../lib/constants.js";
+import { FLASH } from "../lib/constants.js";
 
 const T1 = Date.UTC(2026, 7, 1);
 const T2 = Date.UTC(2026, 7, 2);
@@ -38,14 +38,14 @@ test("changes to different settings on two devices both survive", () => {
     updatedAt: { flashSpeed: T1 },
   };
   const remote = {
-    values: { ...DEFAULT_SETTINGS, soundVolume: 0.2 },
-    updatedAt: { soundVolume: T2 },
+    values: { ...DEFAULT_SETTINGS, mistakeThreshold: 5 },
+    updatedAt: { mistakeThreshold: T2 },
   };
 
   const merged = mergeSettings(local, remote);
   assert.equal(merged.values.flashSpeed, 1.6);
-  assert.equal(merged.values.soundVolume, 0.2);
-  assert.deepEqual(merged.updatedAt, { flashSpeed: T1, soundVolume: T2 });
+  assert.equal(merged.values.mistakeThreshold, 5);
+  assert.deepEqual(merged.updatedAt, { flashSpeed: T1, mistakeThreshold: T2 });
 });
 
 test("a setting nobody touched stays on its default", () => {
@@ -72,8 +72,11 @@ test("the same change synced twice is stable", () => {
 });
 
 test("a tie keeps the local value", () => {
-  const merged = mergeSettings(withSetting("soundVolume", 0.1, T1), withSetting("soundVolume", 0.9, T1));
-  assert.equal(merged.values.soundVolume, 0.1);
+  const merged = mergeSettings(
+    withSetting("flashSpeed", 1.0, T1),
+    withSetting("flashSpeed", 1.9, T1),
+  );
+  assert.equal(merged.values.flashSpeed, 1.0);
 });
 
 test("merging against a missing side keeps the side that exists", () => {
@@ -86,12 +89,23 @@ test("merging against a missing side keeps the side that exists", () => {
 // ── 受け取った値の正規化 ────────────────────────────────────────────────────
 
 test("values outside the slider range are clamped, not trusted", () => {
-  assert.equal(clampSetting("soundVolume", 99), SOUND.MAX_VOLUME);
-  assert.equal(clampSetting("soundVolume", -3), SOUND.MIN_VOLUME);
   assert.equal(clampSetting("flashSpeed", 0.1), FLASH.MIN_SPEED_SEC);
   assert.equal(clampSetting("flashSpeed", 99), FLASH.MAX_SPEED_SEC);
   assert.equal(clampSetting("mistakeThreshold", 99), FLASH.MISTAKE_THRESHOLD_MAX);
   assert.equal(clampSetting("mistakeThreshold", 0), FLASH.MISTAKE_THRESHOLD_MIN);
+});
+
+test("every setting the app stores is carried by the merge", () => {
+  // 設定を1つ足したときに同期対象へ入れ忘れると、その設定だけ端末ローカルの
+  // ままになる。合流が全キーを見ることを固定する。
+  // 音量（効果音・読み上げ）は意図的に対象外なのでここには現れない。
+  const local = { values: { ...DEFAULT_SETTINGS }, updatedAt: {} };
+  const remote = {
+    values: { pronunciationEnabled: false, flashSpeed: 1.9, mistakeThreshold: 5 },
+    updatedAt: { pronunciationEnabled: T2, flashSpeed: T2, mistakeThreshold: T2 },
+  };
+
+  assert.deepEqual(mergeSettings(local, remote).values, remote.values);
 });
 
 test("the mistake threshold stays a whole number of wrong answers", () => {
@@ -99,12 +113,12 @@ test("the mistake threshold stays a whole number of wrong answers", () => {
 });
 
 test("junk values fall back to the default instead of poisoning the setting", () => {
-  assert.equal(clampSetting("soundVolume", "loud"), DEFAULT_SETTINGS.soundVolume);
+  assert.equal(clampSetting("flashSpeed", "fast"), DEFAULT_SETTINGS.flashSpeed);
   assert.equal(clampSetting("flashSpeed", null), DEFAULT_SETTINGS.flashSpeed);
   // Number(null) / Number("") は 0 になる。素通しするとスライダーの最小値に
   // 貼り付いてしまうので、数値として読めないものは既定へ倒す。
   assert.equal(clampSetting("flashSpeed", ""), DEFAULT_SETTINGS.flashSpeed);
-  assert.equal(clampSetting("soundVolume", null), DEFAULT_SETTINGS.soundVolume);
+  assert.equal(clampSetting("mistakeThreshold", null), DEFAULT_SETTINGS.mistakeThreshold);
   assert.equal(clampSetting("pronunciationEnabled", undefined), true);
   assert.equal(clampSetting("pronunciationEnabled", "yes"), false);
 });
@@ -119,14 +133,14 @@ test("a partially filled row keeps defaults for what it does not carry", () => {
   const stored = normalizeStoredSettings({ values: { flashSpeed: 1.5 }, updatedAt: { flashSpeed: T1 } });
 
   assert.equal(stored.values.flashSpeed, 1.5);
-  assert.equal(stored.values.soundVolume, DEFAULT_SETTINGS.soundVolume);
+  assert.equal(stored.values.mistakeThreshold, DEFAULT_SETTINGS.mistakeThreshold);
   assert.deepEqual(stored.updatedAt, { flashSpeed: T1 });
 });
 
 test("broken timestamps are dropped rather than treated as very old or very new", () => {
   const stored = normalizeStoredSettings({
     values: { flashSpeed: 1.5 },
-    updatedAt: { flashSpeed: "yesterday", soundVolume: -1 },
+    updatedAt: { flashSpeed: "yesterday", mistakeThreshold: -1 },
   });
 
   assert.deepEqual(stored.updatedAt, {});

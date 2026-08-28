@@ -1,4 +1,4 @@
-import { FLASH, SOUND, STORAGE_KEYS } from "./constants";
+import { FLASH, STORAGE_KEYS } from "./constants";
 import storage from "./storage";
 
 /**
@@ -6,11 +6,13 @@ import storage from "./storage";
  *
  * 単語の進捗と違い、これらは「どちらが多いか」で合流できない。苦手フラッシュの
  * しきい値だけは出題範囲そのものを決めるので、端末ごとに違うと同じ苦手データでも
- * 出てくる単語が変わってしまう。残り3つは純粋な好みだが、置き場所と合流規則が
+ * 出てくる単語が変わってしまう。残り2つは純粋な好みだが、置き場所と合流規則が
  * 同じなのでまとめて扱う。
+ *
+ * 音量（効果音・読み上げ）は意図的に対象外。PCのスピーカーと外出先のスマホでは
+ * 適切な大きさが違い、端末ごとに決まっているべき設定なので同期しない。
  */
 export interface AppSettings {
-  soundVolume: number;
   pronunciationEnabled: boolean;
   flashSpeed: number;
   mistakeThreshold: number;
@@ -19,14 +21,12 @@ export interface AppSettings {
 export type SettingKey = keyof AppSettings;
 
 export const SETTING_KEYS: SettingKey[] = [
-  "soundVolume",
   "pronunciationEnabled",
   "flashSpeed",
   "mistakeThreshold",
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  soundVolume: SOUND.DEFAULT_VOLUME,
   pronunciationEnabled: true,
   flashSpeed: FLASH.DEFAULT_SPEED_SEC,
   mistakeThreshold: FLASH.MISTAKE_THRESHOLD_DEFAULT,
@@ -35,9 +35,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
 /**
  * 同期する形。値と、項目ごとの最終変更時刻（epoch ミリ秒）を持つ。
  *
- * 時刻を設定ごとに持つのは、まとめて1つにすると「スマホで速度を変え、PCで
- * 音量を変えた」ときに後から同期した方の変更だけが残り、もう片方が黙って
- * 巻き戻るため。項目ごとなら両方の変更が残る。
+ * 時刻を設定ごとに持つのは、まとめて1つにすると「スマホでフラッシュ速度を変え、
+ * PCで苦手のしきい値を変えた」ときに後から同期した方の変更だけが残り、もう
+ * 片方が黙って巻き戻るため。項目ごとなら両方の変更が残る。
  * 一度も触っていない設定は時刻を持たない（＝相手が触っていれば必ず負ける）。
  */
 export interface StoredSettings {
@@ -61,13 +61,6 @@ function clampNumber(value: unknown, min: number, max: number, fallback: number)
 /** 保存値・同期で受け取った値を、その設定が取りうる範囲へ丸める */
 export function clampSetting<K extends SettingKey>(key: K, value: unknown): AppSettings[K] {
   switch (key) {
-    case "soundVolume":
-      return clampNumber(
-        value,
-        SOUND.MIN_VOLUME,
-        SOUND.MAX_VOLUME,
-        DEFAULT_SETTINGS.soundVolume,
-      ) as AppSettings[K];
     case "flashSpeed":
       return clampNumber(
         value,
@@ -152,7 +145,6 @@ export function readStoredSettings(): StoredSettings {
   return (
     normalizeStoredSettings({
       values: {
-        soundVolume: storage.get(STORAGE_KEYS.SOUND_VOLUME, DEFAULT_SETTINGS.soundVolume),
         pronunciationEnabled: storage.get(
           STORAGE_KEYS.PRONUNCIATION_ENABLED,
           DEFAULT_SETTINGS.pronunciationEnabled,
@@ -170,7 +162,6 @@ export function readStoredSettings(): StoredSettings {
 
 /** 合流後の設定を localStorage へ書き戻す */
 export function writeStoredSettings(settings: StoredSettings): void {
-  storage.set(STORAGE_KEYS.SOUND_VOLUME, settings.values.soundVolume);
   storage.set(STORAGE_KEYS.PRONUNCIATION_ENABLED, settings.values.pronunciationEnabled);
   storage.set(STORAGE_KEYS.FLASH_SPEED, settings.values.flashSpeed);
   storage.set(STORAGE_KEYS.MISTAKE_THRESHOLD, settings.values.mistakeThreshold);
