@@ -14,7 +14,6 @@ import {
 } from "@/lib/sync";
 import { createSyncRunner } from "@/lib/syncRunner";
 import { StoredFlashProgress } from "@/lib/flashWeight";
-import { readStoredSettings, writeStoredSettings } from "@/lib/settings";
 import { StreakState } from "@/lib/streak";
 import { STORAGE_KEYS } from "@/lib/constants";
 import storage from "@/lib/storage";
@@ -128,15 +127,7 @@ export function useCloudSync({
       // 前回アップロードし終えた回数。ここからの増分だけを足すことで、
       // 2端末で並行して解いたぶんが片方に丸められずに合流する。
       const syncBase = storage.get<unknown>(STORAGE_KEYS.SYNC_BASE, null);
-      // 設定もフラッシュ進捗と同じく localStorage が置き場所。同期の直前に
-      // 読み、合流結果を書き戻す。
-      const settings = readStoredSettings();
-      const merged = await downloadAndMerge({
-        ...snapshotRef.current,
-        flashProgress,
-        syncBase,
-        settings,
-      });
+      const merged = await downloadAndMerge({ ...snapshotRef.current, flashProgress, syncBase });
       const uploaded = await uploadProgress(merged);
       // 基準点の更新はアップロードが通ったあと。失敗時に進めてしまうと、
       // リモートが受け取っていない回数を「同期済み」と見なして次回の増分から
@@ -145,7 +136,6 @@ export function useCloudSync({
       if (merged.flashProgress) {
         storage.set(STORAGE_KEYS.FLASH_PROGRESS, merged.flashProgress);
       }
-      if (merged.settings) writeStoredSettings(merged.settings);
       onMergedRef.current(merged);
       setStatus("done");
       // 単語の進捗（word_stats）は通ったが user_meta が通らなかった場合は、

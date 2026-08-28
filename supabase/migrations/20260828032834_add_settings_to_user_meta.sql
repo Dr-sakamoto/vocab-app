@@ -1,13 +1,11 @@
--- 端末ローカルに取り残されていた設定をクラウド同期の対象に加える。
+-- 設定（苦手のしきい値・フラッシュ速度・発音のオンオフ）を同期するために
+-- 足した列。本番へ適用済み。
 --
--- settings … { values: { soundVolume, pronunciationEnabled, flashSpeed,
---              mistakeThreshold }, updatedAt: { 項目ごとの最終変更時刻 } }
---              （lib/settings.ts）
+-- その後、これらの設定は端末ごとに決まっているべきという判断で同期をやめた
+-- （音量と同じ理由。PCと外出先のスマホで適切な値が違う）。アプリはこの列を
+-- 読み書きしない。
 --
--- とくに mistakeThreshold は苦手フラッシュの出題範囲そのものを決めるため、
--- 端末ごとに違うと同じ苦手データでも出てくる単語が変わっていた。
---
--- 「未設定」と「空」を区別したいので、daily_streak / flash_progress と同じく
--- null 許容にする（列を持たない端末＝まだ一度も設定を同期していない、として
--- クライアントが既定値に倒す）。
+-- 適用済みの履歴（supabase_migrations.schema_migrations）と食い違わせないため
+-- ファイルは残し、列も drop しない。ベースラインの旧・モンスター収集の列と
+-- 同じ扱い。null 許容の jsonb 1本なので、置いておく費用はない。
 alter table user_meta add column if not exists settings jsonb;

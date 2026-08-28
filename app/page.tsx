@@ -10,7 +10,6 @@ import { useVocabPool } from "./hooks/useVocabPool";
 import { useClickSound } from "./hooks/useClickSound";
 import { getSoundVolume, setSoundVolume } from "@/lib/clickSound";
 import {
-  adoptPronunciationEnabled,
   isPronunciationEnabled,
   setPronunciationEnabled,
   getPronunciationVolume,
@@ -30,7 +29,6 @@ import {
 } from "@/lib/wordProgress";
 import { countRetained, countRetentionGain, countRetentionLevels } from "@/lib/retention";
 import { GAME, STORAGE_KEYS, FLASH, SOUND } from "@/lib/constants";
-import { StoredSettings, touchSetting } from "@/lib/settings";
 import {
   EMPTY_STREAK,
   StreakState,
@@ -209,7 +207,6 @@ export default function Page() {
     const clamped = Math.min(FLASH.MAX_SPEED_SEC, Math.max(FLASH.MIN_SPEED_SEC, value));
     setFlashSpeedState(clamped);
     storage.set(STORAGE_KEYS.FLASH_SPEED, clamped);
-    touchSetting("flashSpeed");
   }, []);
 
   const handleMistakeThresholdChange = useCallback((value: number) => {
@@ -219,7 +216,6 @@ export default function Page() {
     );
     setMistakeThresholdState(clamped);
     storage.set(STORAGE_KEYS.MISTAKE_THRESHOLD, clamped);
-    touchSetting("mistakeThreshold");
   }, []);
 
   // フラッシュモードもストリーク対象の学習時間として扱う
@@ -455,7 +451,6 @@ export default function Page() {
       approvedAnswers: Record<string, string[]>;
       rejectedAnswers: Record<string, string[]>;
       dailyStreak: StreakState;
-      settings: StoredSettings | null;
     }) => {
       setStats(merged.stats);
       setUnlockedPoolSize(merged.unlockedPoolSize);
@@ -463,16 +458,6 @@ export default function Page() {
       setRejectedAnswers(merged.rejectedAnswers);
       setDailyStreak(merged.dailyStreak);
       storage.set(STORAGE_KEYS.STREAK, merged.dailyStreak);
-      // 合流後の設定を画面と各モジュールへ反映する。保存は useCloudSync が
-      // 済ませているので、ここでは変更時刻を触らない adopt 側を呼ぶ。
-      // 音量は同期対象外なので、この端末の値をそのまま残す。
-      if (merged.settings) {
-        const values = merged.settings.values;
-        adoptPronunciationEnabled(values.pronunciationEnabled);
-        setPronunciationEnabledState(values.pronunciationEnabled);
-        setFlashSpeedState(values.flashSpeed);
-        setMistakeThresholdState(values.mistakeThreshold);
-      }
       try {
         localStorage.setItem(
           APPROVED_ANSWERS_KEY,
