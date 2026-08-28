@@ -124,8 +124,15 @@ export function useCloudSync({
         STORAGE_KEYS.FLASH_PROGRESS,
         null,
       );
-      const merged = await downloadAndMerge({ ...snapshotRef.current, flashProgress });
+      // 前回アップロードし終えた回数。ここからの増分だけを足すことで、
+      // 2端末で並行して解いたぶんが片方に丸められずに合流する。
+      const syncBase = storage.get<unknown>(STORAGE_KEYS.SYNC_BASE, null);
+      const merged = await downloadAndMerge({ ...snapshotRef.current, flashProgress, syncBase });
       const uploaded = await uploadProgress(merged);
+      // 基準点の更新はアップロードが通ったあと。失敗時に進めてしまうと、
+      // リモートが受け取っていない回数を「同期済み」と見なして次回の増分から
+      // 取りこぼす。
+      storage.set(STORAGE_KEYS.SYNC_BASE, uploaded.syncBase);
       if (merged.flashProgress) {
         storage.set(STORAGE_KEYS.FLASH_PROGRESS, merged.flashProgress);
       }

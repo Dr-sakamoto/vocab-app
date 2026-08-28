@@ -60,6 +60,59 @@ function mergeInto(map: Map<string, WordStat>, id: string, stat: WordStat): void
   map.set(id, existing ? mergeWordStats(existing, stat) : stat);
 }
 
+/** 前回の同期でアップロードし終えた回数（＝両端末が共有していた基準点） */
+export interface SyncBaseEntry {
+  correct: number;
+  wrong: number;
+}
+export type SyncBase = Map<string, SyncBaseEntry>;
+
+/**
+ * 2端末それぞれで進んだぶんを、基準点からの増分として足し合わせる。
+ *
+ * 回数を単純に max で畳むと、同じ語を両方の端末で解いた分がまるごと
+ * 消える。端末A `(3,1)`・端末B `(2,4)` の合流結果は `(3,4)` で、実際に
+ * 解いた `(5,5)` にならない。かといって単純な加算もできない。同期は
+ * 「ダウンロード→マージ→アップロード」を毎回まわす全量同期で、ローカルは
+ * 前回取り込んだリモートの値をすでに含んでいるため、同じ解答を同期の
+ * たびに二重計上してしまう。
+ *
+ * そこで前回の同期時点の値（base）を端末に控えておき、そこからの増分だけを
+ * 足す。base を持たない語（この仕組みより前のデータ、初回同期）は従来どおり
+ * max に倒すので、導入した時点で回数が水増しされることはない。
+ *
+ * 基準点は `min(base, local, remote)` まで下げる。リモートの行が消えた・
+ * 古いバックアップから復元したといった理由で値が base を下回った場合でも、
+ * 増分が負にならず、進捗が巻き戻らない。
+ */
+function mergeCount(local: number, remote: number, base: number | undefined): number {
+  if (base === undefined) return Math.max(local, remote);
+  const anchor = Math.min(base, local, remote);
+  return anchor + (local - anchor) + (remote - anchor);
+}
+
+/**
+ * ローカルとリモートの統計を合流させる。
+ *
+ * 回数は base からの増分の和（base を持たない語は大きい方）。分散学習の
+ * 状態は組で1つの意味を持つので、mergeWordStats と同じく時刻の新しい側を
+ * まるごと採る。
+ */
+export function mergeWordStatsFromBase(
+  local: WordStat,
+  remote: WordStat,
+  base: SyncBaseEntry | undefined,
+): WordStat {
+  const newer = (remote.lastAnswered ?? 0) >= (local.lastAnswered ?? 0) ? remote : local;
+  return {
+    correct: mergeCount(local.correct, remote.correct, base?.correct),
+    wrong: mergeCount(local.wrong, remote.wrong, base?.wrong),
+    ...(newer.lastAnswered !== undefined
+      ? { lastAnswered: newer.lastAnswered, correctStreak: newer.correctStreak ?? 0 }
+      : {}),
+  };
+}
+
 /**
  * localStorage に保存された進捗を「安定ID → 統計」の形へ移行する。
  *
@@ -190,6 +243,7 @@ export function mergeRemoteWordStats(
   ids: string[],
   localStats: WordStat[],
   remoteRows: RemoteWordStatRow[] | null | undefined,
+  base: SyncBase = new Map(),
 ): WordStat[] {
   const remoteById = new Map<string, WordStat>();
   for (const row of remoteRows ?? []) {
@@ -206,6 +260,54 @@ export function mergeRemoteWordStats(
   return ids.map((id, i) => {
     const local = localStats[i] ?? ZERO;
     const remote = remoteById.get(id);
-    return remote ? mergeWordStats(local, remote) : { ...local };
+    // リモートに行が無い語はローカルをそのまま残す。行の無さは「0回」では
+    // なく「まだ載っていない」なので、base からの増分を計算してはいけない。
+    return remote ? mergeWordStatsFromBase(local, remote, base.get(id)) : { ...local };
   });
+}
+
+/**
+ * 同期の基準点を localStorage の保存形から読む。
+ *
+ * 形は `{ userId, words: { "severe:adjective": [correct, wrong] } }`。
+ * ユーザーが変わったら（共用端末での入れ替わり）別人の基準点で増分を
+ * 数えないよう、まるごと捨てて「base なし＝max」から数え直す。
+ */
+export function readSyncBase(raw: unknown, userId: string): SyncBase {
+  const base: SyncBase = new Map();
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
+
+  const stored = raw as { userId?: unknown; words?: unknown };
+  if (stored.userId !== userId) return base;
+  if (!stored.words || typeof stored.words !== "object" || Array.isArray(stored.words)) return base;
+
+  for (const [rawId, pair] of Object.entries(stored.words as Record<string, unknown>)) {
+    if (!Array.isArray(pair) || pair.length < 2) continue;
+    const resolved = resolveWordId(rawId);
+    if (resolved === null) continue;
+    base.set(resolved, { correct: toSafeCount(pair[0]), wrong: toSafeCount(pair[1]) });
+  }
+  return base;
+}
+
+/**
+ * アップロードし終えた統計を次回の基準点として保存できる形にする。
+ *
+ * 未挑戦の語（correct/wrong ともに0）は buildWordStatsRows がアップロード
+ * から外すのと同じ理由で持たない。base を持たない語は max に倒れるだけで、
+ * 0 回どうしの合流は結果が変わらない。
+ */
+export function buildSyncBase(
+  userId: string,
+  ids: string[],
+  stats: WordStat[],
+): { userId: string; words: Record<string, [number, number]> } {
+  const words: Record<string, [number, number]> = {};
+  ids.forEach((id, i) => {
+    const correct = stats[i]?.correct ?? 0;
+    const wrong = stats[i]?.wrong ?? 0;
+    if (correct === 0 && wrong === 0) return;
+    words[id] = [correct, wrong];
+  });
+  return { userId, words };
 }
