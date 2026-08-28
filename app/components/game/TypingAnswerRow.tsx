@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useEffect, useRef } from "react";
+import { RefObject, useLayoutEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface TypingAnswerRowProps {
@@ -63,9 +63,10 @@ export default function TypingAnswerRow({
   const feedbackRef = useRef<HTMLDivElement | null>(null);
 
   // iPhone SEなど画面が低い端末では、キーボード表示中に判定結果が
-  // スクロール領域の下端からはみ出して隠れる。判定が出た瞬間に
-  // その要素だけをビューに収める（入力欄のフォーカスは奪わない）。
-  useEffect(() => {
+  // スクロール領域の下端からはみ出して隠れる。判定結果のDOMが確定した
+  // 描画前（ペイント前）にスクロール位置を合わせることで、隠れた状態が
+  // 一瞬でも見えてから画面がズレる、という体感上の「割り込み」を消す。
+  useLayoutEffect(() => {
     if (!checked) return;
     feedbackRef.current?.scrollIntoView({ block: "nearest" });
   }, [checked, isCorrect]);
