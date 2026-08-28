@@ -146,6 +146,7 @@ test("コアループ画面に生の16進カラーが残っていない（トー
     "../app/components/game/StudyScreen.tsx",
     "../app/components/game/QuestionCard.tsx",
     "../app/components/game/TypingAnswerRow.tsx",
+    "../app/components/game/RetentionRing.tsx",
     "../app/components/flash/FlashScreen.tsx",
     "../app/components/InlineResult.tsx",
     "../app/components/ModeTabs.tsx",

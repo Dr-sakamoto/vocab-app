@@ -8,7 +8,7 @@ interface ModeTabsProps {
 }
 
 /**
- * テスト／フラッシュの切り替え。
+ * テスト／新規フラッシュ／苦手フラッシュの切り替え。
  * 問題ごとではなくセッション開始時に1回選ぶだけなので、コアループへの
  * 割り込みにはならない。
  */
@@ -19,7 +19,7 @@ export default function ModeTabs({ mode, onChange }: ModeTabsProps) {
         type="button"
         onClick={() => onChange("test")}
         aria-pressed={mode === "test"}
-        className={`min-h-8 rounded-full px-4 py-1.5 transition ${
+        className={`min-h-8 rounded-full px-3 py-1.5 transition ${
           mode === "test" ? "bg-line text-ink-1"
             : "text-ink-3 hover:text-ink-2"
         }`}
@@ -30,18 +30,18 @@ export default function ModeTabs({ mode, onChange }: ModeTabsProps) {
         type="button"
         onClick={() => onChange("flash")}
         aria-pressed={mode === "flash"}
-        className={`min-h-8 rounded-full px-4 py-1.5 transition ${
+        className={`min-h-8 rounded-full px-3 py-1.5 transition ${
           mode === "flash" ? "bg-line text-ink-1"
             : "text-ink-3 hover:text-ink-2"
         }`}
       >
-        フラッシュ
+        新規フラッシュ
       </button>
       <button
         type="button"
         onClick={() => onChange("mistakeFlash")}
         aria-pressed={mode === "mistakeFlash"}
-        className={`min-h-8 rounded-full px-4 py-1.5 transition ${
+        className={`min-h-8 rounded-full px-3 py-1.5 transition ${
           mode === "mistakeFlash" ? "bg-line text-ink-1"
             : "text-ink-3 hover:text-ink-2"
         }`}

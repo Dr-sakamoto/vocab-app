@@ -1,7 +1,12 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { VOCAB_IDS } from "./vocab";
-import { mergeApprovedAnswers, mergeRejectedAnswers, mergeRemoteWordStats } from "./wordProgress";
+import {
+  mergeApprovedAnswers,
+  mergeRejectedAnswers,
+  mergeRemoteWordStats,
+  RemoteWordStatRow,
+} from "./wordProgress";
 import { StreakState, mergeStreaks } from "./streak";
 import { StoredFlashProgress, mergeStoredFlashProgress } from "./flashWeight";
 import { WordStat } from "./types";
@@ -57,18 +62,42 @@ interface UploadProgressProps {
   flashProgress: StoredFlashProgress | null;
 }
 
+export interface WordStatsUploadRow {
+  user_id: string;
+  word_id: string;
+  correct: number;
+  wrong: number;
+  /** 分散学習の最終解答時刻。まだ解答時刻を持たない語は null */
+  last_answered: string | null;
+  correct_streak: number;
+}
+
 // 未挑戦の単語（correct/wrongともに0）はDB側で行が存在しないのと同義
 // （downloadAndMergeが欠損行を {correct:0, wrong:0} として扱う）ため、
 // アップロード対象から除外して行数を抑える。
 export function buildWordStatsRows(
   userId: string,
   stats: WordStat[],
-): { user_id: string; word_id: string; correct: number; wrong: number }[] {
+): WordStatsUploadRow[] {
   return VOCAB_IDS.flatMap((id, i) => {
-    const correct = stats[i]?.correct ?? 0;
-    const wrong = stats[i]?.wrong ?? 0;
+    const stat = stats[i];
+    const correct = stat?.correct ?? 0;
+    const wrong = stat?.wrong ?? 0;
     if (correct === 0 && wrong === 0) return [];
-    return [{ user_id: userId, word_id: id, correct, wrong }];
+    const lastAnswered = stat?.lastAnswered;
+    return [
+      {
+        user_id: userId,
+        word_id: id,
+        correct,
+        wrong,
+        last_answered:
+          typeof lastAnswered === "number" && Number.isFinite(lastAnswered)
+            ? new Date(lastAnswered).toISOString()
+            : null,
+        correct_streak: Math.max(0, Math.floor(stat?.correctStreak ?? 0)),
+      },
+    ];
   });
 }
 
@@ -147,7 +176,7 @@ export interface DownloadAndMergeResult extends SyncMetaOutcome {
 // 挑戦済み語数がそれを超えるユーザーの分を取りこぼさないようページングする。
 export const WORD_STATS_PAGE_SIZE = 1000;
 
-type WordStatsRow = { word_id: string; correct: number; wrong: number };
+type WordStatsRow = RemoteWordStatRow;
 type FetchWordStatsPage = (
   from: number,
   to: number,
@@ -171,7 +200,12 @@ function fetchAllWordStats(userId: string): Promise<WordStatsRow[]> {
   return fetchAllPages(async (from, to) =>
     supabase
       .from("word_stats")
-      .select("word_id, correct, wrong")
+      // user_meta と同じ理由で列名を並べない。列がまだ無い環境では
+      // 列挙した select が行ごと取れずにエラーになる（rejected_answers を
+      // 流し忘れていた期間に実際に起きた）。word_stats のエラーは
+      // user_meta と違って同期全体を止めるので、なおさら列名に縛らない。
+      // 欠けている列は mergeRemoteWordStats 側が「未設定」として素通しする。
+      .select("*")
       .eq("user_id", userId)
       .range(from, to),
   );

@@ -22,6 +22,7 @@ import {
   migrateApprovedAnswers,
   migrateRejectedAnswers,
 } from "@/lib/wordProgress";
+import { countRetained, countRetentionGain } from "@/lib/retention";
 import { GAME, STORAGE_KEYS, FLASH, SOUND } from "@/lib/constants";
 import {
   EMPTY_STREAK,
@@ -294,6 +295,10 @@ export default function Page() {
         target: v.target,
         correct: stats[i]?.correct ?? 0,
         wrong: stats[i]?.wrong ?? 0,
+        // 分散学習の状態。まだ解答していない語では undefined になり、
+        // JSON.stringify がキーごと落とすので保存量は増えない。
+        lastAnswered: stats[i]?.lastAnswered,
+        correctStreak: stats[i]?.correctStreak,
       })),
     );
   }, [stats]);
@@ -447,6 +452,19 @@ export default function Page() {
   useVisualViewportVars();
 
   const currentTier = useMemo(() => getPoolTier(unlockedPoolSize), [unlockedPoolSize]);
+
+  /**
+   * 定着ドーナツの中身。新しい保存データは持たず、既存の correct/wrong 統計と
+   * そのセットの回答だけから出す（＝同期済みのデータだけで完結する）。
+   */
+  const retention = useMemo(
+    () => ({
+      retained: countRetained(unlockedIndices, stats),
+      poolSize: unlockedIndices.length,
+      gain: countRetentionGain(gameSessionAnswers),
+    }),
+    [unlockedIndices, stats, gameSessionAnswers],
+  );
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
   const progressPct = Math.max(0, Math.min(100, (total / GAME.PLAY_LIMIT) * 100));
 
@@ -520,6 +538,7 @@ export default function Page() {
           result={{
             evaluation: resultEvaluation,
             unlockedThisRun: lastUnlockCount,
+            retention,
             onContinue: continueToNextSet,
           }}
           onOpenSettings={() => setIsSettingsOpen(true)}

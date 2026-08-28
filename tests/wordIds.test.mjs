@@ -273,3 +273,111 @@ test("mergeRejectedAnswers unions local and remote answers per word", () => {
 
   assert.deepEqual(merged[LEGACY_WORD_ID_ORDER[0]], ["やさしい", "緩い"]);
 });
+
+// ── 分散学習の状態（最終解答時刻・連続正解数）の持ち回り ────────────────────
+
+test("remote review state is restored from timestamptz columns", () => {
+  const answeredAt = "2026-01-15T12:00:00.000Z";
+  const merged = mergeRemoteWordStats(VOCAB_IDS, [], [
+    { word_id: VOCAB_IDS[4], correct: 6, wrong: 1, last_answered: answeredAt, correct_streak: 3 },
+  ]);
+
+  assert.deepEqual(merged[4], {
+    correct: 6,
+    wrong: 1,
+    lastAnswered: Date.parse(answeredAt),
+    correctStreak: 3,
+  });
+});
+
+test("rows written before the review columns existed carry no review state", () => {
+  // 列を追加する前に書かれた行は last_answered が null。余計なキーを生やさず、
+  // 「時刻を持たない＝従来通りの重み付け」のまま残す。
+  const merged = mergeRemoteWordStats(VOCAB_IDS, [], [
+    { word_id: VOCAB_IDS[4], correct: 6, wrong: 1, last_answered: null, correct_streak: 0 },
+  ]);
+  assert.deepEqual(merged[4], { correct: 6, wrong: 1 });
+});
+
+test("review state is merged as a pair, taking the more recent device whole", () => {
+  // 項目ごとに max を採ると「端末Aの時刻と端末Bの連続正解数」という
+  // 存在しなかった状態が生まれる。時刻の新しい側をまるごと採る。
+  const older = Date.UTC(2026, 0, 10);
+  const newer = Date.UTC(2026, 0, 20);
+  const local = hydrateStats(VOCAB_ITEMS, new Map());
+  local[4] = { correct: 9, wrong: 0, lastAnswered: newer, correctStreak: 1 };
+
+  const merged = mergeRemoteWordStats(VOCAB_IDS, local, [
+    {
+      word_id: VOCAB_IDS[4],
+      correct: 4,
+      wrong: 2,
+      last_answered: new Date(older).toISOString(),
+      correct_streak: 7,
+    },
+  ]);
+
+  // 回数は従来通り大きい方、復習状態は新しい端末（ローカル）の組がそのまま
+  assert.deepEqual(merged[4], {
+    correct: 9,
+    wrong: 2,
+    lastAnswered: newer,
+    correctStreak: 1,
+  });
+});
+
+test("a device that only has the older review state does not lose its counts", () => {
+  const older = Date.UTC(2026, 0, 10);
+  const newer = Date.UTC(2026, 0, 20);
+  const local = hydrateStats(VOCAB_ITEMS, new Map());
+  local[4] = { correct: 9, wrong: 0, lastAnswered: older, correctStreak: 5 };
+
+  const merged = mergeRemoteWordStats(VOCAB_IDS, local, [
+    {
+      word_id: VOCAB_IDS[4],
+      correct: 4,
+      wrong: 2,
+      last_answered: new Date(newer).toISOString(),
+      correct_streak: 1,
+    },
+  ]);
+
+  assert.deepEqual(merged[4], {
+    correct: 9,
+    wrong: 2,
+    lastAnswered: newer,
+    correctStreak: 1,
+  });
+});
+
+test("stored local progress round-trips the review state", () => {
+  const answeredAt = Date.UTC(2026, 0, 15);
+  const map = buildStatsMapFromStoredProgress([
+    {
+      id: VOCAB_IDS[2],
+      target: VOCAB_ITEMS[2].target,
+      correct: 3,
+      wrong: 1,
+      lastAnswered: answeredAt,
+      correctStreak: 2,
+    },
+    // この機能より前に保存されたレコード
+    { id: VOCAB_IDS[3], target: VOCAB_ITEMS[3].target, correct: 1, wrong: 0 },
+  ]);
+  const stats = hydrateStats(VOCAB_ITEMS, map);
+
+  assert.deepEqual(stats[2], {
+    correct: 3,
+    wrong: 1,
+    lastAnswered: answeredAt,
+    correctStreak: 2,
+  });
+  assert.deepEqual(stats[3], { correct: 1, wrong: 0 });
+});
+
+test("a broken review timestamp falls back to no review state", () => {
+  const map = buildStatsMapFromStoredProgress([
+    { id: VOCAB_IDS[2], correct: 3, wrong: 1, lastAnswered: "こわれた値", correctStreak: 2 },
+  ]);
+  assert.deepEqual(hydrateStats(VOCAB_ITEMS, map)[2], { correct: 3, wrong: 1 });
+});
