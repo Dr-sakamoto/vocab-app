@@ -1,5 +1,6 @@
 import { QUESTIONS as basic } from "./basic";
 import { QUESTIONS as advanced } from "./advanced";
+import { COLLOCATIONS } from "./collocations";
 import { DIFFICULTY_ORDER } from "./difficultyOrder";
 import { LEGACY_WORD_ID_ORDER } from "./legacyWordIds";
 import { parseLegacyWordId, toWordId } from "./wordId";
@@ -7,11 +8,18 @@ import { VocabItem } from "../types";
 
 export const QUESTIONS: Omit<VocabItem, "id">[] = [...basic, ...advanced];
 
-/** 出題される全単語。ID は配列順ではなく target + 品詞から決まる */
-export const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q) => ({
-  ...q,
-  id: toWordId(q.target, q.partOfSpeech),
-}));
+/**
+ * 出題される全単語。ID は配列順ではなく target + 品詞から決まる。
+ *
+ * 句動詞のコロケーションはIDを決めたあとに付ける。目的語をIDの材料にすると
+ * `take in` に目的語を足した時点でIDが変わり、既存ユーザーの正誤統計が
+ * その語から切り離されてしまう。
+ */
+export const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q) => {
+  const id = toWordId(q.target, q.partOfSpeech);
+  const collocation = COLLOCATIONS[id];
+  return collocation ? { ...q, id, collocation } : { ...q, id };
+});
 
 export const VOCAB_IDS: string[] = VOCAB_ITEMS.map((item) => item.id);
 
@@ -67,3 +75,4 @@ export function resolveWordId(rawId: string): string | null {
 }
 
 export { toWordId } from "./wordId";
+export { COLLOCATIONS } from "./collocations";

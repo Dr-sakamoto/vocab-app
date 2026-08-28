@@ -577,6 +577,7 @@ export default function Page() {
             questionKey: index,
             partOfSpeech: getPartOfSpeech(q),
             word: q.target,
+            collocation: q.collocation,
             onSkip: checked ? undefined : giveUp,
             skipDisabled: isCheckingAnswer,
           }}

@@ -9,6 +9,11 @@ export interface QuestionCardProps {
   questionKey: number | string;
   partOfSpeech: string;
   word: string;
+  /**
+   * 句動詞の意味を固定する頻出の目的語。`take in` に対する `nutrients` など。
+   * 単語の後ろに `[ ]` で添える。訳す対象ではないことを括弧で示す。
+   */
+  collocation?: string;
   /** スマホは余白を絞る */
   dense?: boolean;
   /** 未回答のときだけ表示する「わからない」ボタンの押下時 */
@@ -28,20 +33,27 @@ export interface QuestionCardProps {
  *   詰まった字間は文字同士の混雑（crowding）で不利になる。
  * - 補助要素（品詞・読み上げ・わからない）はすべて無彩色。彩度を持つのは
  *   ユーザーが次に取るべき行動だけにする。
+ * - 目的語は単語より小さく淡くする。answers に答えるべきなのは句動詞のほうで、
+ *   目的語は意味を絞り込むためのアンカーでしかない。
  */
 export default function QuestionCard({
   questionKey,
   partOfSpeech,
   word,
+  collocation,
   dense = false,
   onSkip,
   skipDisabled = false,
 }: QuestionCardProps) {
+  // 目的語まで含めて読み上げる。チャンクごと音で覚えるほうが、
+  // 句動詞単体で覚えるより意味の想起が速い。
+  const spokenText = collocation ? `${word} ${collocation}` : word;
+
   // 問題が切り替わったら新しい単語を自動で読み上げ、次に切り替わる時に止める
   useEffect(() => {
-    speakEnglishWord(word);
+    speakEnglishWord(spokenText);
     return () => stopSpeaking();
-  }, [questionKey, word]);
+  }, [questionKey, spokenText]);
 
   return (
     <div
@@ -62,7 +74,7 @@ export default function QuestionCard({
       )}
       <button
         type="button"
-        onClick={() => speakEnglishWord(word)}
+        onClick={() => speakEnglishWord(spokenText)}
         aria-label="英単語を読み上げる"
         className="absolute right-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition hover:bg-surface-2 hover:text-ink-2"
       >
@@ -97,6 +109,15 @@ export default function QuestionCard({
           }`}
         >
           {word}
+          {collocation && (
+            <span
+              className={`ml-2 inline-block text-ink-3 ${
+                dense ? "text-lg" : "text-lg sm:text-2xl"
+              }`}
+            >
+              [{collocation}]
+            </span>
+          )}
         </div>
       </motion.div>
     </div>
