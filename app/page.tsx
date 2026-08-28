@@ -21,6 +21,7 @@ import {
   migrateApprovedAnswers,
   migrateRejectedAnswers,
 } from "@/lib/wordProgress";
+import { countRetained, countRetentionGain } from "@/lib/retention";
 import { GAME, STORAGE_KEYS, FLASH } from "@/lib/constants";
 import {
   EMPTY_STREAK,
@@ -415,6 +416,19 @@ export default function Page() {
   useVisualViewportVars();
 
   const currentTier = useMemo(() => getPoolTier(unlockedPoolSize), [unlockedPoolSize]);
+
+  /**
+   * 定着ドーナツの中身。新しい保存データは持たず、既存の correct/wrong 統計と
+   * そのセットの回答だけから出す（＝同期済みのデータだけで完結する）。
+   */
+  const retention = useMemo(
+    () => ({
+      retained: countRetained(unlockedIndices, stats),
+      poolSize: unlockedIndices.length,
+      gain: countRetentionGain(gameSessionAnswers),
+    }),
+    [unlockedIndices, stats, gameSessionAnswers],
+  );
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
   const progressPct = Math.max(0, Math.min(100, (total / GAME.PLAY_LIMIT) * 100));
 
@@ -488,6 +502,7 @@ export default function Page() {
           result={{
             evaluation: resultEvaluation,
             unlockedThisRun: lastUnlockCount,
+            retention,
             onContinue: continueToNextSet,
           }}
           onOpenSettings={() => setIsSettingsOpen(true)}
