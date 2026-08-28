@@ -592,9 +592,9 @@ export default function Page() {
       )}
 
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-line bg-surface-1 p-4 shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-black/60 p-4">
+          <div className="my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-line bg-surface-1 p-4 shadow-xl">
+            <div className="sticky -top-4 -mt-4 mb-3 flex items-center justify-between bg-surface-1 pt-4">
               <h2 className="text-base text-ink-1">設定</h2>
               <button
                 type="button"
