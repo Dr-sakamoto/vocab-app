@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   pickFlashIndex,
+  isNewWord,
+  filterNewIndices,
   isMistakeWord,
   hasRecoveredFromMistakes,
   filterMistakeIndices,
@@ -66,6 +68,45 @@ test("pickFlashIndex does not repeat a word within the same lap even when heavil
     assert.ok(!seen.has(picked), `word ${picked} repeated before completing a lap`);
     seen.add(picked);
     prevIndex = picked;
+  }
+});
+
+test("isNewWord is true only before the word has ever been answered", () => {
+  assert.equal(isNewWord(undefined), true);
+  assert.equal(isNewWord({ correct: 0, wrong: 0 }), true);
+  assert.equal(isNewWord({ correct: 1, wrong: 0 }), false);
+  assert.equal(isNewWord({ correct: 0, wrong: 1 }), false);
+});
+
+test("filterNewIndices keeps only never-answered words (通常フラッシュの出題範囲)", () => {
+  const stats = [
+    { correct: 0, wrong: 0 }, // 未挑戦
+    { correct: 1, wrong: 0 }, // 1回正解した
+    { correct: 0, wrong: 1 }, // 1回落とした（苦手判定には届かない）
+    { correct: 9, wrong: 0 }, // 定着済み
+    { correct: 0, wrong: 0 }, // 未挑戦
+  ];
+  assert.deepEqual(filterNewIndices([0, 1, 2, 3, 4], stats), [0, 4]);
+});
+
+test("filterNewIndices と filterMistakeIndices の対象は重ならない", () => {
+  // 未挑戦語は wrong=0 なので、どの苦手度でも苦手フラッシュ側には入らない。
+  // 逆に苦手語は必ず誤答を持つので新規側にも入らない（役割分担が成立する）。
+  const stats = [
+    { correct: 0, wrong: 0 },
+    { correct: 0, wrong: 3 },
+    { correct: 1, wrong: 0 },
+    { correct: 5, wrong: 3 },
+  ];
+  const candidates = [0, 1, 2, 3];
+  for (const threshold of [1, 2, 3, 4, 5]) {
+    const fresh = new Set(filterNewIndices(candidates, stats));
+    const weak = filterMistakeIndices(candidates, stats, threshold);
+    assert.deepEqual(
+      weak.filter((i) => fresh.has(i)),
+      [],
+      `threshold=${threshold} で新規と苦手が重複している`,
+    );
   }
 });
 
