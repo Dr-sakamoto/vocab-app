@@ -6,6 +6,7 @@ import ModeTabs, { StudyMode } from "../ModeTabs";
 import { speakEnglishWord, stopSpeaking } from "@/lib/speech";
 import {
   filterMistakeIndices,
+  filterNewIndices,
   createFlashProgress,
   advanceFlashProgress,
   toStoredFlashProgress,
@@ -20,7 +21,7 @@ import { VocabItem, WordStat, PoolTier } from "@/lib/types";
 export interface FlashScreenProps {
   vocabItems: VocabItem[];
   stats: WordStat[];
-  /** 出題対象の語（VOCAB_ITEMS の添字）。出題側と同じ配列を受け取る */
+  /** 解放済みの語（VOCAB_ITEMS の添字）。出題側と同じ配列を受け取り、ここから絞り込む */
   unlockedIndices: number[];
   totalWords: number;
   tier: PoolTier;
@@ -36,9 +37,15 @@ export interface FlashScreenProps {
 }
 
 /**
- * 高速フラッシュ表示。訳＋単語を固定ペースで自動送りし、
- * 未挑戦・定着未熟な単語ほど高頻度で見せる（インプット専用、採点なし）。
+ * 高速フラッシュ表示。訳＋単語を固定ペースで自動送りする（インプット専用、採点なし）。
  * 解放済みプール（tier）限定。新規の永続データは持たない。
+ *
+ * 出題範囲はモードで役割を分ける。
+ *   通常フラッシュ … まだ一度も答えていない語（未挑戦）だけ
+ *   苦手フラッシュ … 何度も落としてまだ定着し直していない語だけ
+ * 既に答えたことのある語の復習はテスト側（getQuestionWeight）が担うので、
+ * フラッシュで全プールを流すと「もう知っている語」を眺める時間が大半になる。
+ * 通常フラッシュを初見の語に寄せることで、1周の情報量を最大にする。
  *
  * 表示は「日本語 → 英語」の順で、日本語を最大に置く。読み上げが英語なので、
  * 耳が英語・目が日本語と役割を分けたほうが1コマあたりの情報量が増える。
@@ -58,10 +65,13 @@ export default function FlashScreen({
   onModeChange,
   onOpenSettings,
 }: FlashScreenProps) {
-  // filterMistakeIndices は毎回新しい配列を返すため、useMemo で参照を安定させる。
+  // filter系は毎回新しい配列を返すため、useMemo で参照を安定させる。
   // そうしないと下の poolSnapshot 比較が毎レンダー不一致になり無限ループする。
   const candidates = useMemo(
-    () => (mistakeOnly ? filterMistakeIndices(unlockedIndices, stats, mistakeThreshold) : unlockedIndices),
+    () =>
+      mistakeOnly
+        ? filterMistakeIndices(unlockedIndices, stats, mistakeThreshold)
+        : filterNewIndices(unlockedIndices, stats),
     [mistakeOnly, unlockedIndices, stats, mistakeThreshold],
   );
 
@@ -151,12 +161,19 @@ export default function FlashScreen({
               </button>
             </div>
           </div>
-          {mistakeOnly && (
-            <p className="mt-1.5 text-xs text-ink-3">
-              苦手度: {mistakeThreshold}回以上間違えて未定着の語が対象・該当{" "}
-              <span className="tabular-nums">{candidates.length}</span> 語
-            </p>
-          )}
+          <p className="mt-1.5 text-xs text-ink-3">
+            {mistakeOnly ? (
+              <>
+                苦手度: {mistakeThreshold}回以上間違えて未定着の語が対象・該当{" "}
+                <span className="tabular-nums">{candidates.length}</span> 語
+              </>
+            ) : (
+              <>
+                まだ一度も答えていない語が対象・残り{" "}
+                <span className="tabular-nums">{candidates.length}</span> 語
+              </>
+            )}
+          </p>
         </header>
 
         <main className="mt-3 flex min-h-0 flex-1 flex-col items-center justify-center">
@@ -206,12 +223,23 @@ export default function FlashScreen({
             </>
           ) : (
             <div className="prompt-card px-5 py-8 text-center sm:py-12">
-              <p className="text-ink-2">
-                {mistakeThreshold}回以上間違えて、まだ定着していない単語はありません。
-              </p>
-              <p className="mt-2 text-xs text-ink-3">
-                テストやフラッシュを進めるか、設定で苦手度を下げると対象が増えます。
-              </p>
+              {mistakeOnly ? (
+                <>
+                  <p className="text-ink-2">
+                    {mistakeThreshold}回以上間違えて、まだ定着していない単語はありません。
+                  </p>
+                  <p className="mt-2 text-xs text-ink-3">
+                    テストを進めるか、設定で苦手度を下げると対象が増えます。
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-ink-2">解放済みの単語はすべて一度は答えています。</p>
+                  <p className="mt-2 text-xs text-ink-3">
+                    テストで正答率80%以上を出すと新しい単語が解放されます。復習は苦手フラッシュへ。
+                  </p>
+                </>
+              )}
             </div>
           )}
         </main>

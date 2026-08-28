@@ -12,6 +12,21 @@ function getFlashWeight(stat: WordStat | undefined): number {
 }
 
 /**
+ * まだ一度も答えていない（正解も誤答もしていない）語か。
+ *
+ * 通常フラッシュの出題範囲そのもの。フラッシュは採点しないので、この判定が
+ * true から false に変わるのはテストで実際に答えたときだけ。
+ */
+export function isNewWord(stat: WordStat | undefined): boolean {
+  return (stat?.correct ?? 0) + (stat?.wrong ?? 0) === 0;
+}
+
+/** candidates のうち未挑戦の語だけを抜き出す（通常フラッシュの出題範囲） */
+export function filterNewIndices(candidates: number[], stats: WordStat[]): number[] {
+  return candidates.filter((i) => isNewWord(stats[i]));
+}
+
+/**
  * 苦手語の「卒業」ライン。誤答1回につきこの回数だけ正解を積み上げていれば、
  * 累計の誤答回数がいくつであってももう苦手語とはみなさない。
  */
