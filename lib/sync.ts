@@ -2,10 +2,13 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { VOCAB_IDS } from "./vocab";
 import {
+  buildSyncBase,
   mergeApprovedAnswers,
   mergeRejectedAnswers,
   mergeRemoteWordStats,
+  readSyncBase,
   RemoteWordStatRow,
+  SyncBase,
 } from "./wordProgress";
 import { StreakState, mergeStreaks } from "./streak";
 import { StoredFlashProgress, mergeStoredFlashProgress } from "./flashWeight";
@@ -115,6 +118,15 @@ export interface SyncMetaOutcome {
   metaError: string | null;
 }
 
+export interface UploadProgressResult extends SyncMetaOutcome {
+  /**
+   * 次回の同期の基準点。アップロードが通ったときだけ返る（word_stats の
+   * 失敗は投げるので、この値が返る＝リモートがこの回数を受け取っている）。
+   * 呼び出し側が localStorage へ控え、次回の合流で増分の起点に使う。
+   */
+  syncBase: { userId: string; words: Record<string, [number, number]> };
+}
+
 function describeError(error: { message?: string } | null | undefined): string {
   return error?.message ?? "不明なエラー";
 }
@@ -126,7 +138,7 @@ export async function uploadProgress({
   rejectedAnswers,
   dailyStreak,
   flashProgress,
-}: UploadProgressProps): Promise<SyncMetaOutcome> {
+}: UploadProgressProps): Promise<UploadProgressResult> {
   const user = await requireSignedInUser();
 
   const rows = buildWordStatsRows(user.id, stats);
@@ -151,11 +163,20 @@ export async function uploadProgress({
   );
   if (metaError) console.error("user_meta upload error:", metaError);
 
-  return { metaError: metaError ? describeError(metaError) : null };
+  return {
+    metaError: metaError ? describeError(metaError) : null,
+    syncBase: buildSyncBase(user.id, VOCAB_IDS, stats),
+  };
 }
 
 interface DownloadAndMergeProps {
   stats: WordStat[];
+  /**
+   * 前回の同期でアップロードし終えた回数（localStorage の保存形のまま）。
+   * ここからの増分だけを足すことで、2端末で並行して解いたぶんが
+   * どちらか一方に丸められずに合流する。
+   */
+  syncBase?: unknown;
   unlockedPoolSize: number;
   approvedAnswers: Record<string, string[]>;
   rejectedAnswers: Record<string, string[]>;
@@ -243,6 +264,7 @@ export async function downloadAndMerge({
   rejectedAnswers,
   dailyStreak,
   flashProgress,
+  syncBase,
 }: DownloadAndMergeProps): Promise<DownloadAndMergeResult> {
   const user = await requireSignedInUser();
 
@@ -261,7 +283,8 @@ export async function downloadAndMerge({
   // 移行前に保存された旧ID `w${i}` の行も安定IDへ解決してから突き合わせる。
   // 旧行は削除しない（解決は凍結スナップショット経由で恒久的に正しく、
   // max マージなので残っていても進捗が巻き戻らない）。
-  const mergedStats = mergeRemoteWordStats(VOCAB_IDS, stats, remoteWords);
+  const base: SyncBase = readSyncBase(syncBase, user.id);
+  const mergedStats = mergeRemoteWordStats(VOCAB_IDS, stats, remoteWords, base);
 
   return {
     stats: mergedStats,
