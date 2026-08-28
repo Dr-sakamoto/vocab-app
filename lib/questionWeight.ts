@@ -1,4 +1,5 @@
 import { WordStat } from "./types";
+import { getRetentionFactor } from "./reviewSchedule";
 
 /**
  * `weakness` の頭打ち。正解ゼロで落とし続けた語は weakness が青天井に伸びるため、
@@ -19,10 +20,17 @@ const WEAKNESS_CAP = 3;
  * これにより「落としたばかりの語は強く出る」は保ったまま、正解を重ねるほど
  * 出現が引いていく（＝正解で誤答を返済できる）。
  *   (正解, 誤答) = (0,1) → 7.55 / (3,1) → 2.05 / (10,1) → 0.90 / (10,0) → 0.45
+ *
+ * ここまでは時間に依存しない近似で、「昨日正解したばかりの語」と
+ * 「3週間ぶりの語」を区別できなかった。最後に掛ける retentionFactor
+ * （lib/reviewSchedule.ts）が分散学習ぶんの時間軸で、直近に正解した語を
+ * 抑え、復習の期日を過ぎた語を押し上げる。解答時刻を持たない語では
+ * 1.0 なので、この係数が入っても既存データの挙動は変わらない。
  */
 export function getQuestionWeight(
   stat: WordStat | undefined,
   currentAccuracy: number,
+  now: number = Date.now(),
 ): number {
   const correct = stat?.correct ?? 0;
   const wrong = stat?.wrong ?? 0;
@@ -47,5 +55,5 @@ export function getQuestionWeight(
   const recoveryBoost = wrong > 0 ? weakness * 5.5 : 0;
   const stillLearning = Math.max(0, 3 - correct) * 0.35;
 
-  return (1 + recoveryBoost + stillLearning) * confidenceBoost;
+  return (1 + recoveryBoost + stillLearning) * confidenceBoost * getRetentionFactor(stat, now);
 }
