@@ -9,7 +9,12 @@ import { useGameSession } from "./hooks/useGameSession";
 import { useVocabPool } from "./hooks/useVocabPool";
 import { useClickSound } from "./hooks/useClickSound";
 import { getSoundVolume, setSoundVolume } from "@/lib/clickSound";
-import { isPronunciationEnabled, setPronunciationEnabled } from "@/lib/speech";
+import {
+  isPronunciationEnabled,
+  setPronunciationEnabled,
+  getPronunciationVolume,
+  setPronunciationVolume,
+} from "@/lib/speech";
 import { useVisualViewportVars } from "./hooks/useVisualViewport";
 import { useCloudSync } from "./hooks/useCloudSync";
 
@@ -61,6 +66,7 @@ export default function Page() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [soundVolume, setSoundVolumeState] = useState<number>(SOUND.DEFAULT_VOLUME);
   const [pronunciationEnabled, setPronunciationEnabledState] = useState<boolean>(true);
+  const [pronunciationVolume, setPronunciationVolumeState] = useState<number>(1);
   const [mode, setMode] = useState<StudyMode>("test");
   const [flashSpeed, setFlashSpeedState] = useState<number>(FLASH.DEFAULT_SPEED_SEC);
   const [mistakeThreshold, setMistakeThresholdState] = useState<number>(
@@ -191,6 +197,12 @@ export default function Page() {
     setSoundVolumeState(clamped);
   }, []);
 
+  const handlePronunciationVolumeChange = useCallback((value: number) => {
+    const clamped = Math.min(SOUND.MAX_VOLUME, Math.max(SOUND.MIN_VOLUME, value));
+    setPronunciationVolume(clamped);
+    setPronunciationVolumeState(clamped);
+  }, []);
+
   const handleFlashSpeedChange = useCallback((value: number) => {
     const clamped = Math.min(FLASH.MAX_SPEED_SEC, Math.max(FLASH.MIN_SPEED_SEC, value));
     setFlashSpeedState(clamped);
@@ -226,6 +238,7 @@ export default function Page() {
       try {
         setSoundVolumeState(getSoundVolume());
         setPronunciationEnabledState(isPronunciationEnabled());
+        setPronunciationVolumeState(getPronunciationVolume());
         setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
 
         const savedSpeed = Number(
@@ -603,6 +616,26 @@ export default function Page() {
                   ].join(" ")}
                 />
               </button>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm text-ink-1">発音の音量</span>
+                <span className="text-xs tabular-nums text-ink-3">
+                  {Math.round(pronunciationVolume * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={SOUND.MIN_VOLUME}
+                max={SOUND.MAX_VOLUME}
+                step={0.01}
+                value={pronunciationVolume}
+                disabled={!pronunciationEnabled}
+                onChange={(e) => handlePronunciationVolumeChange(Number(e.target.value))}
+                aria-label="発音読み上げの音量"
+                className="w-full accent-[var(--accent)] disabled:opacity-40"
+              />
             </div>
 
             <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
