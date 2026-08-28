@@ -1,3 +1,4 @@
+import { applyAnswerToStat } from "./reviewSchedule";
 import { QuizEntry, SessionAnswer, WordStat } from "./types";
 
 /**
@@ -56,4 +57,28 @@ export function summarizeSet(entries: QuizEntry[], stats: WordStat[]): SetSummar
     score: answers.filter((a) => a.correct).length,
     bestStreak,
   };
+}
+
+/**
+ * セット1回ぶんの回答を統計へ畳み込んだ新しい配列を返す。
+ *
+ * 締めの処理では同じ結果を2度使う——保存する統計そのものと、
+ * 新しい語を解放してよいかの判定（lib/unlockGate.ts）に渡す分布。
+ * 畳み込みをここに1本化しておかないと、片方だけ1セットぶん古い統計を
+ * 見て「解放の判定がセット1つ遅れる」ことになる。
+ */
+export function applySetToStats(
+  entries: QuizEntry[],
+  stats: WordStat[],
+  now?: number,
+): WordStat[] {
+  const next = [...stats];
+  for (const entry of entries) {
+    next[entry.poolIndex] = applyAnswerToStat(
+      next[entry.poolIndex],
+      entry.outcome?.correct ?? false,
+      now,
+    );
+  }
+  return next;
 }

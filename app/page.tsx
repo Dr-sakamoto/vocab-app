@@ -20,8 +20,8 @@ import { useVisualViewportVars } from "./hooks/useVisualViewport";
 import { useCloudSync } from "./hooks/useCloudSync";
 
 import { evaluatePlay } from "@/lib/playEvaluation";
-import { summarizeSet } from "@/lib/quizSet";
-import { applyAnswerToStat } from "@/lib/reviewSchedule";
+import { applySetToStats, summarizeSet } from "@/lib/quizSet";
+import { evaluateUnlockGate } from "@/lib/unlockGate";
 import { getPoolTier } from "@/lib/poolTier";
 import { VOCAB_ITEMS } from "@/lib/vocab";
 import {
@@ -363,16 +363,7 @@ export default function Page() {
     const { answers, score, bestStreak } = summarizeSet(entries, stats);
 
     // 正誤カウントに加えて分散学習の状態（最終解答時刻・連続正解数）も更新する
-    setStats((prevStats) => {
-      const nextStats = [...prevStats];
-      for (const entry of entries) {
-        nextStats[entry.poolIndex] = applyAnswerToStat(
-          nextStats[entry.poolIndex],
-          entry.outcome?.correct ?? false,
-        );
-      }
-      return nextStats;
-    });
+    setStats((prevStats) => applySetToStats(entries, prevStats));
 
     setSetAnswers(answers);
     setSetScore(score);
@@ -387,11 +378,14 @@ export default function Page() {
       }),
     );
 
-    // 正答率に応じて出題プールを解放する
-    const accuracy = score / GAME.PLAY_LIMIT;
-    let step = 0;
-    if (accuracy >= 1) step = GAME.PERFECT_UNLOCK_STEP;
-    else if (accuracy >= GAME.UNLOCK_ACCURACY) step = GAME.UNLOCK_STEP;
+    // 定着ドーナツの分布が条件を満たしていれば出題プールを解放する。
+    // 見るのはこの10問の出来ではなくプール全体の分布なので、判定には
+    // このセットを畳み込んだあとの統計を使う（そうしないと1セット遅れる）。
+    // 解放しても出題対象の集合そのものは変わらない（挑戦済みの語は
+    // すでにプールに入っている）ので、分布は unlockedIndices で数えてよい。
+    const { step } = evaluateUnlockGate(
+      countRetentionLevels(unlockedIndices, applySetToStats(entries, stats)),
+    );
 
     unlockMore(step);
     if (step > 0) playCorrectSound();
@@ -404,6 +398,7 @@ export default function Page() {
     flowPlayCount,
     playCorrectSound,
     unlockMore,
+    unlockedIndices,
     unlockedPoolSize,
   ]);
 
@@ -567,6 +562,7 @@ export default function Page() {
       poolSize: unlockedIndices.length,
       gain: countRetentionGain(setAnswers),
       levelCounts: countRetentionLevels(unlockedIndices, stats),
+      totalWords: VOCAB_ITEMS.length,
     }),
     [unlockedIndices, stats, setAnswers],
   );
