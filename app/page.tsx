@@ -284,6 +284,10 @@ export default function Page() {
         target: v.target,
         correct: stats[i]?.correct ?? 0,
         wrong: stats[i]?.wrong ?? 0,
+        // 分散学習の状態。まだ解答していない語では undefined になり、
+        // JSON.stringify がキーごと落とすので保存量は増えない。
+        lastAnswered: stats[i]?.lastAnswered,
+        correctStreak: stats[i]?.correctStreak,
       })),
     );
   }, [stats]);

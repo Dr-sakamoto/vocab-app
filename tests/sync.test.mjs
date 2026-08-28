@@ -80,3 +80,22 @@ test("fetchAllPages surfaces an error from any page", async () => {
     (err) => err.message === "boom",
   );
 });
+
+test("uploads the review state so other devices keep the same schedule", () => {
+  const answeredAt = Date.UTC(2026, 0, 15, 12, 0, 0);
+  const rows = buildWordStatsRows("user-1", [
+    { correct: 3, wrong: 1, lastAnswered: answeredAt, correctStreak: 2 },
+  ]);
+  const row = rows.find((r) => r.word_id === FIRST_WORD_ID);
+
+  assert.equal(row.last_answered, new Date(answeredAt).toISOString());
+  assert.equal(row.correct_streak, 2);
+});
+
+test("words answered before the review state existed upload a null timestamp", () => {
+  const rows = buildWordStatsRows("user-1", [{ correct: 3, wrong: 1 }]);
+  const row = rows.find((r) => r.word_id === FIRST_WORD_ID);
+
+  assert.equal(row.last_answered, null);
+  assert.equal(row.correct_streak, 0);
+});

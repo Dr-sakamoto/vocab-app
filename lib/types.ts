@@ -19,6 +19,16 @@ export interface VocabItem {
 export interface WordStat {
   correct: number;
   wrong: number;
+  /**
+   * 直近に解答した時刻（epoch ミリ秒）。分散学習の「次にいつ出すか」を決める。
+   * 未解答の語、およびこの機能より前に保存されたデータは持たない（undefined）。
+   */
+  lastAnswered?: number;
+  /**
+   * 直近で連続して正解した回数。誤答すると 0 に戻る。
+   * 復習間隔の段（lib/reviewSchedule.ts の REVIEW_INTERVAL_DAYS）を指す。
+   */
+  correctStreak?: number;
 }
 
 export interface SessionAnswer {

@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { normalizeAnswer } from "@/lib/answerNormalization";
 import { VocabItem, WordStat, SessionAnswer, GameView } from "@/lib/types";
+import { applyAnswerToStat } from "@/lib/reviewSchedule";
 
 interface UseGameSessionProps {
   q: VocabItem | undefined;
@@ -145,12 +146,10 @@ export function useGameSession({
       },
     ]);
 
+    // 正誤カウントに加えて分散学習の状態（最終解答時刻・連続正解数）も更新する
     setStats((prevStats) => {
       const nextStats = [...prevStats];
-      const cur = nextStats[index] ?? { correct: 0, wrong: 0 };
-      nextStats[index] = ok
-        ? { correct: cur.correct + 1, wrong: cur.wrong }
-        : { correct: cur.correct, wrong: cur.wrong + 1 };
+      nextStats[index] = applyAnswerToStat(nextStats[index], ok);
       return nextStats;
     });
 
@@ -195,8 +194,7 @@ export function useGameSession({
 
     setStats((prevStats) => {
       const nextStats = [...prevStats];
-      const cur = nextStats[index] ?? { correct: 0, wrong: 0 };
-      nextStats[index] = { correct: cur.correct, wrong: cur.wrong + 1 };
+      nextStats[index] = applyAnswerToStat(nextStats[index], false);
       return nextStats;
     });
 
