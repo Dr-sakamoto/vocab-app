@@ -1,6 +1,6 @@
 "use client";
 
-import InlineResult from "../InlineResult";
+import InlineResult, { RetentionSummary } from "../InlineResult";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import QuestionCard from "./QuestionCard";
 import TypingAnswerRow, { TypingAnswerRowProps } from "./TypingAnswerRow";
@@ -33,6 +33,8 @@ export interface StudyScreenProps {
   result: {
     evaluation: PlayEvaluation | null;
     unlockedThisRun: number;
+    /** 定着ドーナツの中身。セット終了後の定着語数と、その増減 */
+    retention: RetentionSummary;
     onContinue: () => void;
   };
   onOpenSettings: () => void;
@@ -127,6 +129,8 @@ export default function StudyScreen({
               score={status.score}
               playLimit={status.playLimit}
               unlockedThisRun={result.unlockedThisRun}
+              retention={result.retention}
+              tierColor={status.tier.color}
               onContinue={result.onContinue}
             />
           ) : (

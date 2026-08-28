@@ -2,15 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import RetentionRing from "./game/RetentionRing";
 import { PlayEvaluation } from "@/lib/types";
 
 const AUTO_CONTINUE_SECONDS = 10;
+
+export interface RetentionSummary {
+  /** 解放プールのうち定着済みの語数（このセット終了後の値） */
+  retained: number;
+  /** 実際に出題対象となっている語数 */
+  poolSize: number;
+  /** このセットで定着済みが何語増えたか。減った場合は負の数 */
+  gain: number;
+}
 
 interface InlineResultProps {
   evaluation: PlayEvaluation | null;
   score: number;
   playLimit: number;
   unlockedThisRun: number;
+  retention: RetentionSummary;
+  /** 現在の到達段階の色。リング本体の色に使う */
+  tierColor: string;
   onContinue: () => void;
 }
 
@@ -24,6 +37,8 @@ export default function InlineResult({
   score,
   playLimit,
   unlockedThisRun,
+  retention,
+  tierColor,
   onContinue,
 }: InlineResultProps) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_CONTINUE_SECONDS);
@@ -39,7 +54,9 @@ export default function InlineResult({
     return () => window.clearTimeout(timer);
   }, [secondsLeft, onContinue]);
 
-  const { grade, title, message, xp, breakdown } = evaluation ?? {};
+  const { grade, title, message, breakdown } = evaluation ?? {};
+
+  const { retained, poolSize, gain } = retention;
 
   return (
     <motion.div
@@ -68,12 +85,38 @@ export default function InlineResult({
             </div>
           </div>
 
-          <div className="relative mt-2 overflow-hidden rounded-md bg-surface-2 px-3 py-2 text-center">
-            <div className="relative flex items-baseline justify-center gap-1.5">
-              <span className="text-3xl tabular-nums text-ink-1">
-                {(xp ?? 0).toLocaleString()}
-              </span>
-              <span className="text-base text-ink-3">XP</span>
+          {/* セットの成果は「解放プールのうち何語が定着したか」で見せる。
+              プールが解放されると分母が増えて割合は下がりうるので、
+              割合の隣に必ず実数の増減（+N語）を添える。 */}
+          <div className="mt-2 flex items-center gap-3 rounded-md bg-surface-2 px-3 py-2">
+            <RetentionRing
+              retained={retained}
+              poolSize={poolSize}
+              gain={gain}
+              tierColor={tierColor}
+            />
+            <div className="min-w-0">
+              <div className="tabular-nums text-xs text-ink-3">
+                定着 {retained.toLocaleString()} / 出題プール{" "}
+                {poolSize.toLocaleString()} 語
+              </div>
+              <div
+                className="tabular-nums text-sm"
+                style={{
+                  color:
+                    gain > 0
+                      ? "var(--positive)"
+                      : gain < 0
+                        ? "var(--negative)"
+                        : "var(--ink-3)",
+                }}
+              >
+                {gain > 0
+                  ? `+${gain} 語が定着した`
+                  : gain < 0
+                    ? `${gain} 語が定着から外れた`
+                    : "定着した語の増減なし"}
+              </div>
             </div>
           </div>
 
