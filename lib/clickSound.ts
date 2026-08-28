@@ -4,20 +4,21 @@
  * AudioContextはユーザー操作（pointerdown）内で遅延生成するため自動再生制限に触れない。
  */
 
-import { STORAGE_KEYS } from "./constants";
+import { SOUND, STORAGE_KEYS } from "./constants";
 import storage from "./storage";
 
 let audioContext: AudioContext | null = null;
 let noiseBuffer: AudioBuffer | null = null;
-let soundEnabled = storage.get(STORAGE_KEYS.SOUND_ENABLED, true);
+let soundVolume = storage.get<number>(STORAGE_KEYS.SOUND_VOLUME, SOUND.DEFAULT_VOLUME);
 
-export function isSoundEnabled(): boolean {
-  return soundEnabled;
+export function getSoundVolume(): number {
+  return soundVolume;
 }
 
-export function setSoundEnabled(enabled: boolean): void {
-  soundEnabled = enabled;
-  storage.set(STORAGE_KEYS.SOUND_ENABLED, enabled);
+export function setSoundVolume(volume: number): void {
+  const clamped = Math.min(SOUND.MAX_VOLUME, Math.max(SOUND.MIN_VOLUME, volume));
+  soundVolume = clamped;
+  storage.set(STORAGE_KEYS.SOUND_VOLUME, clamped);
 }
 
 function getAudioContext(): AudioContext | null {
@@ -70,7 +71,7 @@ function playBurst(
 }
 
 export function playClickSound(): void {
-  if (!soundEnabled) return;
+  if (soundVolume <= 0) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -78,8 +79,8 @@ export function playClickSound(): void {
       void ctx.resume();
     }
     const now = ctx.currentTime;
-    playBurst(ctx, now, 3400, 0.1, 0.03); // カ
-    playBurst(ctx, now + 0.05, 2100, 0.14, 0.05); // チャ
+    playBurst(ctx, now, 3400, 0.1 * soundVolume, 0.03); // カ
+    playBurst(ctx, now + 0.05, 2100, 0.14 * soundVolume, 0.05); // チャ
   } catch {
     /* 効果音の失敗でゲームを止めない */
   }

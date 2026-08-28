@@ -6,6 +6,12 @@ export const GAME = {
   PERFECT_UNLOCK_STEP: 50,
 } as const;
 
+export const SOUND = {
+  DEFAULT_VOLUME: 0.7,
+  MIN_VOLUME: 0,
+  MAX_VOLUME: 1,
+} as const;
+
 export const FLASH = {
   DEFAULT_SPEED_SEC: 1.0,
   MIN_SPEED_SEC: 0.8,
@@ -31,7 +37,7 @@ export const STORAGE_KEYS = {
   PROGRESS: "vocab-progress",
   POOL_SIZE: "vocab-active-pool-size",
   STREAK: "vocab-daily-streak",
-  SOUND_ENABLED: "vocab-sound-enabled",
+  SOUND_VOLUME: "vocab-sound-volume",
   PRONUNCIATION_ENABLED: "vocab-pronunciation-enabled",
   FLASH_SPEED: "vocab-flash-speed",
   MISTAKE_THRESHOLD: "vocab-mistake-threshold",
