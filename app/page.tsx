@@ -8,7 +8,7 @@ import SyncButton from "./components/SyncButton";
 import { useGameSession } from "./hooks/useGameSession";
 import { useVocabPool } from "./hooks/useVocabPool";
 import { useClickSound } from "./hooks/useClickSound";
-import { isSoundEnabled, setSoundEnabled } from "@/lib/clickSound";
+import { getSoundVolume, setSoundVolume } from "@/lib/clickSound";
 import { isPronunciationEnabled, setPronunciationEnabled } from "@/lib/speech";
 import { useVisualViewportVars } from "./hooks/useVisualViewport";
 import { useCloudSync } from "./hooks/useCloudSync";
@@ -23,7 +23,7 @@ import {
   migrateRejectedAnswers,
 } from "@/lib/wordProgress";
 import { countRetained, countRetentionGain } from "@/lib/retention";
-import { GAME, STORAGE_KEYS, FLASH } from "@/lib/constants";
+import { GAME, STORAGE_KEYS, FLASH, SOUND } from "@/lib/constants";
 import {
   EMPTY_STREAK,
   StreakState,
@@ -59,7 +59,7 @@ export default function Page() {
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [resultEvaluation, setResultEvaluation] = useState<PlayEvaluation | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
-  const [soundEnabled, setSoundEnabledState] = useState<boolean>(true);
+  const [soundVolume, setSoundVolumeState] = useState<number>(SOUND.DEFAULT_VOLUME);
   const [pronunciationEnabled, setPronunciationEnabledState] = useState<boolean>(true);
   const [mode, setMode] = useState<StudyMode>("test");
   const [flashSpeed, setFlashSpeedState] = useState<number>(FLASH.DEFAULT_SPEED_SEC);
@@ -161,9 +161,12 @@ export default function Page() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     correctSoundRef.current = new Audio("/success.mp3");
-    correctSoundRef.current.volume = 0.4;
     correctSoundRef.current.preload = "auto";
   }, []);
+
+  useEffect(() => {
+    if (correctSoundRef.current) correctSoundRef.current.volume = soundVolume * 0.4;
+  }, [soundVolume]);
 
   useEffect(() => {
     if (!checked || !isCorrect || !correctSoundRef.current) return;
@@ -180,6 +183,12 @@ export default function Page() {
       if (next !== prev) storage.set(STORAGE_KEYS.STREAK, next);
       return next;
     });
+  }, []);
+
+  const handleSoundVolumeChange = useCallback((value: number) => {
+    const clamped = Math.min(SOUND.MAX_VOLUME, Math.max(SOUND.MIN_VOLUME, value));
+    setSoundVolume(clamped);
+    setSoundVolumeState(clamped);
   }, []);
 
   const handleFlashSpeedChange = useCallback((value: number) => {
@@ -215,7 +224,7 @@ export default function Page() {
     // マイクロタスクへずらす。
     queueMicrotask(() => {
       try {
-        setSoundEnabledState(isSoundEnabled());
+        setSoundVolumeState(getSoundVolume());
         setPronunciationEnabledState(isPronunciationEnabled());
         setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
 
@@ -551,30 +560,23 @@ export default function Page() {
               </button>
             </div>
 
-            <div className="mb-4 flex items-center justify-between rounded-xl border border-line px-3 py-2.5">
-              <span className="text-sm text-ink-1">効果音</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={soundEnabled}
-                aria-label="効果音のオン・オフ"
-                onClick={() => {
-                  const nextEnabled = !soundEnabled;
-                  setSoundEnabled(nextEnabled);
-                  setSoundEnabledState(nextEnabled);
-                }}
-                className={[
-                  "relative h-7 w-12 shrink-0 rounded-full transition-colors",
-                  soundEnabled ? "bg-accent" : "bg-line-strong",
-                ].join(" ")}
-              >
-                <span
-                  className={[
-                    "absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
-                    soundEnabled ? "translate-x-5" : "translate-x-0",
-                  ].join(" ")}
-                />
-              </button>
+            <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm text-ink-1">効果音</span>
+                <span className="text-xs tabular-nums text-ink-3">
+                  {Math.round(soundVolume * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={SOUND.MIN_VOLUME}
+                max={SOUND.MAX_VOLUME}
+                step={0.01}
+                value={soundVolume}
+                onChange={(e) => handleSoundVolumeChange(Number(e.target.value))}
+                aria-label="効果音の音量"
+                className="w-full accent-[var(--accent)]"
+              />
             </div>
 
             <div className="mb-4 flex items-center justify-between rounded-xl border border-line px-3 py-2.5">
