@@ -1,6 +1,8 @@
 -- =====================================================
--- Supabase セットアップSQL
--- Supabase Dashboard > SQL Editor で実行してください
+-- ベースライン：word_stats / user_meta / entitlements
+--
+-- これは本番へ 2026-08-03 に適用済みの内容と同じ。新規環境では
+-- `supabase db push` がこのファイルから同じスキーマを作る。
 -- =====================================================
 
 -- 単語ごとの正解/不正解統計
@@ -22,22 +24,7 @@ create table if not exists word_stats (
   primary key (user_id, word_id)
 );
 
--- 分散学習（間隔反復）の状態。
---
--- last_answered はクライアントが実際に解答した時刻。updated_at ではなく
--- 専用の列を持つのは、updated_at がトリガによる「行の書き込み時刻」で、
--- 一括同期のたびに上書きされてしまい最終復習日として使えないため。
---
--- correct_streak は直近で連続正解した回数（誤答で0に戻る）。次にその語を
--- 出すまでの間隔の段を指す（lib/reviewSchedule.ts の REVIEW_INTERVAL_DAYS）。
---
--- 既存行は last_answered = null / correct_streak = 0 になる。クライアントは
--- 時刻を持たない語を「常に出題対象」として扱うので、この列を足しただけでは
--- 既存ユーザーの出題は変わらない。解答するたびに時刻が入っていく。
-alter table word_stats add column if not exists last_answered  timestamptz;
-alter table word_stats add column if not exists correct_streak int not null default 0;
-
--- メタデータ（解放済み単語プールのサイズ）
+-- メタデータ（解放済み単語プールのサイズ、AI判定キャッシュ）
 create table if not exists user_meta (
   user_id            uuid primary key,
   unlocked_pool_size int  not null default 60,
@@ -45,11 +32,6 @@ create table if not exists user_meta (
 );
 
 alter table user_meta add column if not exists approved_answers jsonb not null default '{}'::jsonb;
-
--- AIが不正解と判定した回答（単語IDごとの配列）。
--- 同じ誤答を再び入力したとき、クライアントがAPI/AIを呼ばずに即座に
--- 不正解へ倒すためのキャッシュ。approved_answers と対になる構造。
-alter table user_meta add column if not exists rejected_answers jsonb not null default '{}'::jsonb;
 
 -- 旧・モンスター収集機能の列（monster_total_xp / active_monster_id /
 -- monster_collection / professor_transfers）はアプリから読み書きしなくなった。
@@ -80,9 +62,11 @@ alter table word_stats enable row level security;
 alter table user_meta  enable row level security;
 
 -- 自分のデータのみ読み書き可
+drop policy if exists "own word_stats" on word_stats;
 create policy "own word_stats" on word_stats
   for all using (auth.uid() = user_id);
 
+drop policy if exists "own user_meta" on user_meta;
 create policy "own user_meta" on user_meta
   for all using (auth.uid() = user_id);
 
@@ -114,5 +98,6 @@ alter table entitlements enable row level security;
 -- ユーザーは自分のエンタイトルメントを「読む」ことだけ可能。
 -- INSERT/UPDATE/DELETE のポリシーは意図的に作らない。
 -- → 書き込みは service_role（RLSバイパス）経由の Webhook のみ。
+drop policy if exists "read own entitlement" on entitlements;
 create policy "read own entitlement" on entitlements
   for select using (auth.uid() = user_id);

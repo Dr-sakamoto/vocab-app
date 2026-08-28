@@ -36,9 +36,13 @@ export interface FlashScreenProps {
 }
 
 /**
- * 高速フラッシュ表示。単語＋訳を固定ペースで自動送りし、
+ * 高速フラッシュ表示。訳＋単語を固定ペースで自動送りし、
  * 未挑戦・定着未熟な単語ほど高頻度で見せる（インプット専用、採点なし）。
  * 解放済みプール（tier）限定。新規の永続データは持たない。
+ *
+ * 表示は「日本語 → 英語」の順で、日本語を最大に置く。読み上げが英語なので、
+ * 耳が英語・目が日本語と役割を分けたほうが1コマあたりの情報量が増える。
+ * 品詞は出さない（英語と訳を同時に見せている以上、意味の曖昧さがない）。
  */
 export default function FlashScreen({
   vocabItems,
@@ -173,14 +177,11 @@ export default function FlashScreen({
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <div className="text-[11px] tracking-[0.16em] text-ink-3">
-                        {q.partOfSpeech}
-                      </div>
-                      <div className="mt-2 break-words font-word text-3xl tracking-[0.01em] text-ink-1 sm:text-5xl">
-                        {q.target}
-                      </div>
-                      <div className="mt-4 break-words text-lg text-ink-2 sm:text-2xl">
+                      <div className="break-words text-3xl leading-tight text-ink-1 sm:text-5xl">
                         {q.answers[0]}
+                      </div>
+                      <div className="mt-3 break-words font-word text-xl tracking-[0.01em] text-ink-2 sm:text-3xl">
+                        {q.target}
                       </div>
                     </motion.div>
                   </AnimatePresence>

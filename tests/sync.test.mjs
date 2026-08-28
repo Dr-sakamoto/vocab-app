@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildWordStatsRows, fetchAllPages } from "../lib/sync.js";
+import { buildWordStatsRows, fetchAllPages, readRemoteMeta } from "../lib/sync.js";
 import { VOCAB_IDS } from "../lib/vocab/index.js";
 
 // word_id は `target:品詞` の安定ID（旧 `w${i}` から移行済み）。
@@ -79,6 +79,33 @@ test("fetchAllPages surfaces an error from any page", async () => {
     () => fetchAllPages(fetchPage, 1000),
     (err) => err.message === "boom",
   );
+});
+
+// user_meta は列が増えることがある（approved_answers / rejected_answers）。
+// 本番へ列を流し忘れた環境でも、同期全体を巻き込んで落とさないための正規化。
+test("readRemoteMeta treats a missing row as untouched meta", () => {
+  assert.deepEqual(readRemoteMeta(null), {
+    unlockedPoolSize: 0,
+    approvedAnswers: undefined,
+    rejectedAnswers: undefined,
+    dailyStreak: undefined,
+    flashProgress: undefined,
+  });
+});
+
+test("readRemoteMeta tolerates a row that predates the newer columns", () => {
+  const meta = readRemoteMeta({ unlocked_pool_size: 953, approved_answers: { "a:noun": ["x"] } });
+  assert.equal(meta.unlockedPoolSize, 953);
+  assert.deepEqual(meta.approvedAnswers, { "a:noun": ["x"] });
+  assert.equal(meta.rejectedAnswers, undefined);
+  assert.equal(meta.dailyStreak, undefined);
+  assert.equal(meta.flashProgress, undefined);
+});
+
+test("readRemoteMeta ignores a junk pool size instead of poisoning the merge", () => {
+  assert.equal(readRemoteMeta({ unlocked_pool_size: null }).unlockedPoolSize, 0);
+  assert.equal(readRemoteMeta({ unlocked_pool_size: "abc" }).unlockedPoolSize, 0);
+  assert.equal(readRemoteMeta({ unlocked_pool_size: -5 }).unlockedPoolSize, 0);
 });
 
 test("uploads the review state so other devices keep the same schedule", () => {

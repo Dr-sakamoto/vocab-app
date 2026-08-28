@@ -129,7 +129,7 @@ AI判定が効くのは記憶が固まった後だけになる。順序が逆。
 3. 選択式モードとダミー選択肢生成器
 4. SRS スケジューラとスキーマ変更
 
-`app/page.tsx`・hooks・`lib/types.ts`・`supabase_setup.sql`・`lib/sync.ts` に
+`app/page.tsx`・hooks・`lib/types.ts`・`supabase/migrations/`・`lib/sync.ts` に
 横断的に触ることになり、`CLAUDE.md` の「1PRにつき1つの改善」
 「大規模リファクタリング禁止」に真っ向から反する。
 

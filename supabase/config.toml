@@ -1,0 +1,3 @@
+# Supabase CLI の設定。DBスキーマは supabase/migrations/ が唯一の情報源で、
+# `supabase db push` で本番へ適用する（手順は README を参照）。
+project_id = "vocab-app"

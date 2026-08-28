@@ -94,6 +94,50 @@ export function getDisplayStreak(state: StreakState, todayKey: string): number {
   return 0;
 }
 
+/**
+ * 端末をまたいだストリークを合流させる。
+ *
+ * 日ごとのプレイ履歴は保存していない（持っているのは最終プレイ日と連続日数
+ * だけ）ので、2端末の状態から正確な連続日数を復元することはできない。
+ * 「どちらかの端末でプレイした日はプレイした日」という前提に立ち、
+ * 獲得済みの記録を取り落とさない側へ倒す。
+ *
+ * - 最終プレイ日は新しい方を残す
+ * - 古い方の最終プレイ日がその前日なら、連続は端末をまたいで続いている
+ *   （PCで月曜、スマホで火曜に続けた場合を途切れさせない）
+ * - 最長記録は単純に大きい方
+ */
+export function mergeStreaks(rawA: unknown, rawB: unknown): StreakState {
+  const a = normalizeStreak(rawA);
+  const b = normalizeStreak(rawB);
+  const longest = Math.max(a.longest, b.longest);
+
+  if (a.lastPlayedDate === null) return normalizeStreak({ ...b, longest });
+  if (b.lastPlayedDate === null) return normalizeStreak({ ...a, longest });
+
+  // "YYYY-MM-DD" は辞書順＝日付順
+  const [later, earlier] = a.lastPlayedDate >= b.lastPlayedDate ? [a, b] : [b, a];
+
+  if (later.lastPlayedDate === earlier.lastPlayedDate) {
+    return normalizeStreak({
+      current: Math.max(later.current, earlier.current),
+      longest,
+      lastPlayedDate: later.lastPlayedDate,
+    });
+  }
+
+  const bridged =
+    dayDiff(earlier.lastPlayedDate as string, later.lastPlayedDate as string) === 1
+      ? earlier.current + 1
+      : 0;
+
+  return normalizeStreak({
+    current: Math.max(later.current, bridged),
+    longest,
+    lastPlayedDate: later.lastPlayedDate,
+  });
+}
+
 /** 表示用に、本日プレイ済みかどうか。 */
 export function hasPlayedToday(state: StreakState, todayKey: string): boolean {
   return normalizeStreak(state).lastPlayedDate === todayKey;

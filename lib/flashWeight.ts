@@ -107,20 +107,26 @@ export function createFlashProgress(
 /**
  * フラッシュを1コマ進める。1周し切ったら既出集合をリセットして周回数を上げる。
  * 候補が1語だけのときは同じ index を返すが、step は必ず進む。
+ *
+ * 既出集合がちょうど1周分埋まった回（例: 60語プールで60語目）は、リセットを
+ * 1コマ遅らせてそのまま返す。ここで即リセットすると進捗表示が
+ * 「59/60→1/60」のように満了表示（60/60）を一切見せずに飛んでしまうため。
  */
 export function advanceFlashProgress(
   prev: FlashProgress,
   candidates: number[],
   stats: WordStat[],
 ): FlashProgress {
+  const step = prev.step + 1;
+  const prevLapComplete = candidates.length > 0 && prev.seen.size >= candidates.length;
+  if (prevLapComplete) {
+    const nextIndex = pickFlashIndex(candidates, stats, prev.index) ?? prev.index;
+    return { index: nextIndex, seen: new Set([nextIndex]), lap: prev.lap + 1, step };
+  }
   const nextIndex = pickFlashIndex(candidates, stats, prev.index, prev.seen) ?? prev.index;
   const seen = prev.seen.has(nextIndex)
     ? prev.seen
     : new Set(prev.seen).add(nextIndex);
-  const step = prev.step + 1;
-  if (candidates.length > 0 && seen.size >= candidates.length) {
-    return { index: nextIndex, seen: new Set([nextIndex]), lap: prev.lap + 1, step };
-  }
   return { index: nextIndex, seen, lap: prev.lap, step };
 }
 
@@ -137,6 +143,42 @@ export function toStoredFlashProgress(
   mistakeOnly: boolean,
 ): StoredFlashProgress {
   return { index: progress.index, seen: Array.from(progress.seen), lap: progress.lap, mistakeOnly };
+}
+
+/** クラウドから戻ってきた値を StoredFlashProgress として安全に読む */
+export function normalizeStoredFlashProgress(raw: unknown): StoredFlashProgress | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const stored = raw as Partial<StoredFlashProgress>;
+  if (!Number.isInteger(stored.index) || (stored.index as number) < 0) return null;
+  const seen = Array.isArray(stored.seen)
+    ? stored.seen.filter((i): i is number => Number.isInteger(i) && i >= 0)
+    : [];
+  const lap = Number.isFinite(stored.lap) ? Math.max(1, Math.floor(stored.lap as number)) : 1;
+  return {
+    index: stored.index as number,
+    seen,
+    lap,
+    mistakeOnly: stored.mistakeOnly === true,
+  };
+}
+
+/**
+ * 端末をまたいだフラッシュの進行位置を合流させる。
+ *
+ * 「周回数 → その周で見た語数」の順に進んでいる方を採る。同点はローカルを残す。
+ * モードが違う・プールがその index を含まない場合は fromStoredFlashProgress が
+ * 復元を断るので、噛み合わない位置を持ち込んでも先頭から始まるだけで済む。
+ */
+export function mergeStoredFlashProgress(
+  local: unknown,
+  remote: unknown,
+): StoredFlashProgress | null {
+  const here = normalizeStoredFlashProgress(local);
+  const there = normalizeStoredFlashProgress(remote);
+  if (!here) return there;
+  if (!there) return here;
+  if (there.lap !== here.lap) return there.lap > here.lap ? there : here;
+  return there.seen.length > here.seen.length ? there : here;
 }
 
 /**

@@ -38,7 +38,7 @@
 
 ### 2. 課金基盤 — 🟡 基盤実装済み（決済プロバイダ非依存）
 - [x] 無料/有料の線引きを `lib/entitlements.js` に一元化（テスト10件）
-- [x] `entitlements` テーブル（`supabase_setup.sql`）。書き込みはサーバーのみ、読み取りはRLSで本人限定
+- [x] `entitlements` テーブル（`supabase/migrations/`）。書き込みはサーバーのみ、読み取りはRLSで本人限定
 - [ ] 決済プロバイダ確定（配信形態の決定後）→ Webhookで `entitlements` を更新
 - [ ] 購入/解約/復元のUI
 
@@ -72,5 +72,5 @@ Web課金(Stripe)か アプリストア(IAP/30%)か。**未決定**。
 - `lib/entitlements.js` … 無料/有料の線引き（真実の源）＋ `tests/entitlements.test.mjs`
 - `lib/entitlementClient.js` … クライアントからの検証済み取得
 - `app/api/entitlement/route.js` … サーバー側の課金状態検証（信頼境界）
-- `supabase_setup.sql` … `entitlements` テーブル＋RLS
+- `supabase/migrations/` … `entitlements` テーブル＋RLS
 - `app/privacy` `app/terms` `app/legal` … 法務ページ雛形

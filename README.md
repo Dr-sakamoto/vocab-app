@@ -30,5 +30,20 @@ npm run build
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 公開鍵 |
 | `GEMINI_API_KEY` | AI判定（`/api/check` のフォールバック）。**サーバー側のみ**。未設定でも形態素解析による判定だけで動作する |
 
-DBスキーマは [`supabase_setup.sql`](./supabase_setup.sql) を Supabase の
-SQL Editor で実行して作成する。
+### DBスキーマ
+
+スキーマの唯一の情報源は [`supabase/migrations/`](./supabase/migrations)。
+SQL Editor に手で貼るのではなく、必ずマイグレーションを足して適用する。
+
+```bash
+npx supabase@latest login
+npx supabase@latest link --project-ref <プロジェクトref>
+
+npx supabase@latest migration new add_something   # 新しい .sql を作る
+npx supabase@latest migration list                # ローカルと本番の差分を見る
+npx supabase@latest db push                       # 未適用分を本番へ適用
+```
+
+**列を足すコードをマージしたら、同じタイミングで `db push` すること。**
+コードだけ先に出るとクライアントが存在しない列を要求し、同期が失敗する
+（実際に8/20〜8/27、`rejected_answers` の適用漏れで同期が止まった）。
