@@ -56,6 +56,12 @@ export interface CloudSyncController {
   user: User | null;
   status: SyncStatus;
   message: string;
+  /**
+   * 起動直後のクラウド同期が決着したか（ログインなしなら即 true、
+   * ログインありならダウンロード＋マージが完了して true）。
+   * これが立つ前は、この端末の localStorage だけを見た状態でしかない。
+   */
+  initialSyncDone: boolean;
   /** 手動同期（間引きを貫通する） */
   syncNow: () => void;
   /** 自動同期（実行中・直近実行済みなら黙って見送る） */
@@ -87,6 +93,8 @@ export function useCloudSync({
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<SyncStatus>("idle");
   const [message, setMessage] = useState("");
+  const [authChecked, setAuthChecked] = useState(false);
+  const [initialSyncDone, setInitialSyncDone] = useState(false);
 
   // 同期処理そのものは再生成せず、送る中身だけ ref で最新に保つ。
   // こうしないと1問ごとに認証購読が張り直されてしまう。
@@ -192,6 +200,9 @@ export function useCloudSync({
           setStatus("error");
           setMessage("ログイン状態を確認できませんでした。");
         }
+      })
+      .finally(() => {
+        if (!disposed) setAuthChecked(true);
       });
 
     // Supabase未設定（環境変数なし）の環境でも、マウント時の throw で
@@ -223,11 +234,25 @@ export function useCloudSync({
   // ── 自動同期 ───────────────────────────────────────────────────────────────
   const userId = user?.id ?? null;
 
-  // 起動時とログイン直後に、別端末で進んだ分を取り込む
+  // 起動時とログイン直後に、別端末で進んだ分を取り込む。
+  // ログインなしなら（未ログイン端末には取り込む先がないので）即座に、
+  // ログインありならダウンロード＋マージが終わってから initialSyncDone を立てる。
+  // これが立つ前に出題を選ぶと、この端末の localStorage だけを見た
+  // 古い/浅いプールから1問目を選んでしまう。
   useEffect(() => {
-    if (!isReady || !userId) return;
-    syncAuto();
-  }, [isReady, userId, syncAuto]);
+    if (!isReady || !authChecked) return;
+    if (!userId) {
+      setInitialSyncDone(true);
+      return;
+    }
+    let cancelled = false;
+    void runner.run().finally(() => {
+      if (!cancelled) setInitialSyncDone(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, authChecked, userId, runner]);
 
   // 別端末へ移る瞬間（タブを隠す・アプリを閉じる）に押し出し、
   // 戻ってきた瞬間（再表示）に取り込む
@@ -308,6 +333,7 @@ export function useCloudSync({
     user,
     status,
     message,
+    initialSyncDone,
     syncNow,
     syncAuto,
     signIn,

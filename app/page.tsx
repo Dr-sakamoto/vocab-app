@@ -165,6 +165,56 @@ export default function Page() {
     onAiRejected: addRejectedAnswer,
   });
 
+  const handleSyncMerged = useCallback(
+    (merged: {
+      stats: WordStat[];
+      unlockedPoolSize: number;
+      approvedAnswers: Record<string, string[]>;
+      rejectedAnswers: Record<string, string[]>;
+      dailyStreak: StreakState;
+      settings: StoredSettings | null;
+    }) => {
+      setStats(merged.stats);
+      setUnlockedPoolSize(merged.unlockedPoolSize);
+      setApprovedAnswers(merged.approvedAnswers);
+      setRejectedAnswers(merged.rejectedAnswers);
+      setDailyStreak(merged.dailyStreak);
+      storage.set(STORAGE_KEYS.STREAK, merged.dailyStreak);
+      // 合流後の設定を画面と各モジュールへ反映する。保存は useCloudSync が
+      // 済ませているので、ここでは変更時刻を触らない adopt 側を呼ぶ。
+      // 音量は同期対象外なので、この端末の値をそのまま残す。
+      if (merged.settings) {
+        const values = merged.settings.values;
+        adoptPronunciationEnabled(values.pronunciationEnabled);
+        setPronunciationEnabledState(values.pronunciationEnabled);
+        setFlashSpeedState(values.flashSpeed);
+        setMistakeThresholdState(values.mistakeThreshold);
+      }
+      try {
+        localStorage.setItem(
+          APPROVED_ANSWERS_KEY,
+          JSON.stringify(merged.approvedAnswers),
+        );
+        localStorage.setItem(
+          REJECTED_ANSWERS_KEY,
+          JSON.stringify(merged.rejectedAnswers),
+        );
+      } catch {}
+    },
+    [setUnlockedPoolSize],
+  );
+
+  const cloudSync = useCloudSync({
+    stats,
+    unlockedPoolSize,
+    approvedAnswers,
+    rejectedAnswers,
+    dailyStreak,
+    isReady: isLoaded,
+    onMerged: handleSyncMerged,
+  });
+  const { syncAuto } = cloudSync;
+
   // ── 音声 ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -291,16 +341,20 @@ export default function Page() {
     });
   }, [setUnlockedPoolSize]);
 
-  // 復元完了後に最初の問題を選ぶ（復元された stats・プールを反映した抽選にする）
+  // 復元完了後に最初の問題を選ぶ（復元された stats・プールを反映した抽選にする）。
+  // クラウド同期の初回ダウンロード＋マージが決着するまで待つ。これを待たずに
+  // 選ぶと、たまにしか開かない端末では localStorage が浅いままの
+  // stats・unlockedPoolSize から1問目を選んでしまい、実際より簡単な単語が
+  // 出やすくなる。
   const didInitQuestionRef = useRef<boolean>(false);
   useEffect(() => {
-    if (!isLoaded || didInitQuestionRef.current) return;
+    if (!isLoaded || !cloudSync.initialSyncDone || didInitQuestionRef.current) return;
     didInitQuestionRef.current = true;
     const newIndex = pickNextQuestionIndex(null, new Set(), 1.0) ?? 0;
     setIndex(newIndex);
     seenInPlayRef.current = new Set([newIndex]);
     markDailyPlay();
-  }, [isLoaded, pickNextQuestionIndex, markDailyPlay]);
+  }, [isLoaded, cloudSync.initialSyncDone, pickNextQuestionIndex, markDailyPlay]);
 
   // ── localStorage 保存 ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -447,56 +501,6 @@ export default function Page() {
     next,
     continueToNextSet,
   ]);
-
-  const handleSyncMerged = useCallback(
-    (merged: {
-      stats: WordStat[];
-      unlockedPoolSize: number;
-      approvedAnswers: Record<string, string[]>;
-      rejectedAnswers: Record<string, string[]>;
-      dailyStreak: StreakState;
-      settings: StoredSettings | null;
-    }) => {
-      setStats(merged.stats);
-      setUnlockedPoolSize(merged.unlockedPoolSize);
-      setApprovedAnswers(merged.approvedAnswers);
-      setRejectedAnswers(merged.rejectedAnswers);
-      setDailyStreak(merged.dailyStreak);
-      storage.set(STORAGE_KEYS.STREAK, merged.dailyStreak);
-      // 合流後の設定を画面と各モジュールへ反映する。保存は useCloudSync が
-      // 済ませているので、ここでは変更時刻を触らない adopt 側を呼ぶ。
-      // 音量は同期対象外なので、この端末の値をそのまま残す。
-      if (merged.settings) {
-        const values = merged.settings.values;
-        adoptPronunciationEnabled(values.pronunciationEnabled);
-        setPronunciationEnabledState(values.pronunciationEnabled);
-        setFlashSpeedState(values.flashSpeed);
-        setMistakeThresholdState(values.mistakeThreshold);
-      }
-      try {
-        localStorage.setItem(
-          APPROVED_ANSWERS_KEY,
-          JSON.stringify(merged.approvedAnswers),
-        );
-        localStorage.setItem(
-          REJECTED_ANSWERS_KEY,
-          JSON.stringify(merged.rejectedAnswers),
-        );
-      } catch {}
-    },
-    [setUnlockedPoolSize],
-  );
-
-  const cloudSync = useCloudSync({
-    stats,
-    unlockedPoolSize,
-    approvedAnswers,
-    rejectedAnswers,
-    dailyStreak,
-    isReady: isLoaded,
-    onMerged: handleSyncMerged,
-  });
-  const { syncAuto } = cloudSync;
 
   // 10問セットの区切りで裏側から同期する。設定を開かなくても、
   // 別の端末を開いた時点で最新の進捗が乗っている状態にする。
