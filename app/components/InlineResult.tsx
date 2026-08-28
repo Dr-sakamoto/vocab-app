@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import RetentionRing from "./game/RetentionRing";
 import { PlayEvaluation } from "@/lib/types";
@@ -24,13 +24,27 @@ interface InlineResultProps {
   playLimit: number;
   unlockedThisRun: number;
   retention: RetentionSummary;
+  /**
+   * 10問ぶんの答案（正誤つき）。要約より先に置く。
+   * このセットで学べるものは「どの語を落としたか」なので、そこを主役にする。
+   */
+  answerSheet?: ReactNode;
+  /**
+   * 自動で次のセットへ流すか。読むべき誤答があるときは false にして、
+   * 復習の途中で画面が切り替わらないようにする。
+   */
+  autoContinue?: boolean;
   onContinue: () => void;
 }
 
 /**
- * 10問区切りで問題ウィンドウの中身と入れ替わるリザルト。
- * ページ遷移せず、その場で評価を見せて自動で次のセットへ流す
- * （連続プレイのフロー状態を切らさない）。
+ * 10問の小テストが終わったところで、問題ウィンドウの中身と入れ替わる結果発表。
+ * ページ遷移せず、答案（正誤つき）と評価をその場で見せる。
+ *
+ * 誤答が無ければ自動で次のセットへ流す（読むものが無いので止める理由がない）。
+ * 誤答があるときは自動送りを止める。ここが「どの語を落としたか」を読む場で、
+ * 読んでいる最中に画面が切り替わるほうが割り込みになる。
+ * 面のどこを押しても進む挙動は持たない（答案をスクロールできなくなるため）。
  */
 export default function InlineResult({
   evaluation,
@@ -38,11 +52,14 @@ export default function InlineResult({
   playLimit,
   unlockedThisRun,
   retention,
+  answerSheet,
+  autoContinue = true,
   onContinue,
 }: InlineResultProps) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_CONTINUE_SECONDS);
 
   useEffect(() => {
+    if (!autoContinue) return undefined;
     if (secondsLeft <= 0) {
       onContinue();
       return undefined;
@@ -51,7 +68,7 @@ export default function InlineResult({
       setSecondsLeft((seconds) => seconds - 1);
     }, 1000);
     return () => window.clearTimeout(timer);
-  }, [secondsLeft, onContinue]);
+  }, [autoContinue, secondsLeft, onContinue]);
 
   const { grade, title, message, breakdown } = evaluation ?? {};
 
@@ -63,9 +80,10 @@ export default function InlineResult({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="flex h-full min-h-0 flex-col"
-      onClick={onContinue}
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 sm:px-6">
+        {answerSheet && <div className="mb-4">{answerSheet}</div>}
+
         <div className="prompt-card p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
@@ -146,16 +164,15 @@ export default function InlineResult({
       <div className="shrink-0 px-4 pb-3 pt-2 sm:px-6">
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onContinue();
-          }}
+          onClick={onContinue}
           className="btn-accent flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm"
         >
           次のセットへ →
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/15 text-xs tabular-nums">
-            {secondsLeft}
-          </span>
+          {autoContinue && (
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/15 text-xs tabular-nums">
+              {secondsLeft}
+            </span>
+          )}
         </button>
       </div>
     </motion.div>

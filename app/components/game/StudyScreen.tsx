@@ -2,8 +2,7 @@
 
 import InlineResult, { RetentionSummary } from "../InlineResult";
 import ModeTabs, { StudyMode } from "../ModeTabs";
-import QuestionCard from "./QuestionCard";
-import TypingAnswerRow, { TypingAnswerRowProps } from "./TypingAnswerRow";
+import QuizSheet, { QuizSheetProps } from "./QuizSheet";
 import { PlayEvaluation, PoolTier } from "@/lib/types";
 
 export interface StudyScreenProps {
@@ -12,9 +11,12 @@ export interface StudyScreenProps {
   onModeChange: (mode: StudyMode) => void;
   /** ヘッダーに出す学習の進み具合 */
   status: {
+    /** 確定済みの回答数。出題中は正解数を出さない（結果発表まで伏せる） */
+    answered: number;
+    /** このセットの問題数 */
+    setSize: number;
+    /** 結果発表でだけ使う正解数 */
     score: number;
-    total: number;
-    playLimit: number;
     progressPct: number;
     streakDays: number;
     /** 実際に出題対象となっている語数（解放カウンタではなくプールの実数） */
@@ -22,21 +24,16 @@ export interface StudyScreenProps {
     totalWords: number;
     tier: PoolTier;
   };
-  question: {
-    questionKey: number;
-    partOfSpeech: string;
-    word: string;
-    /** 句動詞の意味を固定する頻出の目的語。無い語のほうが多い */
-    collocation?: string;
-    onSkip?: () => void;
-    skipDisabled: boolean;
-  };
-  typing: TypingAnswerRowProps;
+  sheet: QuizSheetProps;
+  /** 全問確定して、まだ返ってきていない採点を待っている状態 */
+  isGrading: boolean;
   result: {
     evaluation: PlayEvaluation | null;
     unlockedThisRun: number;
     /** 定着ドーナツの中身。セット終了後の定着語数と、その増減 */
     retention: RetentionSummary;
+    /** 復習する誤答が無いときだけ自動で次のセットへ流す */
+    autoContinue: boolean;
     onContinue: () => void;
   };
   onOpenSettings: () => void;
@@ -45,18 +42,19 @@ export interface StudyScreenProps {
 /**
  * 単一画面の学習スクリーン。
  *
- * 画面遷移を持たず、10問区切りのリザルトも問題ウィンドウの中身だけを
- * 入れ替えて見せる（連続プレイのフロー状態を切らさない）。
+ * 画面遷移を持たず、10問の小テストとそのリザルトが問題ウィンドウの中身だけ
+ * 入れ替わって見える（連続プレイのフロー状態を切らさない）。
  * 回答はPC・スマホともにタイピング固定。日本語IMEで自由記述し、
- * 完全一致で拾えない表記ゆれはAI判定に回す。
+ * 完全一致で拾えない表記ゆれはAI判定に回す。採点は回答の確定ごとに裏で走り、
+ * 正誤は10問ぶんまとめて結果発表で見せる。
  */
 export default function StudyScreen({
   phase,
   mode,
   onModeChange,
   status,
-  question,
-  typing,
+  sheet,
+  isGrading,
   result,
   onOpenSettings,
 }: StudyScreenProps) {
@@ -69,10 +67,21 @@ export default function StudyScreen({
           </div>
           <div className="flex items-center justify-between gap-3 text-xs text-ink-3">
             <div className="flex items-center gap-3">
+              {/* 出題中に正解数を出すと、そこで正誤が漏れて小テストにならない */}
               <span className="tabular-nums">
-                <span className="text-ink-1">{status.score}</span>
-                {" / "}
-                {status.playLimit} 正解
+                {phase === "result" ? (
+                  <>
+                    <span className="text-ink-1">{status.score}</span>
+                    {" / "}
+                    {status.setSize} 正解
+                  </>
+                ) : (
+                  <>
+                    <span className="text-ink-1">{status.answered}</span>
+                    {" / "}
+                    {status.setSize} 回答
+                  </>
+                )}
               </span>
               {status.streakDays > 0 && (
                 <span className="tabular-nums">連続 {status.streakDays} 日</span>
@@ -113,9 +122,9 @@ export default function StudyScreen({
           <div
             className="gauge-track mt-2 h-1 w-full overflow-hidden rounded-full"
             role="progressbar"
-            aria-valuenow={status.total}
-            aria-valuemin={1}
-            aria-valuemax={status.playLimit}
+            aria-valuenow={status.answered}
+            aria-valuemin={0}
+            aria-valuemax={status.setSize}
           >
             <div
               className="h-full rounded-full bg-accent transition-all duration-300"
@@ -129,26 +138,38 @@ export default function StudyScreen({
             <InlineResult
               evaluation={result.evaluation}
               score={status.score}
-              playLimit={status.playLimit}
+              playLimit={status.setSize}
               unlockedThisRun={result.unlockedThisRun}
               retention={result.retention}
+              autoContinue={result.autoContinue}
+              answerSheet={<QuizSheet {...sheet} />}
               onContinue={result.onContinue}
             />
           ) : (
-            /* 上詰め固定。判定後に結果表示が増えても問題カードの位置がズレない */
+            /* 上詰め固定。10問を一枚の答案として上から順に埋めていく */
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="w-full px-1 pt-2">
-                <QuestionCard
-                  questionKey={question.questionKey}
-                  partOfSpeech={question.partOfSpeech}
-                  word={question.word}
-                  collocation={question.collocation}
-                  onSkip={question.onSkip}
-                  skipDisabled={question.skipDisabled}
-                />
-                <div className="mt-3">
-                  <TypingAnswerRow {...typing} />
-                </div>
+              <div className="w-full px-1 pt-2 pb-4">
+                <QuizSheet {...sheet} />
+
+                {/* 全問打ち終えたのに採点が返っていないときだけ出る。
+                    押すものが無いので割り込みにはならない（待ちの説明）。 */}
+                {isGrading && (
+                  <div className="mt-4 flex items-center justify-center gap-2 text-xs text-ink-3">
+                    <span className="ios-spinner" aria-hidden="true">
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <span
+                          key={i}
+                          className="ios-spinner-bar"
+                          style={{
+                            transform: `rotate(${i * 30}deg)`,
+                            animationDelay: `${-((12 - i) % 12) / 12}s`,
+                          }}
+                        />
+                      ))}
+                    </span>
+                    採点中…
+                  </div>
+                )}
               </div>
             </div>
           )}
