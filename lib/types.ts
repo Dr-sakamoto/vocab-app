@@ -14,6 +14,12 @@ export interface VocabItem {
   target: string;
   partOfSpeech: PartOfSpeech;
   answers: string[];
+  /**
+   * 句動詞の意味を一つに固定する、頻出の目的語（`take in` に対する `nutrients` など）。
+   * 出題時に `take in [nutrients]` の形で添えるだけで、IDにも判定にも影響しない。
+   * 持たない語のほうが多いので任意。データは lib/vocab/collocations.ts。
+   */
+  collocation?: string;
 }
 
 export interface WordStat {

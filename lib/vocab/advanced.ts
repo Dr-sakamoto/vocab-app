@@ -324,7 +324,7 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "phrase",
     "answers": [
       "を調べる",
-      "調査"
+      "調査する"
     ]
   },
   {

@@ -26,6 +26,8 @@ export interface StudyScreenProps {
     questionKey: number;
     partOfSpeech: string;
     word: string;
+    /** 句動詞の意味を固定する頻出の目的語。無い語のほうが多い */
+    collocation?: string;
     onSkip?: () => void;
     skipDisabled: boolean;
   };
@@ -141,6 +143,7 @@ export default function StudyScreen({
                   questionKey={question.questionKey}
                   partOfSpeech={question.partOfSpeech}
                   word={question.word}
+                  collocation={question.collocation}
                   onSkip={question.onSkip}
                   skipDisabled={question.skipDisabled}
                 />

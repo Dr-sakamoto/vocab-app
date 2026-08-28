@@ -104,6 +104,7 @@ export function useGameSession({
           body: JSON.stringify({
             input: answerText,
             target: q.target,
+            collocation: q.collocation ?? "",
             answers: q.answers ?? [],
             partOfSpeech: q.partOfSpeech,
           }),
