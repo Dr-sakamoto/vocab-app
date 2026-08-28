@@ -130,7 +130,6 @@ export default function StudyScreen({
               playLimit={status.playLimit}
               unlockedThisRun={result.unlockedThisRun}
               retention={result.retention}
-              tierColor={status.tier.color}
               onContinue={result.onContinue}
             />
           ) : (

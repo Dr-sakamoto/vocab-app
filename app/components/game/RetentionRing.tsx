@@ -1,22 +1,15 @@
 "use client";
 
+import { RETENTION_LEVELS } from "@/lib/retention";
+
 const RADIUS = 18;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export interface RetentionRingProps {
-  /** 解放プールのうち定着済みの語数（このセット終了後の値） */
-  retained: number;
+  /** 出題プールの語を定着レベルごとに数えたもの。添字 0 が Lv.1、4 が Lv.5 */
+  levelCounts: number[];
   /** 実際に出題対象となっている語数。リングの分母 */
   poolSize: number;
-  /** このセットで定着済みが何語増えたか。減った場合は負の数 */
-  gain: number;
-  /** 現在の到達段階の色。リングの本体はこの色で塗る */
-  tierColor: string;
-}
-
-function clampRatio(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.min(1, Math.max(0, value));
 }
 
 /** 円周上の一区間だけを描くための dash 指定 */
@@ -28,67 +21,63 @@ function arcDash(startRatio: number, lengthRatio: number) {
 }
 
 /**
- * 定着率のドーナツ。
+ * 定着レベル（5段階）の内訳ドーナツ。
  *
  * 分母を全3440語ではなく「解放プール」にしているのは、全語数だと
  * 40/3440 = 1% のリングになり、1セット分の変化が目で見えないため。
  *
- * 増減分（gain）だけは判定色で塗り分けて、そのセットで動いた量を
- * リングの中に残す。プールが解放されると分母が増えて割合は下がりうるので、
- * 割合とは別に「+N語」の実数を必ず併記する側（InlineResult）と対にして使う。
+ * Lv.1（未挑戦）からLv.5（誤答から回復済みで定着）まで、レベルが進むほど
+ * 明るくなる同一色相のグラデーションで積み上げて塗る。1本のリングの中に
+ * 「まだ浅い語がどれだけ残っているか」と「どれだけ育っているか」の両方が出る。
  */
-export default function RetentionRing({
-  retained,
-  poolSize,
-  gain,
-  tierColor,
-}: RetentionRingProps) {
-  const nowRatio = poolSize > 0 ? clampRatio(retained / poolSize) : 0;
-  const beforeRatio = poolSize > 0 ? clampRatio((retained - gain) / poolSize) : 0;
+export default function RetentionRing({ levelCounts, poolSize }: RetentionRingProps) {
+  const safePoolSize = poolSize > 0 ? poolSize : 0;
+  const ratios = RETENTION_LEVELS.map((_, i) =>
+    safePoolSize > 0 ? (levelCounts[i] ?? 0) / safePoolSize : 0,
+  );
 
-  // 増えた分は「前回の到達点から先」、減った分は「今の到達点から先」に出る
-  const solidRatio = Math.min(nowRatio, beforeRatio);
-  const deltaRatio = Math.abs(nowRatio - beforeRatio);
-  const deltaColor = gain >= 0 ? "var(--positive)" : "var(--negative)";
+  const totalLevel = RETENTION_LEVELS.reduce(
+    (sum, { level }, i) => sum + level * (levelCounts[i] ?? 0),
+    0,
+  );
+  const avgLevel = safePoolSize > 0 ? totalLevel / safePoolSize : 0;
 
-  const pct = Math.round(nowRatio * 100);
+  const breakdownLabel = RETENTION_LEVELS.map(
+    ({ label }, i) => `${label} ${levelCounts[i] ?? 0}語`,
+  ).join("、");
 
-  const deltaLabel =
-    gain > 0 ? `このセットで${gain}語増えた`
-    : gain < 0 ? `このセットで${-gain}語減った`
-    : "このセットでの増減なし";
+  const arcs = RETENTION_LEVELS.reduce<
+    { level: number; color: string; start: number; ratio: number }[]
+  >((acc, { level, color }, i) => {
+    const ratio = ratios[i];
+    const start = acc.length > 0 ? acc[acc.length - 1].start + acc[acc.length - 1].ratio : 0;
+    return [...acc, { level, color, start, ratio }];
+  }, []);
 
   return (
     <svg
       viewBox="0 0 44 44"
       className="h-[68px] w-[68px] shrink-0"
       role="img"
-      aria-label={`出題プール${poolSize}語のうち${retained}語が定着、${pct}%。${deltaLabel}`}
+      aria-label={`出題プール${poolSize}語の定着レベル内訳。${breakdownLabel}。平均レベル${avgLevel.toFixed(1)}`}
     >
       <g transform="rotate(-90 22 22)" fill="none" strokeWidth={4}>
         <circle cx="22" cy="22" r={RADIUS} style={{ stroke: "var(--line)" }} />
-        {solidRatio > 0 && (
-          <circle
-            cx="22"
-            cy="22"
-            r={RADIUS}
-            strokeLinecap="round"
-            style={{ stroke: tierColor, ...arcDash(0, solidRatio) }}
-          />
-        )}
-        {deltaRatio > 0 && (
-          <circle
-            cx="22"
-            cy="22"
-            r={RADIUS}
-            strokeLinecap="round"
-            style={{ stroke: deltaColor, ...arcDash(solidRatio, deltaRatio) }}
-          />
+        {arcs.map(
+          ({ level, color, start, ratio }) =>
+            ratio > 0 && (
+              <circle
+                key={level}
+                cx="22"
+                cy="22"
+                r={RADIUS}
+                style={{ stroke: color, ...arcDash(start, ratio) }}
+              />
+            ),
         )}
       </g>
-      {/* リングが表しているのは割合なので、中央も割合にする。
-          実数（何語）は隣のテキストが持つ。ここに小さな添え字を足すと
-          68px の中で 8px 未満になり読めなくなるため、数字ひとつに絞る。 */}
+      {/* リングが表しているのは内訳なので、中央には要約として平均レベルを置く。
+          各レベルの実数はこの要素の aria-label が持つ。 */}
       <text
         x="22"
         y="22"
@@ -97,7 +86,7 @@ export default function RetentionRing({
         className="text-[10px] tabular-nums"
         style={{ fill: "var(--ink-1)" }}
       >
-        {pct}%
+        {avgLevel.toFixed(1)}
       </text>
     </svg>
   );
