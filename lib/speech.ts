@@ -6,7 +6,12 @@
 import { STORAGE_KEYS } from "./constants";
 import storage from "./storage";
 
+const MIN_VOLUME = 0;
+const MAX_VOLUME = 1;
+const DEFAULT_VOLUME = 1;
+
 let pronunciationEnabled = storage.get(STORAGE_KEYS.PRONUNCIATION_ENABLED, true);
+let pronunciationVolume = storage.get<number>(STORAGE_KEYS.PRONUNCIATION_VOLUME, DEFAULT_VOLUME);
 
 export function isPronunciationEnabled(): boolean {
   return pronunciationEnabled;
@@ -15,6 +20,16 @@ export function isPronunciationEnabled(): boolean {
 export function setPronunciationEnabled(enabled: boolean): void {
   pronunciationEnabled = enabled;
   storage.set(STORAGE_KEYS.PRONUNCIATION_ENABLED, enabled);
+}
+
+export function getPronunciationVolume(): number {
+  return pronunciationVolume;
+}
+
+export function setPronunciationVolume(volume: number): void {
+  const clamped = Math.min(MAX_VOLUME, Math.max(MIN_VOLUME, volume));
+  pronunciationVolume = clamped;
+  storage.set(STORAGE_KEYS.PRONUNCIATION_VOLUME, clamped);
 }
 
 export function canSpeak(): boolean {
@@ -31,6 +46,7 @@ export function speakEnglishWord(word: string): boolean {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
     utterance.rate = 0.9;
+    utterance.volume = pronunciationVolume;
     window.speechSynthesis.speak(utterance);
     return true;
   } catch {

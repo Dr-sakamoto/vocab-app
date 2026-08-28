@@ -39,6 +39,7 @@ export const STORAGE_KEYS = {
   STREAK: "vocab-daily-streak",
   SOUND_VOLUME: "vocab-sound-volume",
   PRONUNCIATION_ENABLED: "vocab-pronunciation-enabled",
+  PRONUNCIATION_VOLUME: "vocab-pronunciation-volume",
   FLASH_SPEED: "vocab-flash-speed",
   MISTAKE_THRESHOLD: "vocab-mistake-threshold",
   FLASH_PROGRESS: "vocab-flash-progress",
