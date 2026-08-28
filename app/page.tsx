@@ -27,7 +27,7 @@ import {
   migrateApprovedAnswers,
   migrateRejectedAnswers,
 } from "@/lib/wordProgress";
-import { countRetained, countRetentionGain } from "@/lib/retention";
+import { countRetained, countRetentionGain, countRetentionLevels } from "@/lib/retention";
 import { GAME, STORAGE_KEYS, FLASH, SOUND } from "@/lib/constants";
 import {
   EMPTY_STREAK,
@@ -508,6 +508,7 @@ export default function Page() {
       retained: countRetained(unlockedIndices, stats),
       poolSize: unlockedIndices.length,
       gain: countRetentionGain(gameSessionAnswers),
+      levelCounts: countRetentionLevels(unlockedIndices, stats),
     }),
     [unlockedIndices, stats, gameSessionAnswers],
   );

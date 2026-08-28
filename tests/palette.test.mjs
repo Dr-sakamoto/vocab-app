@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 import { POOL_TIERS } from "../lib/poolTier.js";
+import { RETENTION_LEVELS } from "../lib/retention.js";
 
 // 配色の根拠を数値で固定するテスト。
 // 「見た目の好み」ではなく検証可能な条件として残し、あとから色を触ったときに
@@ -138,6 +139,24 @@ test("Tier の色はすべて地の上で読める", () => {
   for (const tier of POOL_TIERS) {
     const ratio = contrastRatio(tier.color, T["surface-0"]);
     assert.ok(ratio >= 4.5, `${tier.label}: ${ratio}`);
+  }
+});
+
+test("定着レベルの色は段階どおりに明るくなる連続スケール", () => {
+  for (let i = 1; i < RETENTION_LEVELS.length; i += 1) {
+    const lower = relativeLuminance(RETENTION_LEVELS[i - 1].color);
+    const higher = relativeLuminance(RETENTION_LEVELS[i].color);
+    assert.ok(
+      higher > lower,
+      `${RETENTION_LEVELS[i].label} が ${RETENTION_LEVELS[i - 1].label} より暗い（段階が色から読めない）`,
+    );
+  }
+});
+
+test("定着レベルの色はすべて地の上で読める", () => {
+  for (const l of RETENTION_LEVELS) {
+    const ratio = contrastRatio(l.color, T["surface-0"]);
+    assert.ok(ratio >= 4.5, `${l.label}: ${ratio}`);
   }
 });
 

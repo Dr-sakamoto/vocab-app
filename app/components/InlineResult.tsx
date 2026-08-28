@@ -14,6 +14,8 @@ export interface RetentionSummary {
   poolSize: number;
   /** このセットで定着済みが何語増えたか。減った場合は負の数 */
   gain: number;
+  /** 出題プールの語を定着レベル（5段階）ごとに数えたもの。添字 0 が Lv.1、4 が Lv.5 */
+  levelCounts: number[];
 }
 
 interface InlineResultProps {
@@ -22,8 +24,6 @@ interface InlineResultProps {
   playLimit: number;
   unlockedThisRun: number;
   retention: RetentionSummary;
-  /** 現在の到達段階の色。リング本体の色に使う */
-  tierColor: string;
   onContinue: () => void;
 }
 
@@ -38,7 +38,6 @@ export default function InlineResult({
   playLimit,
   unlockedThisRun,
   retention,
-  tierColor,
   onContinue,
 }: InlineResultProps) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_CONTINUE_SECONDS);
@@ -56,7 +55,7 @@ export default function InlineResult({
 
   const { grade, title, message, breakdown } = evaluation ?? {};
 
-  const { retained, poolSize, gain } = retention;
+  const { retained, poolSize, gain, levelCounts } = retention;
 
   return (
     <motion.div
@@ -89,12 +88,7 @@ export default function InlineResult({
               プールが解放されると分母が増えて割合は下がりうるので、
               割合の隣に必ず実数の増減（+N語）を添える。 */}
           <div className="mt-2 flex items-center gap-3 rounded-md bg-surface-2 px-3 py-2">
-            <RetentionRing
-              retained={retained}
-              poolSize={poolSize}
-              gain={gain}
-              tierColor={tierColor}
-            />
+            <RetentionRing levelCounts={levelCounts} poolSize={poolSize} />
             <div className="min-w-0">
               <div className="tabular-nums text-xs text-ink-3">
                 定着 {retained.toLocaleString()} / 出題プール{" "}
