@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject } from "react";
+import { RefObject, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface TypingAnswerRowProps {
@@ -60,6 +60,16 @@ export default function TypingAnswerRow({
   onCheck,
   onNext,
 }: TypingAnswerRowProps) {
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
+
+  // iPhone SEなど画面が低い端末では、キーボード表示中に判定結果が
+  // スクロール領域の下端からはみ出して隠れる。判定が出た瞬間に
+  // その要素だけをビューに収める（入力欄のフォーカスは奪わない）。
+  useEffect(() => {
+    if (!checked) return;
+    feedbackRef.current?.scrollIntoView({ block: "nearest" });
+  }, [checked, isCorrect]);
+
   return (
     <>
       <div className="relative">
@@ -142,6 +152,7 @@ export default function TypingAnswerRow({
       <AnimatePresence mode="wait">
         {checked && (
           <motion.div
+            ref={feedbackRef}
             key={isCorrect ? "correct" : "wrong"}
             initial={{ opacity: 0, scale: 0.95, y: 4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
