@@ -1,0 +1,13 @@
+-- 端末ローカルに取り残されていた設定をクラウド同期の対象に加える。
+--
+-- settings … { values: { soundVolume, pronunciationEnabled, flashSpeed,
+--              mistakeThreshold }, updatedAt: { 項目ごとの最終変更時刻 } }
+--              （lib/settings.ts）
+--
+-- とくに mistakeThreshold は苦手フラッシュの出題範囲そのものを決めるため、
+-- 端末ごとに違うと同じ苦手データでも出てくる単語が変わっていた。
+--
+-- 「未設定」と「空」を区別したいので、daily_streak / flash_progress と同じく
+-- null 許容にする（列を持たない端末＝まだ一度も設定を同期していない、として
+-- クライアントが既定値に倒す）。
+alter table user_meta add column if not exists settings jsonb;

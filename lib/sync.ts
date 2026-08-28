@@ -12,6 +12,7 @@ import {
 } from "./wordProgress";
 import { StreakState, mergeStreaks } from "./streak";
 import { StoredFlashProgress, mergeStoredFlashProgress } from "./flashWeight";
+import { StoredSettings, mergeSettings } from "./settings";
 import { WordStat } from "./types";
 
 export async function signUpWithEmail(
@@ -63,6 +64,7 @@ interface UploadProgressProps {
   rejectedAnswers: Record<string, string[]>;
   dailyStreak: StreakState;
   flashProgress: StoredFlashProgress | null;
+  settings: StoredSettings | null;
 }
 
 export interface WordStatsUploadRow {
@@ -138,6 +140,7 @@ export async function uploadProgress({
   rejectedAnswers,
   dailyStreak,
   flashProgress,
+  settings,
 }: UploadProgressProps): Promise<UploadProgressResult> {
   const user = await requireSignedInUser();
 
@@ -158,6 +161,7 @@ export async function uploadProgress({
       rejected_answers: rejectedAnswers,
       daily_streak: dailyStreak,
       flash_progress: flashProgress,
+      settings,
     },
     { onConflict: "user_id" },
   );
@@ -182,6 +186,7 @@ interface DownloadAndMergeProps {
   rejectedAnswers: Record<string, string[]>;
   dailyStreak: StreakState;
   flashProgress: StoredFlashProgress | null;
+  settings: StoredSettings | null;
 }
 
 export interface DownloadAndMergeResult extends SyncMetaOutcome {
@@ -191,6 +196,7 @@ export interface DownloadAndMergeResult extends SyncMetaOutcome {
   rejectedAnswers: Record<string, string[]>;
   dailyStreak: StreakState;
   flashProgress: StoredFlashProgress | null;
+  settings: StoredSettings | null;
 }
 
 // PostgRESTは1回のリクエストで最大1000行しか返さないため、
@@ -245,6 +251,7 @@ export function readRemoteMeta(row: unknown): {
   rejectedAnswers: unknown;
   dailyStreak: unknown;
   flashProgress: unknown;
+  settings: unknown;
 } {
   const meta = (row ?? {}) as Record<string, unknown>;
   const poolSize = Number(meta.unlocked_pool_size);
@@ -254,6 +261,7 @@ export function readRemoteMeta(row: unknown): {
     rejectedAnswers: meta.rejected_answers,
     dailyStreak: meta.daily_streak,
     flashProgress: meta.flash_progress,
+    settings: meta.settings,
   };
 }
 
@@ -265,6 +273,7 @@ export async function downloadAndMerge({
   dailyStreak,
   flashProgress,
   syncBase,
+  settings,
 }: DownloadAndMergeProps): Promise<DownloadAndMergeResult> {
   const user = await requireSignedInUser();
 
@@ -293,6 +302,7 @@ export async function downloadAndMerge({
     rejectedAnswers: mergeRejectedAnswers(rejectedAnswers, remoteMeta.rejectedAnswers),
     dailyStreak: mergeStreaks(dailyStreak, remoteMeta.dailyStreak),
     flashProgress: mergeStoredFlashProgress(flashProgress, remoteMeta.flashProgress),
+    settings: mergeSettings(settings, remoteMeta.settings),
     metaError: metaError ? describeError(metaError) : null,
   };
 }

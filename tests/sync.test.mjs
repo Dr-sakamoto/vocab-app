@@ -90,6 +90,7 @@ test("readRemoteMeta treats a missing row as untouched meta", () => {
     rejectedAnswers: undefined,
     dailyStreak: undefined,
     flashProgress: undefined,
+    settings: undefined,
   });
 });
 
@@ -100,6 +101,7 @@ test("readRemoteMeta tolerates a row that predates the newer columns", () => {
   assert.equal(meta.rejectedAnswers, undefined);
   assert.equal(meta.dailyStreak, undefined);
   assert.equal(meta.flashProgress, undefined);
+  assert.equal(meta.settings, undefined);
 });
 
 test("readRemoteMeta ignores a junk pool size instead of poisoning the merge", () => {

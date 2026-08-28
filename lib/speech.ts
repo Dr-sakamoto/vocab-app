@@ -4,6 +4,7 @@
  */
 
 import { STORAGE_KEYS } from "./constants";
+import { touchSetting } from "./settings";
 import storage from "./storage";
 
 let pronunciationEnabled = storage.get(STORAGE_KEYS.PRONUNCIATION_ENABLED, true);
@@ -12,9 +13,19 @@ export function isPronunciationEnabled(): boolean {
   return pronunciationEnabled;
 }
 
-export function setPronunciationEnabled(enabled: boolean): void {
+/**
+ * 同期で受け取った設定を反映する。保存と変更時刻は lib/settings.ts が持つので、
+ * ここではモジュールが抱えている値だけを差し替える。
+ */
+export function adoptPronunciationEnabled(enabled: boolean): void {
   pronunciationEnabled = enabled;
+}
+
+/** ユーザー操作による変更。変更時刻を残し、他端末との合流で新しい方が勝つようにする */
+export function setPronunciationEnabled(enabled: boolean): void {
+  adoptPronunciationEnabled(enabled);
   storage.set(STORAGE_KEYS.PRONUNCIATION_ENABLED, enabled);
+  touchSetting("pronunciationEnabled");
 }
 
 export function canSpeak(): boolean {
