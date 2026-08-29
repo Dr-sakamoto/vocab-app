@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import QuestionCard from "./QuestionCard";
 import TypingAnswerRow from "./TypingAnswerRow";
 import { QuizEntry } from "@/lib/types";
@@ -33,6 +34,14 @@ export interface QuizSheetProps {
  * 10問を縦に並べるとスマホではスクロールが要り、1問送るたびに画面が
  * ずれる。2問なら収まるので、答案は「入れ替わる」だけで動かない。
  *
+ * 窓が進むとき（下が上へ繰り上がり、新しい設問が下に補充される）は
+ * 瞬間的な差し替えにせず、コンベアのように動かす。上だった設問は
+ * フェードしながら少し上へ抜け、下だった設問はそのまま上の位置へ
+ * レイアウトアニメーションで滑らかに移動し、新しい設問は下からせり上がって
+ * 入る。`layout` はキー（`${item.id}-${slot}` は窓が進んでも下→上では
+ * 変わらない）が同じ要素だけに効くので、繰り上がる設問はその場「移動」に、
+ * 抜ける設問と入る設問は enter/exit アニメーションになる。
+ *
  * 読み上げは「回答欄にカーソルが入ったとき」に鳴らす。設問を目で追う動きと
  * 音が一致し、戻って解き直したときも自然にもう一度聞こえる。
  */
@@ -48,37 +57,46 @@ export default function QuizSheet({
   registerInput,
 }: QuizSheetProps) {
   return (
-    <ol className="space-y-4">
-      {visibleSlots.map((slot) => {
-        const entry = entries[slot];
-        if (!entry) return null;
-        return (
-          <li key={`${entry.item.id}-${slot}`}>
-            <QuestionCard
-              number={slot + 1}
-              partOfSpeech={entry.item.partOfSpeech}
-              word={entry.item.target}
-              collocation={entry.item.collocation}
-              answered={entry.committed}
-            />
-            <div className="mt-1.5">
-              <TypingAnswerRow
-                inputRef={(element) => registerInput(slot, element)}
-                input={entry.input}
-                onInputChange={(value) => onInputChange(slot, value)}
-                onSubmit={() => onSubmitSlot(slot)}
-                onFocus={() => onFocusSlot(slot)}
-                onCompositionStart={onCompositionStart}
-                onCompositionEnd={onCompositionEnd}
-                isComposing={isComposing}
-                committed={entry.committed}
-                revealed={entry.outcome !== null}
-                outcome={entry.outcome}
+    <ol className="flex flex-col gap-4">
+      <AnimatePresence initial={false}>
+        {visibleSlots.map((slot) => {
+          const entry = entries[slot];
+          if (!entry) return null;
+          return (
+            <motion.li
+              key={`${entry.item.id}-${slot}`}
+              layout="position"
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <QuestionCard
+                number={slot + 1}
+                partOfSpeech={entry.item.partOfSpeech}
+                word={entry.item.target}
+                collocation={entry.item.collocation}
+                answered={entry.committed}
               />
-            </div>
-          </li>
-        );
-      })}
+              <div className="mt-1.5">
+                <TypingAnswerRow
+                  inputRef={(element) => registerInput(slot, element)}
+                  input={entry.input}
+                  onInputChange={(value) => onInputChange(slot, value)}
+                  onSubmit={() => onSubmitSlot(slot)}
+                  onFocus={() => onFocusSlot(slot)}
+                  onCompositionStart={onCompositionStart}
+                  onCompositionEnd={onCompositionEnd}
+                  isComposing={isComposing}
+                  committed={entry.committed}
+                  revealed={entry.outcome !== null}
+                  outcome={entry.outcome}
+                />
+              </div>
+            </motion.li>
+          );
+        })}
+      </AnimatePresence>
     </ol>
   );
 }
