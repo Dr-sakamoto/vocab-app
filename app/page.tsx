@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import StudyScreen from "./components/game/StudyScreen";
 import FlashScreen from "./components/flash/FlashScreen";
 import { StudyMode } from "./components/ModeTabs";
@@ -20,7 +21,7 @@ import { useVisualViewportVars } from "./hooks/useVisualViewport";
 import { useCloudSync } from "./hooks/useCloudSync";
 
 import { evaluatePlay } from "@/lib/playEvaluation";
-import { applySetToStats, summarizeSet } from "@/lib/quizSet";
+import { applySetToStats, pageSlots, summarizeSet } from "@/lib/quizSet";
 import { evaluateUnlockGate } from "@/lib/unlockGate";
 import { getPoolTier } from "@/lib/poolTier";
 import { VOCAB_ITEMS } from "@/lib/vocab";
@@ -57,6 +58,8 @@ const RESULT_ENTER_GRACE_MS = 700;
  * 単一画面の暗記アプリ。
  *
  * 10問を一枚の小テストとして出し、英単語を見て日本語訳をタイピングで答える。
+ * 答案は1セット10問のまま、画面に出るのは2問ずつで、打ち終えるとページごと
+ * 入れ替わる（スクロールしない）。
  * 確定した回答はその場で裏の採点へ回り（完全一致で拾えない表記ゆれは
  * /api/check が形態素解析→AI判定まで1往復で確定させる）、正誤は10問ぶん
  * まとめて結果発表で見せる。採点の往復は次の問題を打つ時間と重なって消える。
@@ -65,7 +68,7 @@ const RESULT_ENTER_GRACE_MS = 700;
 export default function Page() {
   /** 問題ウィンドウの中身。ページ遷移ではなくブロック内の入れ替え */
   const [phase, setPhase] = useState<"quiz" | "result">("quiz");
-  /** いま入力中の設問。読み上げとスクロール追従の基準 */
+  /** いま入力中の設問。読み上げと、答案に出す2問（ページ）の基準 */
   const [activeSlot, setActiveSlot] = useState<number>(0);
   const [stats, setStats] = useState<WordStat[]>(() =>
     VOCAB_ITEMS.map(() => ({ correct: 0, wrong: 0 })),
@@ -228,16 +231,28 @@ export default function Page() {
     if (next === "flash" || next === "mistakeFlash") markDailyPlay();
   }, [markDailyPlay]);
 
-  const focusSlot = useCallback((slot: number) => {
+  /**
+   * 設問へカーソルを送る。出題中は2問ずつしか描いていないので、ページを
+   * またぐ移動では先に答案を描き替えてからフォーカスする。
+   *
+   * 描き替えを flushSync で同期させるのは、スマホのキーボードのため。
+   * 描画をReactの都合（＝この操作のあと）に任せると、フォーカス先の
+   * 入力欄がまだ存在せず focus() が空振りし、キーボードが閉じてしまう。
+   * ユーザーの操作（Enter・⏎）の中で描画とフォーカスまで済ませる。
+   */
+  const focusQuestion = useCallback((slot: number) => {
+    flushSync(() => setActiveSlot(slot));
     inputRefs.current[slot]?.focus();
   }, []);
 
   // セットを組み直したら1問目の回答欄にカーソルを置く。
   // 読み上げはフォーカスに紐づいているので、ここで1問目が読み上げられる。
+  // 新しいセットは必ず1ページ目から始まる（activeSlot も 0 に戻している）ので、
+  // ここは描き替えを挟まずにそのままフォーカスできる。
   useEffect(() => {
     if (phase !== "quiz" || setId === 0) return;
-    focusSlot(0);
-  }, [phase, setId, focusSlot]);
+    inputRefs.current[0]?.focus();
+  }, [phase, setId]);
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -422,8 +437,9 @@ export default function Page() {
       inputRefs.current[slot]?.blur();
       return;
     }
-    focusSlot(next);
-  }, [commit, nextUnanswered, focusSlot]);
+    // ページの最後の1問だったときは、ここで答案が次の2問へ入れ替わる
+    focusQuestion(next);
+  }, [commit, nextUnanswered, focusQuestion]);
 
   /** 回答欄にカーソルが入ったら、その設問を読み上げる */
   const handleFocusSlot = useCallback((slot: number) => {
@@ -481,7 +497,7 @@ export default function Page() {
       // 回答欄の中のEnterは行側（TypingAnswerRow）が確定として処理する
       if (target?.closest?.("[data-quiz-answer]")) return;
       const slot = nextUnanswered(activeSlot - 1);
-      if (slot !== null) focusSlot(slot);
+      if (slot !== null) focusQuestion(slot);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -493,7 +509,7 @@ export default function Page() {
     phase,
     activeSlot,
     nextUnanswered,
-    focusSlot,
+    focusQuestion,
     continueToNextSet,
   ]);
 
@@ -568,6 +584,22 @@ export default function Page() {
   );
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
   const setSize = entries.length || GAME.PLAY_LIMIT;
+
+  /**
+   * 答案のうち、いま画面に出す設問。
+   *
+   * 出題中は活動中の設問が乗っているページ（2問）だけを出す。10問を縦に
+   * 並べるとスクロールが要り、打つたびに紙が動いて視線が毎問リセットされる。
+   * 結果発表では10問すべてを出す——どの語を落としたかを読む場なので、
+   * ここで隠すものは無い。
+   */
+  const visibleSlots = useMemo(
+    () =>
+      phase === "result"
+        ? entries.map((_, slot) => slot)
+        : pageSlots(activeSlot, entries.length, GAME.QUIZ_PAGE_SIZE),
+    [phase, entries, activeSlot],
+  );
   const progressPct =
     phase === "result"
       ? 100
@@ -623,7 +655,7 @@ export default function Page() {
           sheet={{
             entries,
             revealed: phase === "result",
-            activeSlot,
+            visibleSlots,
             isComposing,
             onInputChange: setInput,
             onSubmitSlot: submitSlot,

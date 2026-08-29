@@ -1,6 +1,5 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
 import QuestionCard from "./QuestionCard";
 import TypingAnswerRow from "./TypingAnswerRow";
 import { QuizEntry } from "@/lib/types";
@@ -9,8 +8,12 @@ export interface QuizSheetProps {
   entries: QuizEntry[];
   /** 結果発表後だけ true。ここで初めて10問ぶんの正誤が出る */
   revealed: boolean;
-  /** いま入力中の設問。読み上げとスクロール追従の基準 */
-  activeSlot: number;
+  /**
+   * いま画面に出す設問の添字。出題中は2問ぶん（lib/quizSet.ts の pageSlots）、
+   * 結果発表では10問すべて。番号は添字から出すので、ページが替わっても
+   * 「3」「4」と1セットの通し番号が続く。
+   */
+  visibleSlots: number[];
   isComposing: boolean;
   onInputChange: (slot: number, value: string) => void;
   onSubmitSlot: (slot: number) => void;
@@ -21,11 +24,15 @@ export interface QuizSheetProps {
 }
 
 /**
- * 10問を一枚に並べた小テストの答案用紙。
+ * 10問の小テストの答案用紙。出題中は2問ずつ、結果発表では10問ぶんを描く。
  *
  * 画面遷移も1問ごとの答え合わせも挟まず、上から順に打って Enter で next へ
  * 送るだけにする。確定した回答は裏で採点に回り、正誤は結果発表まで伏せる。
  * 採点の待ち時間はユーザーのタイピングと重なって消える。
+ *
+ * 出題中に見せる数を絞るのは、打っているあいだ紙を動かさないため。
+ * 10問を縦に並べるとスマホではスクロールが要り、1問送るたびに画面が
+ * ずれる。2問なら収まるので、答案は「入れ替わる」だけで動かない。
  *
  * 読み上げは「回答欄にカーソルが入ったとき」に鳴らす。設問を目で追う動きと
  * 音が一致し、戻って解き直したときも自然にもう一度聞こえる。
@@ -33,7 +40,7 @@ export interface QuizSheetProps {
 export default function QuizSheet({
   entries,
   revealed,
-  activeSlot,
+  visibleSlots,
   isComposing,
   onInputChange,
   onSubmitSlot,
@@ -42,49 +49,38 @@ export default function QuizSheet({
   onCompositionEnd,
   registerInput,
 }: QuizSheetProps) {
-  const rowRefs = useRef<(HTMLLIElement | null)[]>([]);
-
-  // 次の設問へ送ったとき、その行が画面の外へ出ないところまでだけ寄せる。
-  // ペイント前に合わせることで、隠れた状態が一瞬見えてから画面がズレる
-  // という体感上の「割り込み」を消す。
-  useLayoutEffect(() => {
-    if (revealed) return;
-    rowRefs.current[activeSlot]?.scrollIntoView({ block: "nearest" });
-  }, [activeSlot, revealed]);
-
   return (
     <ol className="space-y-4">
-      {entries.map((entry, slot) => (
-        <li
-          key={`${entry.item.id}-${slot}`}
-          ref={(element) => {
-            rowRefs.current[slot] = element;
-          }}
-        >
-          <QuestionCard
-            number={slot + 1}
-            partOfSpeech={entry.item.partOfSpeech}
-            word={entry.item.target}
-            collocation={entry.item.collocation}
-            answered={entry.committed}
-          />
-          <div className="mt-1.5">
-            <TypingAnswerRow
-              inputRef={(element) => registerInput(slot, element)}
-              input={entry.input}
-              onInputChange={(value) => onInputChange(slot, value)}
-              onSubmit={() => onSubmitSlot(slot)}
-              onFocus={() => onFocusSlot(slot)}
-              onCompositionStart={onCompositionStart}
-              onCompositionEnd={onCompositionEnd}
-              isComposing={isComposing}
-              committed={entry.committed}
-              revealed={revealed}
-              outcome={entry.outcome}
+      {visibleSlots.map((slot) => {
+        const entry = entries[slot];
+        if (!entry) return null;
+        return (
+          <li key={`${entry.item.id}-${slot}`}>
+            <QuestionCard
+              number={slot + 1}
+              partOfSpeech={entry.item.partOfSpeech}
+              word={entry.item.target}
+              collocation={entry.item.collocation}
+              answered={entry.committed}
             />
-          </div>
-        </li>
-      ))}
+            <div className="mt-1.5">
+              <TypingAnswerRow
+                inputRef={(element) => registerInput(slot, element)}
+                input={entry.input}
+                onInputChange={(value) => onInputChange(slot, value)}
+                onSubmit={() => onSubmitSlot(slot)}
+                onFocus={() => onFocusSlot(slot)}
+                onCompositionStart={onCompositionStart}
+                onCompositionEnd={onCompositionEnd}
+                isComposing={isComposing}
+                committed={entry.committed}
+                revealed={revealed}
+                outcome={entry.outcome}
+              />
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 }
