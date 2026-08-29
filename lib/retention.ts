@@ -40,22 +40,18 @@ export interface RetentionLevel {
 }
 
 /**
- * 6段階の色。青みがかった無彩色（未出題）からピンクへ、輝度が単調に上がる
- * 連続スケール。以前は彩度を抑えていたため隣り合う段がほぼ同じ色に見えて
- * しまっていた。段が進むごとに色相を紫→バイオレット→マゼンタ→ピンクへ
- * 20〜22°ずつ大きく動かし、かつ彩度を60〜80%まで上げることで、
- * 隣接段でも一目で別の色だとわかるようにしている（明度だけの違いに頼らない）。
- * POOL_TIERS（無彩色→青緑→緑→黄）や --accent（青）とは色相を分け、
- * 「出題プールの規模」と「語ごとの定着度」を別の色として見分けられるようにしている。
+ * 6段階の色。灰色（未出題）→緑→黄へ、輝度が単調に上がる連続スケール。
+ * 「灰色＝まだ手つかず」「緑＝育ってきた」「黄＝定着」という信号機的な
+ * 直感に合わせており、一目で段階の進み具合がわかることを優先している。
  * 全色 --surface-0(#12141A) 上で 4.5:1 以上。
  */
 export const RETENTION_LEVELS: RetentionLevel[] = [
-  { level: 0, label: "未出題", color: "#807da1" },
-  { level: 1, label: "Lv.1", color: "#976ede" },
-  { level: 2, label: "Lv.2", color: "#bf60e1" },
-  { level: 3, label: "Lv.3", color: "#e24bdd" },
-  { level: 4, label: "Lv.4", color: "#e859bd" },
-  { level: 5, label: "Lv.5", color: "#ee639a" },
+  { level: 0, label: "未出題", color: "#8a8f94" },
+  { level: 1, label: "Lv.1", color: "#7ea08c" },
+  { level: 2, label: "Lv.2", color: "#6cb37e" },
+  { level: 3, label: "Lv.3", color: "#8ec25e" },
+  { level: 4, label: "Lv.4", color: "#bccf52" },
+  { level: 5, label: "Lv.5", color: "#e8d95a" },
 ];
 
 /**
