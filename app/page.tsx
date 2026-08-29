@@ -162,6 +162,45 @@ export default function Page() {
     onAiRejected: addRejectedAnswer,
   });
 
+  const handleSyncMerged = useCallback(
+    (merged: {
+      stats: WordStat[];
+      unlockedPoolSize: number;
+      approvedAnswers: Record<string, string[]>;
+      rejectedAnswers: Record<string, string[]>;
+      dailyStreak: StreakState;
+    }) => {
+      setStats(merged.stats);
+      setUnlockedPoolSize(merged.unlockedPoolSize);
+      setApprovedAnswers(merged.approvedAnswers);
+      setRejectedAnswers(merged.rejectedAnswers);
+      setDailyStreak(merged.dailyStreak);
+      storage.set(STORAGE_KEYS.STREAK, merged.dailyStreak);
+      try {
+        localStorage.setItem(
+          APPROVED_ANSWERS_KEY,
+          JSON.stringify(merged.approvedAnswers),
+        );
+        localStorage.setItem(
+          REJECTED_ANSWERS_KEY,
+          JSON.stringify(merged.rejectedAnswers),
+        );
+      } catch {}
+    },
+    [setUnlockedPoolSize],
+  );
+
+  const cloudSync = useCloudSync({
+    stats,
+    unlockedPoolSize,
+    approvedAnswers,
+    rejectedAnswers,
+    dailyStreak,
+    isReady: isLoaded,
+    onMerged: handleSyncMerged,
+  });
+  const { syncAuto } = cloudSync;
+
   // ── 音声 ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -319,14 +358,18 @@ export default function Page() {
     [pickNextQuestionIndex],
   );
 
-  // 復元完了後に最初のセットを組む（復元された stats・プールを反映した抽選にする）
+  // 復元完了後に最初のセットを組む（復元された stats・プールを反映した抽選にする）。
+  // クラウド同期の初回ダウンロード＋マージが決着するまで待つ。これを待たずに
+  // 組むと、たまにしか開かない端末では localStorage が浅いままの
+  // stats・unlockedPoolSize から抽選してしまい、実際より簡単な単語ばかりの
+  // セットになる。
   const didInitQuestionRef = useRef<boolean>(false);
   useEffect(() => {
-    if (!isLoaded || didInitQuestionRef.current) return;
+    if (!isLoaded || !cloudSync.initialSyncDone || didInitQuestionRef.current) return;
     didInitQuestionRef.current = true;
     startSet(pickSet([], 1.0));
     markDailyPlay();
-  }, [isLoaded, pickSet, startSet, markDailyPlay]);
+  }, [isLoaded, cloudSync.initialSyncDone, pickSet, startSet, markDailyPlay]);
 
   // ── localStorage 保存 ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -496,45 +539,6 @@ export default function Page() {
     focusSlot,
     continueToNextSet,
   ]);
-
-  const handleSyncMerged = useCallback(
-    (merged: {
-      stats: WordStat[];
-      unlockedPoolSize: number;
-      approvedAnswers: Record<string, string[]>;
-      rejectedAnswers: Record<string, string[]>;
-      dailyStreak: StreakState;
-    }) => {
-      setStats(merged.stats);
-      setUnlockedPoolSize(merged.unlockedPoolSize);
-      setApprovedAnswers(merged.approvedAnswers);
-      setRejectedAnswers(merged.rejectedAnswers);
-      setDailyStreak(merged.dailyStreak);
-      storage.set(STORAGE_KEYS.STREAK, merged.dailyStreak);
-      try {
-        localStorage.setItem(
-          APPROVED_ANSWERS_KEY,
-          JSON.stringify(merged.approvedAnswers),
-        );
-        localStorage.setItem(
-          REJECTED_ANSWERS_KEY,
-          JSON.stringify(merged.rejectedAnswers),
-        );
-      } catch {}
-    },
-    [setUnlockedPoolSize],
-  );
-
-  const cloudSync = useCloudSync({
-    stats,
-    unlockedPoolSize,
-    approvedAnswers,
-    rejectedAnswers,
-    dailyStreak,
-    isReady: isLoaded,
-    onMerged: handleSyncMerged,
-  });
-  const { syncAuto } = cloudSync;
 
   // 10問セットの区切りで裏側から同期する。設定を開かなくても、
   // 別の端末を開いた時点で最新の進捗が乗っている状態にする。
