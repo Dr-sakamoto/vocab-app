@@ -218,6 +218,16 @@ a {
   outline: none;
 }
 
+/* 結果発表後の正誤は欄自体の枠・地色で表す（正解が10問中ほとんどを占めるため、
+   静かな色差に留める）。不正解・未回答だけ地色も変えて強めに示す。 */
+.answer-field-correct {
+  border-color: var(--positive);
+}
+.answer-field-incorrect {
+  border-color: var(--negative);
+  background-color: var(--negative-surface);
+}
+
 /* 面から浮かない控えめなボタン。塗りつぶしの操作色は
    「いま押すべきもの」が一つに定まるときだけ使う（.btn-accent）。 */
 .btn-quiet {
