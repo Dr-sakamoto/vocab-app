@@ -23,6 +23,30 @@ export function findNextUnanswered(
   return null;
 }
 
+/**
+ * `activeSlot` が乗っているページに含まれる設問の添字を返す。
+ *
+ * 10問は1セットのまま、画面に出すのは `pageSize` 問ずつにする。ページは
+ * 「いま入力中の設問」から決まるので、順に打っていけば最後の1問を確定した
+ * ところで次のページへ入れ替わる（進むためのボタンは要らない）。
+ * 飛ばした設問へ戻ったときも、その設問のページがそのまま出る。
+ *
+ * 採点は設問の確定ごとに裏で走り続けるので、ページが替わっても止まらない。
+ */
+export function pageSlots(
+  activeSlot: number,
+  total: number,
+  pageSize: number,
+): number[] {
+  if (total <= 0 || pageSize <= 0) return [];
+  const clamped = Math.min(Math.max(Math.floor(activeSlot), 0), total - 1);
+  const start = Math.floor(clamped / pageSize) * pageSize;
+  const end = Math.min(start + pageSize, total);
+  const slots: number[] = [];
+  for (let slot = start; slot < end; slot += 1) slots.push(slot);
+  return slots;
+}
+
 export interface SetSummary {
   answers: SessionAnswer[];
   score: number;
