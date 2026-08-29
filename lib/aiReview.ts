@@ -107,8 +107,24 @@ function getClient(): GoogleGenerativeAI | null {
   return cachedClient;
 }
 
-export function buildReviewPrompt(input: string, target: string): string {
-  return `英語「${target}」の日本語訳として「${input}」は適切ですか？
+/**
+ * 判定用のプロンプトを組み立てる。
+ *
+ * collocation（頻出の目的語）があるときは、その文脈での語義を尋ねる。
+ * 多義の句動詞は単体で尋ねるとどの語義で採点されるか決まらず、
+ * 出題側が想定していない語義の訳まで合格になってしまう。
+ */
+export function buildReviewPrompt(
+  input: string,
+  target: string,
+  collocation?: string,
+): string {
+  const context = collocation?.trim();
+  const question = context
+    ? `英語「${target} ${context}」における「${target}」の日本語訳として「${input}」は適切ですか？`
+    : `英語「${target}」の日本語訳として「${input}」は適切ですか？`;
+
+  return `${question}
 0〜100のスコアと短い理由をJSONで返してください。${AI_APPROVAL_THRESHOLD}点以上が合格です。
 {"score": 数値, "feedback": "理由（15字以内）"}
 JSONのみ返答してください。`;
@@ -117,6 +133,8 @@ JSONのみ返答してください。`;
 export interface JudgeAnswerProps {
   input: string;
   target: string;
+  /** 句動詞の意味を固定する頻出の目的語。あれば語義を絞ってから判定させる */
+  collocation?: string;
   timeoutMs?: number;
 }
 
@@ -127,6 +145,7 @@ export interface JudgeAnswerProps {
 export async function judgeAnswerWithAi({
   input,
   target,
+  collocation,
   timeoutMs = AI_TIMEOUT_MS,
 }: JudgeAnswerProps): Promise<AiVerdict | null> {
   const client = getClient();
@@ -142,9 +161,10 @@ export async function judgeAnswerWithAi({
       },
     });
 
-    const result = await model.generateContent(buildReviewPrompt(input, target), {
-      timeout: timeoutMs,
-    });
+    const result = await model.generateContent(
+      buildReviewPrompt(input, target, collocation),
+      { timeout: timeoutMs },
+    );
 
     return parseAiVerdict(result.response.text());
   } catch (error) {

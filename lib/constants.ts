@@ -43,7 +43,6 @@ export const STORAGE_KEYS = {
   FLASH_SPEED: "vocab-flash-speed",
   MISTAKE_THRESHOLD: "vocab-mistake-threshold",
   FLASH_PROGRESS: "vocab-flash-progress",
-  SETTINGS_UPDATED_AT: "vocab-settings-updated-at",
   SYNC_BASE: "vocab-sync-base",
 } as const;
 

@@ -1,70 +1,73 @@
 "use client";
 
-import { useEffect } from "react";
-import { motion } from "framer-motion";
-import { speakEnglishWord, stopSpeaking } from "@/lib/speech";
+import { speakEnglishWord } from "@/lib/speech";
 
 export interface QuestionCardProps {
-  /** 問題が変わるたびにフェードさせるためのキー */
-  questionKey: number | string;
+  /** 小テストの設問番号（1始まり） */
+  number: number;
   partOfSpeech: string;
   word: string;
-  /** スマホは余白を絞る */
-  dense?: boolean;
-  /** 未回答のときだけ表示する「わからない」ボタンの押下時 */
-  onSkip?: () => void;
-  skipDisabled?: boolean;
+  /**
+   * 句動詞の意味を固定する、頻出の目的語。`take in` に対する `nutrients` など。
+   * 単語の後ろに `[ ]` で添える。訳す対象ではないことを括弧で示す。
+   */
+  collocation?: string;
+  /**
+   * 回答を確定済みか。番号の濃さだけで示し、正誤は一切出さない。
+   * 1問ごとに正誤が出ると、そこで手が止まって小テストにならない。
+   */
+  answered?: boolean;
 }
 
 /**
- * 出題カード。英単語と品詞だけを見せる。
+ * 小テスト1問ぶんの設問行。英単語・品詞・（あれば）目的語だけを見せる。
  *
- * 配色・演出の方針:
- * - 枠は固定し、単語だけがフェードで入れ替わる。カード自体が動くと
- *   いちばん読ませたい文字の周りで視線が奪われる。
+ * 配色・組みの方針:
  * - 単語に発光（drop-shadow）を掛けない。グローは字形のエッジを鈍らせ、
  *   未知語の綴りを読み取る妨げになる。
  * - 字間を詰めない。未知の綴りは「読む」より「解読する」作業に近く、
  *   詰まった字間は文字同士の混雑（crowding）で不利になる。
- * - 補助要素（品詞・読み上げ・わからない）はすべて無彩色。彩度を持つのは
+ * - 補助要素（番号・品詞・読み上げ）はすべて無彩色。彩度を持つのは
  *   ユーザーが次に取るべき行動だけにする。
+ * - 目的語は単語より小さく淡くする。答えるべきなのは句動詞のほうで、
+ *   目的語は意味を絞り込むためのアンカーでしかない。
  */
 export default function QuestionCard({
-  questionKey,
+  number,
   partOfSpeech,
   word,
-  dense = false,
-  onSkip,
-  skipDisabled = false,
+  collocation,
+  answered = false,
 }: QuestionCardProps) {
-  // 問題が切り替わったら新しい単語を自動で読み上げ、次に切り替わる時に止める
-  useEffect(() => {
-    speakEnglishWord(word);
-    return () => stopSpeaking();
-  }, [questionKey, word]);
+  // 目的語まで含めて読み上げる。チャンクごと音で覚えるほうが、
+  // 句動詞単体で覚えるより意味の想起が速い。
+  const spokenText = collocation ? `${word} ${collocation}` : word;
 
   return (
-    <div
-      className={`prompt-card relative px-5 text-center ${
-        dense ? "py-4" : "py-6 sm:py-9"
-      }`}
-    >
-      {onSkip && (
-        <button
-          type="button"
-          onClick={onSkip}
-          disabled={skipDisabled}
-          aria-label="この問題をわからないとして次へ"
-          className="absolute left-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-md text-xs text-ink-3 transition hover:bg-surface-2 hover:text-ink-2 disabled:opacity-40"
-        >
-          ?
-        </button>
-      )}
+    <div className="flex items-baseline gap-2.5">
+      <span
+        className={`w-5 shrink-0 text-right text-xs tabular-nums ${
+          answered ? "text-ink-2" : "text-ink-3"
+        }`}
+      >
+        {number}
+      </span>
+      <div className="min-w-0 flex-1">
+        <span className="break-words font-word text-2xl leading-tight tracking-[0.01em] text-ink-1 sm:text-3xl">
+          {word}
+        </span>
+        {collocation && (
+          <span className="ml-1.5 text-base text-ink-3">[{collocation}]</span>
+        )}
+        <span className="ml-2 whitespace-nowrap text-[11px] tracking-[0.16em] text-ink-3">
+          {partOfSpeech}
+        </span>
+      </div>
       <button
         type="button"
-        onClick={() => speakEnglishWord(word)}
-        aria-label="英単語を読み上げる"
-        className="absolute right-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition hover:bg-surface-2 hover:text-ink-2"
+        onClick={() => speakEnglishWord(spokenText)}
+        aria-label={`${word} を読み上げる`}
+        className="flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-md text-ink-3 transition hover:bg-surface-2 hover:text-ink-2"
       >
         <svg
           viewBox="0 0 24 24"
@@ -81,24 +84,6 @@ export default function QuestionCard({
           <path d="M19 6a8.5 8.5 0 0 1 0 12" />
         </svg>
       </button>
-      <motion.div
-        key={questionKey}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.18, ease: "easeOut" }}
-        className="relative z-20"
-      >
-        <div className="text-[11px] tracking-[0.16em] text-ink-3">
-          {partOfSpeech}
-        </div>
-        <div
-          className={`mt-2 break-words font-word leading-tight tracking-[0.01em] text-ink-1 ${
-            dense ? "text-3xl" : "text-3xl sm:text-5xl"
-          }`}
-        >
-          {word}
-        </div>
-      </motion.div>
     </div>
   );
 }

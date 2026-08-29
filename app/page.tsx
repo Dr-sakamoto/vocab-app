@@ -5,21 +5,23 @@ import StudyScreen from "./components/game/StudyScreen";
 import FlashScreen from "./components/flash/FlashScreen";
 import { StudyMode } from "./components/ModeTabs";
 import SyncButton from "./components/SyncButton";
-import { useGameSession } from "./hooks/useGameSession";
+import { useQuizSet } from "./hooks/useQuizSet";
 import { useVocabPool } from "./hooks/useVocabPool";
 import { useClickSound } from "./hooks/useClickSound";
 import { getSoundVolume, setSoundVolume } from "@/lib/clickSound";
 import {
-  adoptPronunciationEnabled,
   isPronunciationEnabled,
   setPronunciationEnabled,
   getPronunciationVolume,
   setPronunciationVolume,
+  speakEnglishWord,
 } from "@/lib/speech";
 import { useVisualViewportVars } from "./hooks/useVisualViewport";
 import { useCloudSync } from "./hooks/useCloudSync";
 
 import { evaluatePlay } from "@/lib/playEvaluation";
+import { summarizeSet } from "@/lib/quizSet";
+import { applyAnswerToStat } from "@/lib/reviewSchedule";
 import { getPoolTier } from "@/lib/poolTier";
 import { VOCAB_ITEMS } from "@/lib/vocab";
 import {
@@ -30,7 +32,6 @@ import {
 } from "@/lib/wordProgress";
 import { countRetained, countRetentionGain, countRetentionLevels } from "@/lib/retention";
 import { GAME, STORAGE_KEYS, FLASH, SOUND } from "@/lib/constants";
-import { StoredSettings, touchSetting } from "@/lib/settings";
 import {
   EMPTY_STREAK,
   StreakState,
@@ -39,32 +40,41 @@ import {
   recordPlay,
   toDateKey,
 } from "@/lib/streak";
-import { WordStat, PlayEvaluation, VocabItem } from "@/lib/types";
+import { WordStat, PlayEvaluation, SessionAnswer } from "@/lib/types";
 import storage from "@/lib/storage";
 
 const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
 const REJECTED_ANSWERS_KEY = "vocab-rejected-answers";
 
-function getPartOfSpeech(q: VocabItem | undefined): string {
-  return q?.partOfSpeech ?? "word";
-}
+/**
+ * 結果発表が出てから、Enterで次のセットへ進めるようになるまでの猶予。
+ * 10問を Enter で送り続けた勢いのまま最後の1打が余ると、答案を一度も
+ * 読まないまま次のセットへ飛んでしまう。
+ */
+const RESULT_ENTER_GRACE_MS = 700;
 
 /**
  * 単一画面の暗記アプリ。
  *
- * 英単語を見て日本語訳をタイピングで答える。完全一致で拾えない表記ゆれは
- * /api/check が形態素解析→AI判定まで1往復で確定させる。10問ごとにその場で
- * リザルトへ中身が入れ替わり、続けて次のセットへ流れる。画面遷移は存在しない。
+ * 10問を一枚の小テストとして出し、英単語を見て日本語訳をタイピングで答える。
+ * 確定した回答はその場で裏の採点へ回り（完全一致で拾えない表記ゆれは
+ * /api/check が形態素解析→AI判定まで1往復で確定させる）、正誤は10問ぶん
+ * まとめて結果発表で見せる。採点の往復は次の問題を打つ時間と重なって消える。
+ * リザルトはその場で中身が入れ替わり、続けて次のセットへ流れる。画面遷移は存在しない。
  */
 export default function Page() {
   /** 問題ウィンドウの中身。ページ遷移ではなくブロック内の入れ替え */
   const [phase, setPhase] = useState<"quiz" | "result">("quiz");
-  const [index, setIndex] = useState<number>(0);
+  /** いま入力中の設問。読み上げとスクロール追従の基準 */
+  const [activeSlot, setActiveSlot] = useState<number>(0);
   const [stats, setStats] = useState<WordStat[]>(() =>
     VOCAB_ITEMS.map(() => ({ correct: 0, wrong: 0 })),
   );
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [resultEvaluation, setResultEvaluation] = useState<PlayEvaluation | null>(null);
+  /** 締めたセットの成績。結果発表と定着ドーナツはこれだけを見る */
+  const [setAnswers, setSetAnswers] = useState<SessionAnswer[]>([]);
+  const [setScore, setSetScore] = useState<number>(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [soundVolume, setSoundVolumeState] = useState<number>(SOUND.DEFAULT_VOLUME);
   const [pronunciationEnabled, setPronunciationEnabledState] = useState<boolean>(true);
@@ -78,10 +88,12 @@ export default function Page() {
   /** 同一セッションで連続プレイした回数。多いほどフロー係数が上がる */
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
 
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const seenInPlayRef = useRef<Set<number> | null>(null);
+  /** 設問ごとの回答欄。Enter で次の設問へフォーカスを送るのに使う */
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const didLoadFromStorageRef = useRef<boolean>(false);
   const resultUnlockAppliedRef = useRef<boolean>(false);
+  /** 結果発表が出た時刻。直後の余分なEnterで答案を飛ばさないために見る */
+  const resultShownAtRef = useRef<number>(0);
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
 
   const [dailyStreak, setDailyStreak] = useState<StreakState>(EMPTY_STREAK);
@@ -100,7 +112,6 @@ export default function Page() {
       );
     } catch { return {}; }
   });
-  const q = VOCAB_ITEMS[index];
 
   /** AIが認めた回答を記憶し、次回同じ回答をしたときのAI往復を省く */
   const addApprovedAnswer = useCallback((wordId: string, normalizedAnswer: string) => {
@@ -135,30 +146,16 @@ export default function Page() {
   } = useVocabPool({ stats, vocabItemsLength: VOCAB_ITEMS.length });
 
   const {
-    score,
-    total,
-    setTotal,
-    bestStreak,
-    sessionAnswers: gameSessionAnswers,
-    input,
+    entries,
+    setId,
+    startSet,
     setInput,
-    checked,
-    isCorrect,
-    answerStatus,
-    isCheckingAnswer,
-    checkAnswer,
-    giveUp,
-    resetSession,
-    prepareNextQuestion,
-    normalizedAnswers,
-    posViolation,
-    aiFeedback,
-  } = useGameSession({
-    q,
-    index,
-    activeView: phase === "result" ? "result" : "study",
-    stats,
-    setStats,
+    commit,
+    nextUnanswered,
+    answeredCount,
+    allCommitted,
+    allGraded,
+  } = useQuizSet({
     approvedAnswers,
     rejectedAnswers,
     onAiApproved: addApprovedAnswer,
@@ -172,7 +169,6 @@ export default function Page() {
       approvedAnswers: Record<string, string[]>;
       rejectedAnswers: Record<string, string[]>;
       dailyStreak: StreakState;
-      settings: StoredSettings | null;
     }) => {
       setStats(merged.stats);
       setUnlockedPoolSize(merged.unlockedPoolSize);
@@ -180,16 +176,6 @@ export default function Page() {
       setRejectedAnswers(merged.rejectedAnswers);
       setDailyStreak(merged.dailyStreak);
       storage.set(STORAGE_KEYS.STREAK, merged.dailyStreak);
-      // 合流後の設定を画面と各モジュールへ反映する。保存は useCloudSync が
-      // 済ませているので、ここでは変更時刻を触らない adopt 側を呼ぶ。
-      // 音量は同期対象外なので、この端末の値をそのまま残す。
-      if (merged.settings) {
-        const values = merged.settings.values;
-        adoptPronunciationEnabled(values.pronunciationEnabled);
-        setPronunciationEnabledState(values.pronunciationEnabled);
-        setFlashSpeedState(values.flashSpeed);
-        setMistakeThresholdState(values.mistakeThreshold);
-      }
       try {
         localStorage.setItem(
           APPROVED_ANSWERS_KEY,
@@ -226,13 +212,18 @@ export default function Page() {
     if (correctSoundRef.current) correctSoundRef.current.volume = soundVolume * 0.4;
   }, [soundVolume]);
 
-  useEffect(() => {
-    if (!checked || !isCorrect || !correctSoundRef.current) return;
-    correctSoundRef.current.currentTime = 0;
-    correctSoundRef.current.play()?.catch?.((error) => {
+  /**
+   * 効果音は回答ごとには鳴らさない。1問ずつ鳴らすとそこで正誤が漏れて、
+   * 結果発表まで伏せる意味が無くなる。プールが解放される出来にだけ鳴らす。
+   */
+  const playCorrectSound = useCallback(() => {
+    const sound = correctSoundRef.current;
+    if (!sound) return;
+    sound.currentTime = 0;
+    sound.play()?.catch?.((error) => {
       console.debug("Sound play error (ignoring):", error);
     });
-  }, [checked, isCorrect]);
+  }, []);
 
   // プレイ開始時に「今日プレイした」ことを記録し、毎日ストリークを更新する。
   const markDailyPlay = useCallback(() => {
@@ -259,7 +250,6 @@ export default function Page() {
     const clamped = Math.min(FLASH.MAX_SPEED_SEC, Math.max(FLASH.MIN_SPEED_SEC, value));
     setFlashSpeedState(clamped);
     storage.set(STORAGE_KEYS.FLASH_SPEED, clamped);
-    touchSetting("flashSpeed");
   }, []);
 
   const handleMistakeThresholdChange = useCallback((value: number) => {
@@ -269,7 +259,6 @@ export default function Page() {
     );
     setMistakeThresholdState(clamped);
     storage.set(STORAGE_KEYS.MISTAKE_THRESHOLD, clamped);
-    touchSetting("mistakeThreshold");
   }, []);
 
   // フラッシュモードもストリーク対象の学習時間として扱う
@@ -278,11 +267,16 @@ export default function Page() {
     if (next === "flash" || next === "mistakeFlash") markDailyPlay();
   }, [markDailyPlay]);
 
-  // 回答欄は常にフォーカスしておく。IMEをすぐ打ち始められる状態を保つ。
+  const focusSlot = useCallback((slot: number) => {
+    inputRefs.current[slot]?.focus();
+  }, []);
+
+  // セットを組み直したら1問目の回答欄にカーソルを置く。
+  // 読み上げはフォーカスに紐づいているので、ここで1問目が読み上げられる。
   useEffect(() => {
-    if (phase !== "quiz" || isCheckingAnswer) return;
-    inputRef.current?.focus();
-  }, [phase, checked, index, isCheckingAnswer]);
+    if (phase !== "quiz" || setId === 0) return;
+    focusSlot(0);
+  }, [phase, setId, focusSlot]);
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -341,20 +335,41 @@ export default function Page() {
     });
   }, [setUnlockedPoolSize]);
 
-  // 復元完了後に最初の問題を選ぶ（復元された stats・プールを反映した抽選にする）。
+  /**
+   * 1セットぶん（10問）をまとめて抽選する。
+   *
+   * 1問ずつ出していた頃は「直前の1語」だけを次の抽選から外していた。
+   * まとめて出すいまは、直前のセットで正解した語を外す（`excluded`）。
+   * 答えを見たばかりの語をそのまま次のセットへ出しても想起の負荷にならない。
+   * 落とした語は外さない——間隔反復の0日目に当たり、すぐ出し直すほうがよい。
+   */
+  const pickSet = useCallback(
+    (excluded: number[], accuracy: number) => {
+      const seen = new Set<number>(excluded);
+      const picked: number[] = [];
+      for (let i = 0; i < GAME.PLAY_LIMIT; i += 1) {
+        const nextIndex = pickNextQuestionIndex(null, seen, accuracy);
+        if (nextIndex === null) break;
+        seen.add(nextIndex);
+        picked.push(nextIndex);
+      }
+      return picked.map((poolIndex) => ({ poolIndex, item: VOCAB_ITEMS[poolIndex] }));
+    },
+    [pickNextQuestionIndex],
+  );
+
+  // 復元完了後に最初のセットを組む（復元された stats・プールを反映した抽選にする）。
   // クラウド同期の初回ダウンロード＋マージが決着するまで待つ。これを待たずに
-  // 選ぶと、たまにしか開かない端末では localStorage が浅いままの
-  // stats・unlockedPoolSize から1問目を選んでしまい、実際より簡単な単語が
-  // 出やすくなる。
+  // 組むと、たまにしか開かない端末では localStorage が浅いままの
+  // stats・unlockedPoolSize から抽選してしまい、実際より簡単な単語ばかりの
+  // セットになる。
   const didInitQuestionRef = useRef<boolean>(false);
   useEffect(() => {
     if (!isLoaded || !cloudSync.initialSyncDone || didInitQuestionRef.current) return;
     didInitQuestionRef.current = true;
-    const newIndex = pickNextQuestionIndex(null, new Set(), 1.0) ?? 0;
-    setIndex(newIndex);
-    seenInPlayRef.current = new Set([newIndex]);
+    startSet(pickSet([], 1.0));
     markDailyPlay();
-  }, [isLoaded, cloudSync.initialSyncDone, pickNextQuestionIndex, markDailyPlay]);
+  }, [isLoaded, cloudSync.initialSyncDone, pickSet, startSet, markDailyPlay]);
 
   // ── localStorage 保存 ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -379,14 +394,34 @@ export default function Page() {
     storage.set(STORAGE_KEYS.POOL_SIZE, unlockedPoolSize);
   }, [unlockedPoolSize]);
 
-  // ── 10問区切りの締め（評価 + プール解放）───────────────────────────────────
+  // ── 10問セットの締め（評価 + 統計反映 + プール解放）─────────────────────
+  /**
+   * 全問の採点が返ってから一度だけ走る。10問ぶんの正誤をまとめて
+   * 統計へ畳み込み、そこで初めて結果を表に出す。
+   */
   const finishSet = useCallback(() => {
     if (resultUnlockAppliedRef.current) return;
     resultUnlockAppliedRef.current = true;
 
+    const { answers, score, bestStreak } = summarizeSet(entries, stats);
+
+    // 正誤カウントに加えて分散学習の状態（最終解答時刻・連続正解数）も更新する
+    setStats((prevStats) => {
+      const nextStats = [...prevStats];
+      for (const entry of entries) {
+        nextStats[entry.poolIndex] = applyAnswerToStat(
+          nextStats[entry.poolIndex],
+          entry.outcome?.correct ?? false,
+        );
+      }
+      return nextStats;
+    });
+
+    setSetAnswers(answers);
+    setSetScore(score);
     setResultEvaluation(
       evaluatePlay({
-        answers: gameSessionAnswers,
+        answers,
         score,
         playLimit: GAME.PLAY_LIMIT,
         bestStreak,
@@ -402,74 +437,80 @@ export default function Page() {
     else if (accuracy >= GAME.UNLOCK_ACCURACY) step = GAME.UNLOCK_STEP;
 
     unlockMore(step);
+    if (step > 0) playCorrectSound();
 
+    resultShownAtRef.current = Date.now();
     setPhase("result");
   }, [
-    bestStreak,
+    entries,
+    stats,
     flowPlayCount,
-    gameSessionAnswers,
-    score,
+    playCorrectSound,
     unlockMore,
     unlockedPoolSize,
   ]);
 
-  // ── 次へ ───────────────────────────────────────────────────────────────────
-  const advanceQuestion = useCallback((answeredCount: number) => {
-    if (total >= GAME.PLAY_LIMIT) {
-      finishSet();
+  // 全問確定して採点も出そろったら、そのまま結果発表へ移る。
+  // ここに「採点する」ボタンは置かない（押させるだけの割り込みになる）。
+  useEffect(() => {
+    if (phase !== "quiz" || !allGraded) return;
+    finishSet();
+  }, [phase, allGraded, finishSet]);
+
+  // ── 回答の確定 ─────────────────────────────────────────────────────────────
+  /**
+   * 回答を確定して次の未回答へ送る。採点は裏で走り、結果は待たない。
+   * 空欄のまま送ってもよい（＝わからない）。未回答として不正解に数える。
+   */
+  const submitSlot = useCallback((slot: number) => {
+    commit(slot);
+    const next = nextUnanswered(slot);
+    if (next === null) {
+      // 最後の1問。キーボードを閉じて採点の締めに任せる
+      inputRefs.current[slot]?.blur();
       return;
     }
+    focusSlot(next);
+  }, [commit, nextUnanswered, focusSlot]);
 
-    setTotal((t) => t + 1);
-    const seenInPlay = seenInPlayRef.current ?? new Set<number>([index]);
-    seenInPlayRef.current = seenInPlay;
-    const currentSessionAccuracy = answeredCount <= 0 ? 1 : score / answeredCount;
-    const nextIndex = pickNextQuestionIndex(index, seenInPlay, currentSessionAccuracy);
-    if (nextIndex === null) {
-      finishSet();
-      return;
-    }
-    seenInPlay.add(nextIndex);
-    setIndex(nextIndex);
-    prepareNextQuestion();
-  }, [
-    total,
-    finishSet,
-    setTotal,
-    index,
-    score,
-    pickNextQuestionIndex,
-    prepareNextQuestion,
-  ]);
-
-  const next = useCallback(() => {
-    if (!checked || phase === "result") return;
-    advanceQuestion(total);
-  }, [checked, phase, total, advanceQuestion]);
+  /** 回答欄にカーソルが入ったら、その設問を読み上げる */
+  const handleFocusSlot = useCallback((slot: number) => {
+    setActiveSlot(slot);
+    if (phase !== "quiz") return;
+    const entry = entries[slot];
+    if (!entry) return;
+    const { target, collocation } = entry.item;
+    speakEnglishWord(collocation ? `${target} ${collocation}` : target);
+  }, [entries, phase]);
 
   /** リザルトから次の10問セットへ。画面はそのまま、中身だけ入れ替える */
   const continueToNextSet = useCallback(() => {
     markDailyPlay();
     setFlowPlayCount((count) => count + 1);
-    resetSession();
     setResultEvaluation(null);
-    // 直前のセットで最後に出した単語（＝直近正解したばかりの単語）を
-    // 次セットの1問目から除外する
-    const newIndex = pickNextQuestionIndex(index, new Set([index]), 1.0) ?? 0;
-    setIndex(newIndex);
-    seenInPlayRef.current = new Set([newIndex]);
+    setSetAnswers([]);
+    setSetScore(0);
+    setActiveSlot(0);
+
+    const solved = entries
+      .filter((entry) => entry.outcome?.correct)
+      .map((entry) => entry.poolIndex);
+    const accuracy = entries.length > 0 ? setScore / entries.length : 1;
+    startSet(pickSet(solved, accuracy));
+
     setLastUnlockCount(0);
     resultUnlockAppliedRef.current = false;
     setPhase("quiz");
   }, [
-    index,
+    entries,
+    setScore,
     markDailyPlay,
-    pickNextQuestionIndex,
-    resetSession,
+    pickSet,
+    startSet,
     setLastUnlockCount,
   ]);
 
-  // PCで問題枠（入力欄）からフォーカスが外れていてもEnterで進められるようにする。
+  // PCで答案からフォーカスが外れていてもEnterで戻れるようにする。
   // クリックでフォーカスが外れた状態や、リザルト画面（次のセットへ）でも
   // Enterキーが効かないと操作が止まってしまうため、キー入力はウィンドウ全体で拾う。
   useEffect(() => {
@@ -479,13 +520,16 @@ export default function Page() {
       const target = e.target as HTMLElement | null;
       if (target?.closest?.("button")) return;
 
-      if (phase === "quiz") {
-        if (isCheckingAnswer) return;
-        if (checked) next();
-        else checkAnswer();
-      } else if (phase === "result") {
+      if (phase === "result") {
+        // 回答を送り終えた勢いで余ったEnterでは進めない
+        if (Date.now() - resultShownAtRef.current < RESULT_ENTER_GRACE_MS) return;
         continueToNextSet();
+        return;
       }
+      // 回答欄の中のEnterは行側（TypingAnswerRow）が確定として処理する
+      if (target?.closest?.("[data-quiz-answer]")) return;
+      const slot = nextUnanswered(activeSlot - 1);
+      if (slot !== null) focusSlot(slot);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -495,10 +539,9 @@ export default function Page() {
     isSettingsOpen,
     isComposing,
     phase,
-    checked,
-    isCheckingAnswer,
-    checkAnswer,
-    next,
+    activeSlot,
+    nextUnanswered,
+    focusSlot,
     continueToNextSet,
   ]);
 
@@ -526,15 +569,23 @@ export default function Page() {
     () => ({
       retained: countRetained(unlockedIndices, stats),
       poolSize: unlockedIndices.length,
-      gain: countRetentionGain(gameSessionAnswers),
+      gain: countRetentionGain(setAnswers),
       levelCounts: countRetentionLevels(unlockedIndices, stats),
     }),
-    [unlockedIndices, stats, gameSessionAnswers],
+    [unlockedIndices, stats, setAnswers],
   );
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
-  const progressPct = Math.max(0, Math.min(100, (total / GAME.PLAY_LIMIT) * 100));
+  const setSize = entries.length || GAME.PLAY_LIMIT;
+  const progressPct =
+    phase === "result"
+      ? 100
+      : Math.max(0, Math.min(100, (answeredCount / setSize) * 100));
 
-  if (!q) {
+  const registerInput = useCallback((slot: number, element: HTMLInputElement | null) => {
+    inputRefs.current[slot] = element;
+  }, []);
+
+  if (VOCAB_ITEMS.length === 0) {
     return (
       <div className="app-shell flex min-h-screen items-center justify-center p-6">
         <div className="prompt-card w-full max-w-xl p-6">
@@ -568,42 +619,35 @@ export default function Page() {
           mode={mode}
           onModeChange={handleModeChange}
           status={{
-            score,
-            total,
-            playLimit: GAME.PLAY_LIMIT,
+            answered: answeredCount,
+            setSize,
+            score: setScore,
             progressPct,
             streakDays: displayStreak,
             unlockedWordCount: unlockedIndices.length,
             totalWords: VOCAB_ITEMS.length,
             tier: currentTier,
           }}
-          question={{
-            questionKey: index,
-            partOfSpeech: getPartOfSpeech(q),
-            word: q.target,
-            onSkip: checked ? undefined : giveUp,
-            skipDisabled: isCheckingAnswer,
-          }}
-          typing={{
-            inputRef,
-            input,
+          sheet={{
+            entries,
+            revealed: phase === "result",
+            activeSlot,
+            isComposing,
             onInputChange: setInput,
+            onSubmitSlot: submitSlot,
+            onFocusSlot: handleFocusSlot,
             onCompositionStart: () => setIsComposing(true),
             onCompositionEnd: () => setIsComposing(false),
-            checked,
-            isCorrect,
-            answerStatus,
-            isCheckingAnswer,
-            normalizedAnswers,
-            posViolation,
-            aiFeedback,
-            onCheck: () => checkAnswer(),
-            onNext: next,
+            registerInput,
           }}
+          isGrading={allCommitted && !allGraded}
           result={{
             evaluation: resultEvaluation,
             unlockedThisRun: lastUnlockCount,
             retention,
+            // 落とした語がある回は読ませる。読んでいる途中で次のセットへ
+            // 切り替わるほうが割り込みになる
+            autoContinue: setScore >= setSize,
             onContinue: continueToNextSet,
           }}
           onOpenSettings={() => setIsSettingsOpen(true)}
@@ -611,9 +655,9 @@ export default function Page() {
       )}
 
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-line bg-surface-1 p-4 shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-black/60 p-4">
+          <div className="my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-line bg-surface-1 p-4 shadow-xl">
+            <div className="sticky -top-4 -mt-4 mb-3 flex items-center justify-between bg-surface-1 pt-4">
               <h2 className="text-base text-ink-1">設定</h2>
               <button
                 type="button"
