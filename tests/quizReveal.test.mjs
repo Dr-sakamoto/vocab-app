@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
-// 小テスト形式の要は「10問打ち終えるまで正誤を出さない」こと。
-// 1問でも途中で正誤が漏れると、そこで手が止まって元の1問1答へ戻る。
-// 構造として固定しておき、あとから静かに漏れるのを防ぐ。
+// 小テスト形式の要は「随時採点」——設問ごとに採点が返り次第、その設問の
+// 正誤をその場で見せる。ただし上の答え合わせを見ないまま下が繰り上がる
+// （＝次の問題が出る）ことはない。それとは別に、セット全体の正解数
+// （ヘッダーの集計）は結果発表まで伏せる。構造として固定しておき、
+// あとから静かに崩れるのを防ぐ。
 
 const root = new URL("../", import.meta.url);
 const readSrc = (p) => readFileSync(new URL(p, root), "utf8");
@@ -66,10 +68,28 @@ test("出題中のヘッダーは正解数ではなく回答数を出す", () =>
   );
 });
 
-test("答案は結果発表のときだけ revealed で描かれる", () => {
+test("設問ごとの revealed は採点結果（outcome）から決まる（随時採点）", () => {
+  const sheet = readSrc("app/components/game/QuizSheet.tsx");
   assert.ok(
-    page.includes('revealed: phase === "result"'),
-    "答案の revealed が結果発表以外でも立ちうる",
+    sheet.includes("revealed={entry.outcome !== null}"),
+    "revealed が設問ごとの採点結果に紐づいていない",
+  );
+  assert.ok(
+    !page.includes('revealed: phase === "result"'),
+    "答案の revealed が結果発表まで一律に伏せられている（随時採点になっていない）",
+  );
+});
+
+test("上の答え合わせを見ないまま下が繰り上がることはない（窓の進行が採点済みを条件にする）", () => {
+  const quizSet = readSrc("lib/quizSet.ts");
+  assert.ok(
+    quizSet.includes("export function canAdvanceWindow"),
+    "窓を進めてよいかを判定する関数が無い",
+  );
+  const fn = quizSet.slice(quizSet.indexOf("export function canAdvanceWindow"));
+  assert.ok(
+    fn.includes("top.outcome === null"),
+    "窓の進行条件が上の採点済みを見ていない",
   );
 });
 

@@ -21,7 +21,7 @@ import { useVisualViewportVars } from "./hooks/useVisualViewport";
 import { useCloudSync } from "./hooks/useCloudSync";
 
 import { evaluatePlay } from "@/lib/playEvaluation";
-import { applySetToStats, pageSlots, summarizeSet } from "@/lib/quizSet";
+import { applySetToStats, windowSlots, summarizeSet } from "@/lib/quizSet";
 import { evaluateUnlockGate } from "@/lib/unlockGate";
 import { getPoolTier } from "@/lib/poolTier";
 import { VOCAB_ITEMS } from "@/lib/vocab";
@@ -58,18 +58,25 @@ const RESULT_ENTER_GRACE_MS = 700;
  * 単一画面の暗記アプリ。
  *
  * 10問を一枚の小テストとして出し、英単語を見て日本語訳をタイピングで答える。
- * 答案は1セット10問のまま、画面に出るのは2問ずつで、打ち終えるとページごと
- * 入れ替わる（スクロールしない）。
+ * 答案は1セット10問のまま、画面に出るのは常に上下2問（上＝採点中／採点済み、
+ * 下＝いま回答中）で、スクロールしない。
  * 確定した回答はその場で裏の採点へ回り（完全一致で拾えない表記ゆれは
- * /api/check が形態素解析→AI判定まで1往復で確定させる）、正誤は10問ぶん
- * まとめて結果発表で見せる。採点の往復は次の問題を打つ時間と重なって消える。
+ * /api/check が形態素解析→AI判定まで1往復で確定させる）、正誤は設問ごとに
+ * 採点が返り次第見せる（随時採点）。採点の往復は次の問題を打つ時間と重なって
+ * 消えるので、上の答え合わせを見終えたころには下も打ち終わっている。
+ * 上の答え合わせを見ないまま下が繰り上がることはない（下を確定しても、
+ * 上の採点が済むまでは窓が進まない）。
  * リザルトはその場で中身が入れ替わり、続けて次のセットへ流れる。画面遷移は存在しない。
  */
 export default function Page() {
   /** 問題ウィンドウの中身。ページ遷移ではなくブロック内の入れ替え */
   const [phase, setPhase] = useState<"quiz" | "result">("quiz");
-  /** いま入力中の設問。読み上げと、答案に出す2問（ページ）の基準 */
-  const [activeSlot, setActiveSlot] = useState<number>(0);
+  /**
+   * 出題中に見せる上下2問の「上」の添字。上＝採点中／採点済み、下＝いま回答中。
+   * 常に前進のみで、`canAdvance` が許すとき（下を確定していて、上の採点が
+   * すでに返っているとき）だけ1つ進む。
+   */
+  const [windowStart, setWindowStart] = useState<number>(0);
   const [stats, setStats] = useState<WordStat[]>(() =>
     VOCAB_ITEMS.map(() => ({ correct: 0, wrong: 0 })),
   );
@@ -154,7 +161,7 @@ export default function Page() {
     startSet,
     setInput,
     commit,
-    nextUnanswered,
+    canAdvance,
     answeredCount,
     allCommitted,
     allGraded,
@@ -232,22 +239,18 @@ export default function Page() {
   }, [markDailyPlay]);
 
   /**
-   * 設問へカーソルを送る。出題中は2問ずつしか描いていないので、ページを
-   * またぐ移動では先に答案を描き替えてからフォーカスする。
-   *
-   * 描き替えを flushSync で同期させるのは、スマホのキーボードのため。
-   * 描画をReactの都合（＝この操作のあと）に任せると、フォーカス先の
-   * 入力欄がまだ存在せず focus() が空振りし、キーボードが閉じてしまう。
-   * ユーザーの操作（Enter・⏎）の中で描画とフォーカスまで済ませる。
+   * 設問へカーソルを送る。呼び出し元は常にいま見えている窓（上下2問）の
+   * 中の添字だけを渡すので、対象の入力欄はすでに描かれている。
+   * 窓そのものを進める（まだ描かれていない下を出す）場合は advanceWindow
+   * のほうで flushSync してから focus する。
    */
   const focusQuestion = useCallback((slot: number) => {
-    flushSync(() => setActiveSlot(slot));
     inputRefs.current[slot]?.focus();
   }, []);
 
   // セットを組み直したら1問目の回答欄にカーソルを置く。
   // 読み上げはフォーカスに紐づいているので、ここで1問目が読み上げられる。
-  // 新しいセットは必ず1ページ目から始まる（activeSlot も 0 に戻している）ので、
+  // 新しいセットは必ず窓の先頭（windowStart も 0 に戻している）から始まるので、
   // ここは描き替えを挟まずにそのままフォーカスできる。
   useEffect(() => {
     if (phase !== "quiz" || setId === 0) return;
@@ -426,24 +429,62 @@ export default function Page() {
 
   // ── 回答の確定 ─────────────────────────────────────────────────────────────
   /**
-   * 回答を確定して次の未回答へ送る。採点は裏で走り、結果は待たない。
+   * 窓を1つ前へ進める（下だった設問が上へ繰り上がり、末尾でなければ新しい
+   * 設問が下に補充される）。呼び出し側で `canAdvance(windowStart)` を
+   * 確認済みであることが前提。
+   *
+   * 描き替えを flushSync で同期させるのは focusQuestion と同じ理由——
+   * ユーザー操作（Enter）の中で描画とフォーカスまで済ませないと、
+   * スマホでは次の入力欄がまだ存在せず focus() が空振りしてキーボードが
+   * 閉じる。ただし採点待ちで足止めされたあとの自動進行（フォールバックの
+   * 副作用から呼ばれる場合）はユーザー操作の外なので、その場合だけは
+   * スマホでキーボードが開き直らないことがある（次の欄をタップし直せば
+   * 入力できる）。
+   */
+  const advanceWindow = useCallback(() => {
+    const next = windowStart + 1;
+    const newBottom = next + 1;
+    if (newBottom < entries.length) {
+      flushSync(() => setWindowStart(next));
+      inputRefs.current[newBottom]?.focus();
+    } else {
+      // 最後の1問が上に繰り上がっただけ。キーボードを閉じて採点の締めに任せる
+      flushSync(() => setWindowStart(next));
+      inputRefs.current[next]?.blur();
+    }
+  }, [windowStart, entries.length]);
+
+  /**
+   * 回答を確定する。採点は裏で走り、結果は待たない。
    * 空欄のまま送ってもよい（＝わからない）。未回答として不正解に数える。
+   *
+   * 下（いま回答中の設問）を確定したときだけ、窓を進めてよいか
+   * （＝上の採点がすでに返っているか）をその場で判定する。上を確定した
+   * だけでは窓は動かず、まだ答えていない下へフォーカスを送るだけ。
    */
   const submitSlot = useCallback((slot: number) => {
     commit(slot);
-    const next = nextUnanswered(slot);
-    if (next === null) {
-      // 最後の1問。キーボードを閉じて採点の締めに任せる
-      inputRefs.current[slot]?.blur();
+    if (slot !== windowStart + 1) {
+      const bottom = windowStart + 1;
+      if (bottom < entries.length && !entries[bottom].committed) {
+        focusQuestion(bottom);
+      }
       return;
     }
-    // ページの最後の1問だったときは、ここで答案が次の2問へ入れ替わる
-    focusQuestion(next);
-  }, [commit, nextUnanswered, focusQuestion]);
+    if (canAdvance(windowStart)) advanceWindow();
+  }, [commit, canAdvance, advanceWindow, windowStart, entries, focusQuestion]);
+
+  // 下を確定した時点では上の採点がまだ返っていなかった場合のフォールバック。
+  // 採点が返り次第（entries の更新のたびに）進めるかどうかを見直し、
+  // 進めてよくなった時点で自動的に窓を進める。
+  useEffect(() => {
+    if (phase !== "quiz") return;
+    if (!canAdvance(windowStart)) return;
+    advanceWindow();
+  }, [phase, entries, windowStart, canAdvance, advanceWindow]);
 
   /** 回答欄にカーソルが入ったら、その設問を読み上げる */
   const handleFocusSlot = useCallback((slot: number) => {
-    setActiveSlot(slot);
     if (phase !== "quiz") return;
     const entry = entries[slot];
     if (!entry) return;
@@ -458,7 +499,7 @@ export default function Page() {
     setResultEvaluation(null);
     setSetAnswers([]);
     setSetScore(0);
-    setActiveSlot(0);
+    setWindowStart(0);
 
     const solved = entries
       .filter((entry) => entry.outcome?.correct)
@@ -496,8 +537,11 @@ export default function Page() {
       }
       // 回答欄の中のEnterは行側（TypingAnswerRow）が確定として処理する
       if (target?.closest?.("[data-quiz-answer]")) return;
-      const slot = nextUnanswered(activeSlot - 1);
-      if (slot !== null) focusQuestion(slot);
+      // いま見えている上下2問のうち、まだ確定していないほうへ戻す
+      const slot = [windowStart, windowStart + 1].find(
+        (s) => s < entries.length && !entries[s].committed,
+      );
+      if (slot !== undefined) focusQuestion(slot);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -507,8 +551,8 @@ export default function Page() {
     isSettingsOpen,
     isComposing,
     phase,
-    activeSlot,
-    nextUnanswered,
+    windowStart,
+    entries,
     focusQuestion,
     continueToNextSet,
   ]);
@@ -588,17 +632,17 @@ export default function Page() {
   /**
    * 答案のうち、いま画面に出す設問。
    *
-   * 出題中は活動中の設問が乗っているページ（2問）だけを出す。10問を縦に
-   * 並べるとスクロールが要り、打つたびに紙が動いて視線が毎問リセットされる。
-   * 結果発表では10問すべてを出す——どの語を落としたかを読む場なので、
-   * ここで隠すものは無い。
+   * 出題中は窓（上＝採点中／採点済み、下＝回答中）の2問だけを出す。10問を
+   * 縦に並べるとスクロールが要り、打つたびに紙が動いて視線が毎問リセット
+   * される。結果発表では10問すべてを出す——どの語を落としたかを読む場
+   * なので、ここで隠すものは無い。
    */
   const visibleSlots = useMemo(
     () =>
       phase === "result"
         ? entries.map((_, slot) => slot)
-        : pageSlots(activeSlot, entries.length, GAME.QUIZ_PAGE_SIZE),
-    [phase, entries, activeSlot],
+        : windowSlots(windowStart, entries.length),
+    [phase, entries, windowStart],
   );
   const progressPct =
     phase === "result"
@@ -654,7 +698,6 @@ export default function Page() {
           }}
           sheet={{
             entries,
-            revealed: phase === "result",
             visibleSlots,
             isComposing,
             onInputChange: setInput,

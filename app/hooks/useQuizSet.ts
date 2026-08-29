@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { normalizeAnswer } from "@/lib/answerNormalization";
 import { gradeAnswer } from "@/lib/gradeAnswer";
-import { findNextUnanswered } from "@/lib/quizSet";
+import { canAdvanceWindow } from "@/lib/quizSet";
 import { QuizEntry, VocabItem } from "@/lib/types";
 
 interface UseQuizSetProps {
@@ -21,10 +21,12 @@ export interface PickedQuestion {
 /**
  * 10問の小テストを1セットとして扱うセッション状態。
  *
- * 1問ずつ「回答 → 採点待ち → 正誤 → 次へ」と進む代わりに、10問を並べて
- * 出し、確定した回答から順に裏で採点する。採点の往復はユーザーの
- * タイピングと並走するので、待ち時間がコアループから消える。
- * 正誤は最後まで一切表に出さない（1問ごとの答え合わせが割り込みになる）。
+ * 1問ずつ「回答 → 採点待ち → 正誤 → 次へ」と進む代わりに、確定した回答から
+ * 順に裏で採点する。採点の往復は次の設問を打つ時間と並走するので、
+ * 待ち時間がコアループから消える。正誤は設問ごとに採点が返り次第見せる
+ * （随時採点）。ただし前の設問の答え合わせを見ないまま次の設問が出ることは
+ * ない——窓を進めてよいかは `canAdvance`（lib/quizSet.ts の
+ * `canAdvanceWindow`）が判定する。
  */
 export function useQuizSet({
   approvedAnswers = {},
@@ -131,9 +133,13 @@ export function useQuizSet({
     });
   }, [apply]);
 
-  /** commit 直後にも使えるよう、state ではなく鏡から次の設問を探す */
-  const nextUnanswered = useCallback(
-    (from: number) => findNextUnanswered(entriesRef.current, from),
+  /**
+   * commit 直後にも使えるよう、state ではなく鏡から窓を進めてよいかを読む。
+   * ユーザー操作の中（Enter・確定ボタン）で同期的に判定してこそ、進んだ先の
+   * 入力欄へ同じ操作の中でフォーカスでき、スマホのキーボードが閉じない。
+   */
+  const canAdvance = useCallback(
+    (windowStart: number) => canAdvanceWindow(entriesRef.current, windowStart),
     [],
   );
 
@@ -151,7 +157,7 @@ export function useQuizSet({
     startSet,
     setInput,
     commit,
-    nextUnanswered,
+    canAdvance,
     answeredCount,
     allCommitted,
     allGraded,

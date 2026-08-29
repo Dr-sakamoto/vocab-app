@@ -15,9 +15,9 @@ export interface TypingAnswerRowProps {
   onCompositionEnd: () => void;
   /** IME変換中か。変換確定のEnterで設問を送ってしまわないための保険 */
   isComposing: boolean;
-  /** 回答を確定済みか。採点は裏で走っているが、正誤はまだ出さない */
+  /** 回答を確定済みか。採点が返るまで（＝revealed になるまで）は結果を出さない */
   committed: boolean;
-  /** 結果発表後だけ true。ここで初めて正誤を見せる */
+  /** 採点が返ってきたら true。ここで初めてこの設問の正誤を見せる（随時採点） */
   revealed: boolean;
   /** 採点結果。revealed が false のあいだは使わない */
   outcome: GradeOutcome | null;
@@ -25,11 +25,13 @@ export interface TypingAnswerRowProps {
 
 /**
  * タイピング回答行。日本語IMEで自由記述し、Enter（または右端の⏎）で確定して
- * 次の設問へ移る。確定した回答はその場で裏の採点へ回るが、正誤は出さない。
+ * 次の設問へ移る。確定した回答はその場で裏の採点へ回り、採点が返り次第
+ * その場で正誤を見せる（随時採点）。
  *
- * 1問ごとに答え合わせをすると、採点の往復を毎回待つことになり、
- * そのぶんだけ「思い出して打つ」以外の時間がコアループに積まれる。
- * 10問ぶんの正誤は結果発表でまとめて見せる（＝学校の英単語小テスト）。
+ * 採点の往復を待たせないのは表示のタイミングであって操作ではない——
+ * 確定した瞬間に次の設問へ進めるので、往復は次の設問を打つ時間と重なって
+ * 消える。確定してから採点が返るまでの一瞬だけ、送信ボタンの位置に
+ * スピナーを出す（committed && !revealed）。
  *
  * 配色の方針:
  * - 送信ボタンは「押せる状態」になって初めて操作色になる。彩度で状態を表し、
@@ -89,13 +91,31 @@ export default function TypingAnswerRow({
             revealed ? "pr-10" : "pr-14"
           }`}
         />
-        {!revealed && (
+        {!revealed && committed && (
+          /* 確定はしたが採点がまだ返っていない一瞬だけ出す。
+             押すものが無い（送信ボタンは意味を失っている）ので割り込みにはならない */
+          <span className="absolute inset-y-1.5 right-1.5 flex w-11 items-center justify-center text-ink-3">
+            <span className="ios-spinner" aria-hidden="true">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="ios-spinner-bar"
+                  style={{
+                    transform: `rotate(${i * 30}deg)`,
+                    animationDelay: `${-((12 - i) % 12) / 12}s`,
+                  }}
+                />
+              ))}
+            </span>
+          </span>
+        )}
+        {!revealed && !committed && (
           <button
             type="button"
             onClick={onSubmit}
             aria-label="回答を確定して次の問題へ"
             className={`absolute inset-y-1.5 right-1.5 flex w-11 items-center justify-center rounded-md transition-colors ${
-              input.trim().length > 0 && !committed ? "btn-accent" : "text-ink-3"
+              input.trim().length > 0 ? "btn-accent" : "text-ink-3"
             }`}
           >
             {/* 確定: ⏎（リターンキー） */}
