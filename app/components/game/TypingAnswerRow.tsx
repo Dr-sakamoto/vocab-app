@@ -34,10 +34,12 @@ export interface TypingAnswerRowProps {
  * 配色の方針:
  * - 送信ボタンは「押せる状態」になって初めて操作色になる。彩度で状態を表し、
  *   何もしていない間は画面から色を消しておく。
- * - 正解は静かに（10問中ほとんどで起きるので主張させない）、不正解だけ強く見せる。
- * - 不正解時、覚えるべき正解の訳語は赤ではなく最高コントラストの文字色で出す。
- *   赤い文字は地に対する実効コントラストが落ち、いちばん読ませたいものが
- *   いちばん読みにくくなる。赤はラベル（「不正解」）だけに使う。
+ * - 正誤は回答欄自体の枠色・地色で表す。カードを別途足さない
+ *   （10問中ほとんどを占める正解のときに何も増えないようにするため）。
+ * - 不正解時だけ、覚えるべき正解の訳語を欄の下に1行添える。赤ではなく
+ *   最高コントラストの文字色で出す。赤い文字は地に対する実効コントラストが
+ *   落ち、いちばん読ませたいものがいちばん読みにくくなる。赤は欄の枠と
+ *   アイコンだけに使う。
  */
 export default function TypingAnswerRow({
   inputRef,
@@ -62,6 +64,11 @@ export default function TypingAnswerRow({
 
   const isCorrect = outcome?.correct ?? false;
   const isBlank = outcome?.status === "blank";
+  const fieldStateClass = !revealed
+    ? ""
+    : isCorrect
+      ? "answer-field-correct"
+      : "answer-field-incorrect";
 
   return (
     <>
@@ -78,8 +85,8 @@ export default function TypingAnswerRow({
           readOnly={revealed}
           placeholder={revealed ? "未回答" : "日本語訳を入力..."}
           aria-label="日本語訳を入力してください"
-          className={`answer-field w-full rounded-lg py-3 pl-4 text-base outline-none ${
-            revealed ? "pr-4" : "pr-14"
+          className={`answer-field w-full rounded-lg py-3 pl-4 text-base outline-none ${fieldStateClass} ${
+            revealed ? "pr-10" : "pr-14"
           }`}
         />
         {!revealed && (
@@ -107,43 +114,35 @@ export default function TypingAnswerRow({
             </svg>
           </button>
         )}
+        {revealed && outcome && (
+          <span
+            aria-hidden
+            className={`absolute inset-y-0 right-3 flex items-center text-base ${
+              isCorrect ? "text-positive" : "text-negative"
+            }`}
+          >
+            {isCorrect ? "◯" : isBlank ? "−" : "✕"}
+          </span>
+        )}
       </div>
 
-      {revealed && outcome && (
+      {revealed && outcome && !isCorrect && (
+        /* 不正解のときだけ、欄の下に正解の訳語を1行添える。
+           覚えるべき語なので、この面の上で 14.4:1 を確保している ink-1 で出す。 */
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="mt-1.5"
+          className="mt-1.5 px-1"
         >
-          {isCorrect ? (
-            /* 正解は10問中ほとんどで起きる。強い枠や塗りで毎回主張させると
-               そのぶん視線と処理が持っていかれるので、細い罫だけに留める。 */
-            <div className="rounded-r-lg border-l-2 border-positive bg-surface-1 px-3 py-1.5">
-              <div className="text-sm text-positive">
-                {outcome.status === "ai_approved"
-                  ? "◯ 正解（AI承認）"
-                  : outcome.status === "alternative"
-                    ? "◯ 正解（別解）"
-                    : "◯ 正解"}
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-negative bg-negative-surface px-4 py-2.5">
-              <div className="mb-1 text-xs text-negative">
-                {isBlank ? "− 未回答" : "✕ 不正解"}
-              </div>
-              {/* 覚えるべき語。この面の上で 14.4:1 を確保している */}
-              <div className="text-base leading-snug text-ink-1">
-                {outcome.normalizedAnswers.join(" / ")}
-              </div>
-              {outcome.posViolation && (
-                <div className="mt-1 text-xs text-ink-3">{outcome.posViolation}</div>
-              )}
-              {outcome.aiFeedback && (
-                <div className="mt-1 text-xs text-ink-3">{outcome.aiFeedback}</div>
-              )}
-            </div>
+          <div className="text-base leading-snug text-ink-1">
+            {outcome.normalizedAnswers.join(" / ")}
+          </div>
+          {outcome.posViolation && (
+            <div className="mt-0.5 text-xs text-ink-3">{outcome.posViolation}</div>
+          )}
+          {outcome.aiFeedback && (
+            <div className="mt-0.5 text-xs text-ink-3">{outcome.aiFeedback}</div>
           )}
         </motion.div>
       )}

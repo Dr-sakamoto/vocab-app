@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { flushSync } from "react-dom";
 import { StudyMode } from "../components/ModeTabs";
 import { useQuizSet } from "../hooks/useQuizSet";
 import { useVocabPool } from "../hooks/useVocabPool";
@@ -26,7 +27,7 @@ import { useVisualViewportVars } from "../hooks/useVisualViewport";
 import { useCloudSync } from "../hooks/useCloudSync";
 
 import { evaluatePlay } from "@/lib/playEvaluation";
-import { applySetToStats, summarizeSet } from "@/lib/quizSet";
+import { applySetToStats, pageSlots, summarizeSet } from "@/lib/quizSet";
 import { evaluateUnlockGate } from "@/lib/unlockGate";
 import { getPoolTier } from "@/lib/poolTier";
 import { VOCAB_ITEMS } from "@/lib/vocab";
@@ -287,16 +288,28 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [markDailyPlay, pathname, router]);
 
-  const focusSlot = useCallback((slot: number) => {
+  /**
+   * 設問へカーソルを送る。出題中は2問ずつしか描いていないので、ページを
+   * またぐ移動では先に答案を描き替えてからフォーカスする。
+   *
+   * 描き替えを flushSync で同期させるのは、スマホのキーボードのため。
+   * 描画をReactの都合（＝この操作のあと）に任せると、フォーカス先の
+   * 入力欄がまだ存在せず focus() が空振りし、キーボードが閉じてしまう。
+   * ユーザーの操作（Enter・⏎）の中で描画とフォーカスまで済ませる。
+   */
+  const focusQuestion = useCallback((slot: number) => {
+    flushSync(() => setActiveSlot(slot));
     inputRefs.current[slot]?.focus();
   }, []);
 
   // セットを組み直したら1問目の回答欄にカーソルを置く。
   // 読み上げはフォーカスに紐づいているので、ここで1問目が読み上げられる。
+  // 新しいセットは必ず1ページ目から始まる（activeSlot も 0 に戻している）ので、
+  // ここは描き替えを挟まずにそのままフォーカスできる。
   useEffect(() => {
     if (phase !== "quiz" || setId === 0) return;
-    focusSlot(0);
-  }, [phase, setId, focusSlot]);
+    inputRefs.current[0]?.focus();
+  }, [phase, setId]);
 
   // ── localStorage 復元 ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -483,8 +496,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       inputRefs.current[slot]?.blur();
       return;
     }
-    focusSlot(next);
-  }, [commit, nextUnanswered, focusSlot]);
+    // ページの最後の1問だったときは、ここで答案が次の2問へ入れ替わる
+    focusQuestion(next);
+  }, [commit, nextUnanswered, focusQuestion]);
 
   /** 回答欄にカーソルが入ったら、その設問を読み上げる */
   const handleFocusSlot = useCallback((slot: number) => {
@@ -552,7 +566,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       // 回答欄の中のEnterは行側（TypingAnswerRow）が確定として処理する
       if (target?.closest?.("[data-quiz-answer]")) return;
       const slot = nextUnanswered(activeSlot - 1);
-      if (slot !== null) focusSlot(slot);
+      if (slot !== null) focusQuestion(slot);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -564,7 +578,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     phase,
     activeSlot,
     nextUnanswered,
-    focusSlot,
+    focusQuestion,
     continueToNextSet,
   ]);
 
@@ -639,6 +653,22 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   );
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
   const setSize = entries.length || GAME.PLAY_LIMIT;
+
+  /**
+   * 答案のうち、いま画面に出す設問。
+   *
+   * 出題中は活動中の設問が乗っているページ（2問）だけを出す。10問を縦に
+   * 並べるとスクロールが要り、打つたびに紙が動いて視線が毎問リセットされる。
+   * 結果発表では10問すべてを出す——どの語を落としたかを読む場なので、
+   * ここで隠すものは無い。
+   */
+  const visibleSlots = useMemo(
+    () =>
+      phase === "result"
+        ? entries.map((_, slot) => slot)
+        : pageSlots(activeSlot, entries.length, GAME.QUIZ_PAGE_SIZE),
+    [phase, entries, activeSlot],
+  );
   const progressPct =
     phase === "result"
       ? 100
@@ -685,7 +715,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         sheet: {
           entries,
           revealed: phase === "result",
-          activeSlot,
+          visibleSlots,
           isComposing,
           onInputChange: setInput,
           onSubmitSlot: submitSlot,
@@ -742,7 +772,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       setScore,
       progressPct,
       entries,
-      activeSlot,
+      visibleSlots,
       isComposing,
       setInput,
       submitSlot,
