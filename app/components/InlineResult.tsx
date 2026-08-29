@@ -75,7 +75,7 @@ export default function InlineResult({
     return () => window.clearTimeout(timer);
   }, [autoContinue, secondsLeft, onContinue]);
 
-  const { grade, title, message, breakdown } = evaluation ?? {};
+  const { grade, title, message } = evaluation ?? {};
 
   const { retained, poolSize, gain, levelCounts, totalWords } = retention;
 
@@ -193,18 +193,6 @@ export default function InlineResult({
               新たに {unlockedThisRun} 語がプールに追加された
             </div>
           )}
-
-          <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
-            {breakdown?.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-md bg-surface-2 px-2.5 py-1.5 text-xs text-ink-2"
-              >
-                <div>{item.label}</div>
-                <div className="mt-0.5 text-[11px] text-ink-3">{item.detail}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 

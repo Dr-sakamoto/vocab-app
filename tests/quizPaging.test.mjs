@@ -73,7 +73,8 @@ test("末尾（下が無い）なら進めない", () => {
 });
 
 test("出題中は窓の2問だけ、結果発表では10問すべてを描く", () => {
-  const page = readSrc("app/page.tsx");
+  // 出題ロジックは `/` と `/result` の画面遷移をまたぐ Provider に置かれている。
+  const page = readSrc("app/contexts/QuizGameContext.tsx");
   assert.ok(
     /phase === "result"\s*\?\s*entries\.map\(\(_, slot\) => slot\)\s*:\s*windowSlots\(/.test(
       page,
@@ -115,7 +116,7 @@ test("窓をまたぐフォーカス移動は同期的に描き替える（キ�
   // 窓を進めて新しい下の入力欄が描かれる前に focus() を呼ぶと空振りし、
   // スマホではそこでソフトウェアキーボードが閉じてセットが続けられなくなる。
   // ユーザー操作の中で描き替え（flushSync）→ フォーカス まで済ませる。
-  const page = readSrc("app/page.tsx");
+  const page = readSrc("app/contexts/QuizGameContext.tsx");
   assert.ok(page.includes("const advanceWindow = useCallback"), "advanceWindow が無い");
   assert.ok(
     /flushSync\(\(\) => setWindowStart\([^)]*\)\);\s*inputRefs\.current\[[^\]]*\]\?\.focus\(\);/.test(
@@ -126,7 +127,7 @@ test("窓をまたぐフォーカス移動は同期的に描き替える（キ�
 });
 
 test("下の回答の確定は、上の採点が済んでいればその場で窓を進める", () => {
-  const page = readSrc("app/page.tsx");
+  const page = readSrc("app/contexts/QuizGameContext.tsx");
   const submit = page.slice(
     page.indexOf("const submitSlot = useCallback"),
     page.indexOf("// 下を確定した時点では上の採点がまだ返っていなかった場合"),
@@ -140,7 +141,7 @@ test("下の回答の確定は、上の採点が済んでいればその場で�
 });
 
 test("上の採点が確定後に返ってきた場合も、自動で窓を進める", () => {
-  const page = readSrc("app/page.tsx");
+  const page = readSrc("app/contexts/QuizGameContext.tsx");
   assert.ok(
     /useEffect\(\(\) => \{\s*if \(phase !== "quiz"\) return;\s*if \(!canAdvance\(windowStart\)\) return;\s*advanceWindow\(\);/.test(
       page,
