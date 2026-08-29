@@ -12,7 +12,9 @@ const readSrc = (p) => readFileSync(new URL(p, root), "utf8");
 const answerRow = readSrc("app/components/game/TypingAnswerRow.tsx");
 const questionCard = readSrc("app/components/game/QuestionCard.tsx");
 const studyScreen = readSrc("app/components/game/StudyScreen.tsx");
-const page = readSrc("app/page.tsx");
+// クイズの状態と採点ロジックは `/` と `/result` の画面遷移をまたぐため、
+// page.tsx ではなく共有の Provider に置かれている。
+const page = readSrc("app/contexts/QuizGameContext.tsx");
 
 test("正誤の表示は revealed でだけ開く", () => {
   // ◯/✕ を出すブロックが revealed に閉じ込められていること
