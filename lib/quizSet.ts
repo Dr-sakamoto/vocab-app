@@ -7,44 +7,36 @@ import { QuizEntry, SessionAnswer, WordStat } from "./types";
  */
 
 /**
- * `from` の次に回答すべき設問（まだ確定していない設問）を返す。
- * 末尾まで見たら先頭へ回り込み、全問確定済みなら null。
+ * 出題中に画面へ出す設問の添字。`windowStart`（上）とその次（下）の2問だけを
+ * 返す（末尾では上の1問だけになる）。
  *
- * 飛ばした問題へ自動で戻るので、「あとで戻る」ためのボタンを置かずに済む。
+ * 10問は1セットのまま、常に見えているのは上下2問。上は採点中／採点済み、
+ * 下がいま回答中の設問にあたる。窓は `canAdvanceWindow` が許すときだけ
+ * 1つずつ前へ進み、静的な2問区切りのページ送りはしない。
  */
-export function findNextUnanswered(
-  entries: QuizEntry[],
-  from: number,
-): number | null {
-  for (let step = 1; step <= entries.length; step += 1) {
-    const slot = (from + step) % entries.length;
-    if (!entries[slot].committed) return slot;
-  }
-  return null;
+export function windowSlots(windowStart: number, total: number): number[] {
+  if (total <= 0) return [];
+  const clamped = Math.min(Math.max(Math.floor(windowStart), 0), total - 1);
+  const slots = [clamped];
+  if (clamped + 1 < total) slots.push(clamped + 1);
+  return slots;
 }
 
 /**
- * `activeSlot` が乗っているページに含まれる設問の添字を返す。
+ * 窓（`windowStart`＝上、その次＝下）を1つ前へ進めてよいかを判定する。
  *
- * 10問は1セットのまま、画面に出すのは `pageSize` 問ずつにする。ページは
- * 「いま入力中の設問」から決まるので、順に打っていけば最後の1問を確定した
- * ところで次のページへ入れ替わる（進むためのボタンは要らない）。
- * 飛ばした設問へ戻ったときも、その設問のページがそのまま出る。
- *
- * 採点は設問の確定ごとに裏で走り続けるので、ページが替わっても止まらない。
+ * 進めてよいのは「下を確定していて」「かつ上の採点がすでに返っている」とき
+ * だけ。上の答え合わせを一度も見せないまま下が上に繰り上がる（＝答え合わせを
+ * 見ずに次の問題が出る）ことがないようにするための唯一の条件。
+ * 下がまだ無い（末尾）ときは進めない。
  */
-export function pageSlots(
-  activeSlot: number,
-  total: number,
-  pageSize: number,
-): number[] {
-  if (total <= 0 || pageSize <= 0) return [];
-  const clamped = Math.min(Math.max(Math.floor(activeSlot), 0), total - 1);
-  const start = Math.floor(clamped / pageSize) * pageSize;
-  const end = Math.min(start + pageSize, total);
-  const slots: number[] = [];
-  for (let slot = start; slot < end; slot += 1) slots.push(slot);
-  return slots;
+export function canAdvanceWindow(entries: QuizEntry[], windowStart: number): boolean {
+  const top = entries[windowStart];
+  const bottom = entries[windowStart + 1];
+  if (!top || !bottom) return false;
+  if (!top.committed || top.outcome === null) return false;
+  if (!bottom.committed) return false;
+  return true;
 }
 
 export interface SetSummary {

@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { applySetToStats, findNextUnanswered, summarizeSet } from "../lib/quizSet.js";
+import { applySetToStats, summarizeSet } from "../lib/quizSet.js";
 
-// 10問を一枚の小テストとして扱うときの、巡回と集計。
+// 10問を一枚の小テストとして扱うときの集計。窓の進行（巡回）は
+// tests/quizPaging.test.mjs のほう。
 
 function entry({ poolIndex = 0, id = "w", committed = false, correct = null } = {}) {
   return {
@@ -23,38 +24,6 @@ function entry({ poolIndex = 0, id = "w", committed = false, correct = null } = 
           },
   };
 }
-
-test("次の未回答は後ろへ進む", () => {
-  const entries = [
-    entry({ committed: true }),
-    entry({ committed: false }),
-    entry({ committed: false }),
-  ];
-  assert.equal(findNextUnanswered(entries, 0), 1);
-  assert.equal(findNextUnanswered(entries, 1), 2);
-});
-
-test("末尾まで行ったら先頭へ回り込み、飛ばした設問を拾う", () => {
-  // 3問目まで来て、途中の2問目を空けたまま送った状態
-  const entries = [
-    entry({ committed: true }),
-    entry({ committed: false }),
-    entry({ committed: true }),
-  ];
-  assert.equal(findNextUnanswered(entries, 2), 1, "戻って未回答を拾えていない");
-});
-
-test("全問確定済みなら null（＝締めへ進む合図）", () => {
-  const entries = [entry({ committed: true }), entry({ committed: true })];
-  assert.equal(findNextUnanswered(entries, 0), null);
-  assert.equal(findNextUnanswered(entries, 1), null);
-});
-
-test("採点前の設問も未回答として扱わない（確定済みなら飛ばす）", () => {
-  // 裏で採点中（committed だが outcome はまだ null）の設問へ戻さない
-  const entries = [entry({ committed: true, correct: null }), entry({ committed: false })];
-  assert.equal(findNextUnanswered(entries, 0), 1);
-});
 
 test("正解数とセット内の最長連続正解を数える", () => {
   const entries = [
