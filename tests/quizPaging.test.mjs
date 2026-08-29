@@ -58,7 +58,8 @@ test("設問が無い・添字が範囲外でも壊れない", () => {
 });
 
 test("出題中は1ページぶんだけ、結果発表では10問すべてを描く", () => {
-  const page = readSrc("app/page.tsx");
+  // 出題ロジックは `/` と `/result` の画面遷移をまたぐ Provider に置かれている。
+  const page = readSrc("app/contexts/QuizGameContext.tsx");
   assert.ok(
     /phase === "result"\s*\?\s*entries\.map\(\(_, slot\) => slot\)\s*:\s*pageSlots\(/.test(
       page,
@@ -100,7 +101,7 @@ test("ページをまたぐフォーカス移動は同期的に描き替える�
   // 次のページの入力欄が描かれる前に focus() を呼ぶと空振りし、スマホでは
   // そこでソフトウェアキーボードが閉じてセットが続けられなくなる。
   // ユーザー操作の中で描き替え（flushSync）→ フォーカス まで済ませる。
-  const page = readSrc("app/page.tsx");
+  const page = readSrc("app/contexts/QuizGameContext.tsx");
   assert.ok(page.includes("const focusQuestion = useCallback"), "focusQuestion が無い");
   assert.ok(
     /flushSync\(\(\) => setActiveSlot\([^)]*\)\);\s*inputRefs\.current\[[^\]]*\]\?\.focus\(\);/.test(
@@ -111,7 +112,7 @@ test("ページをまたぐフォーカス移動は同期的に描き替える�
 });
 
 test("回答の確定は次の設問へ送るところまでを1つの操作で済ませる", () => {
-  const page = readSrc("app/page.tsx");
+  const page = readSrc("app/contexts/QuizGameContext.tsx");
   const submit = page.slice(
     page.indexOf("const submitSlot = useCallback"),
     page.indexOf("/** 回答欄にカーソルが入ったら"),

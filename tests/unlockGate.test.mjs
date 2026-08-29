@@ -93,7 +93,11 @@ test("「未正解」に数える段は、正解が1回も無い語と厳密に�
 
 test("解放の判定にセットの正答率を使っていない", () => {
   // 「たまたま8問正解した」で解放が起きる形へ戻っていないことを構造で守る。
-  const page = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+  // セットの締め処理は `/` と `/result` の画面遷移をまたぐ Provider に置かれている。
+  const page = readFileSync(
+    new URL("../app/contexts/QuizGameContext.tsx", import.meta.url),
+    "utf8",
+  );
   assert.ok(page.includes("evaluateUnlockGate("), "分布による判定が呼ばれていない");
   assert.ok(
     !/UNLOCK_ACCURACY|PERFECT_UNLOCK_STEP/.test(page),
