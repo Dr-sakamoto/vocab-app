@@ -58,8 +58,8 @@ const RESULT_ENTER_GRACE_MS = 700;
  *
  * 10問を一枚の小テストとして出し、英単語を見て日本語訳をタイピングで答える。
  * 確定した回答はその場で裏の採点へ回り（完全一致で拾えない表記ゆれは
- * /api/check が形態素解析→AI判定まで1往復で確定させる）、正誤は10問ぶん
- * まとめて結果発表で見せる。採点の往復は次の問題を打つ時間と重なって消える。
+ * /api/check が形態素解析→AI判定まで1往復で確定させる）、判定は返ってきた
+ * 設問から順にその場へ出る。採点の往復は次の問題を打つ時間と重なって消える。
  * リザルトはその場で中身が入れ替わり、続けて次のセットへ流れる。画面遷移は存在しない。
  */
 export default function Page() {
@@ -174,8 +174,9 @@ export default function Page() {
   }, [soundVolume]);
 
   /**
-   * 効果音は回答ごとには鳴らさない。1問ずつ鳴らすとそこで正誤が漏れて、
-   * 結果発表まで伏せる意味が無くなる。プールが解放される出来にだけ鳴らす。
+   * 効果音は回答ごとには鳴らさない。判定は目で拾えば済むもので、
+   * 1問ずつ鳴らすと打っている手のリズムに音が割り込む。
+   * プールが解放される出来にだけ鳴らす。
    */
   const playCorrectSound = useCallback(() => {
     const sound = correctSoundRef.current;
@@ -229,7 +230,10 @@ export default function Page() {
   }, [markDailyPlay]);
 
   const focusSlot = useCallback((slot: number) => {
-    inputRefs.current[slot]?.focus();
+    // ブラウザ既定の「フォーカスした要素まで飛ぶ」スクロールを止める。
+    // これと QuizSheet 側の追従が二重に走ると、行が一度行き過ぎてから
+    // 戻る跳ねになる。寄せる仕事は答案側（必要な分だけ動かす）に任せる。
+    inputRefs.current[slot]?.focus({ preventScroll: true });
   }, []);
 
   // セットを組み直したら1問目の回答欄にカーソルを置く。
@@ -354,7 +358,7 @@ export default function Page() {
   // ── 10問セットの締め（評価 + 統計反映 + プール解放）─────────────────────
   /**
    * 全問の採点が返ってから一度だけ走る。10問ぶんの正誤をまとめて
-   * 統計へ畳み込み、そこで初めて結果を表に出す。
+   * 統計へ畳み込み、セットの評価（点数・定着・プール解放）を出す。
    */
   const finishSet = useCallback(() => {
     if (resultUnlockAppliedRef.current) return;
