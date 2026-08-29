@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { findNextUnanswered, summarizeSet } from "../lib/quizSet.js";
+import { applySetToStats, findNextUnanswered, summarizeSet } from "../lib/quizSet.js";
 
 // 10問を一枚の小テストとして扱うときの、巡回と集計。
 
@@ -120,4 +120,39 @@ test("全問不正解でも最長連続正解は 0 で落ち着く", () => {
   const { score, bestStreak } = summarizeSet(entries, []);
   assert.equal(score, 0);
   assert.equal(bestStreak, 0);
+});
+
+test("セットの回答を統計へ畳み込む（正誤カウントと分散学習の状態）", () => {
+  const stats = [
+    { correct: 1, wrong: 0, correctStreak: 1 },
+    { correct: 0, wrong: 2, correctStreak: 0 },
+  ];
+  const entries = [
+    entry({ poolIndex: 0, committed: true, correct: true }),
+    entry({ poolIndex: 1, committed: true, correct: false }),
+  ];
+
+  const next = applySetToStats(entries, stats, 1_700_000_000_000);
+
+  assert.equal(next[0].correct, 2);
+  assert.equal(next[0].correctStreak, 2, "連続正解が伸びていない");
+  assert.equal(next[1].wrong, 3);
+  assert.equal(next[1].correctStreak, 0);
+  assert.equal(next[0].lastAnswered, 1_700_000_000_000);
+});
+
+test("畳み込みは元の配列を書き換えない", () => {
+  // 解放の判定と保存で同じ結果を2回作るので、元を汚すと2回目がズレる
+  const stats = [{ correct: 1, wrong: 0 }];
+  const entries = [entry({ poolIndex: 0, committed: true, correct: true })];
+
+  applySetToStats(entries, stats);
+
+  assert.equal(stats[0].correct, 1);
+});
+
+test("未回答（採点なし）の設問は誤答として畳み込む", () => {
+  const entries = [entry({ poolIndex: 0, committed: true })];
+  const next = applySetToStats(entries, [{ correct: 0, wrong: 0 }]);
+  assert.equal(next[0].wrong, 1);
 });

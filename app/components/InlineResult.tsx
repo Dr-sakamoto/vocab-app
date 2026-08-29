@@ -4,6 +4,8 @@ import { ReactNode, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import RetentionRing from "./game/RetentionRing";
 import { RETENTION_LEVELS } from "@/lib/retention";
+import { evaluateUnlockGate } from "@/lib/unlockGate";
+import { GAME } from "@/lib/constants";
 import { PlayEvaluation } from "@/lib/types";
 
 const AUTO_CONTINUE_SECONDS = 10;
@@ -17,6 +19,8 @@ export interface RetentionSummary {
   gain: number;
   /** 出題プールの語を定着レベル（未出題＋Lv.1〜Lv.5の6段階）ごとに数えたもの。添字は level と一致 */
   levelCounts: number[];
+  /** 収録語の総数。プールがここまで届いていれば、もう解放するものが無い */
+  totalWords: number;
 }
 
 interface InlineResultProps {
@@ -73,7 +77,16 @@ export default function InlineResult({
 
   const { grade, title, message, breakdown } = evaluation ?? {};
 
-  const { retained, poolSize, gain, levelCounts } = retention;
+  const { retained, poolSize, gain, levelCounts, totalWords } = retention;
+
+  // 解放の条件はプール全体の分布で決まる（このセットの正答率では決まらない）。
+  // 何が足りていないのかを出しておかないと、解放の有無が偶然に見えてしまう。
+  const gate = evaluateUnlockGate(levelCounts);
+  // 表示は必ず条件と同じ向きへ丸める。平均Lvは切り捨て、未正解の割合は
+  // 切り上げ。四捨五入だと「2.0 と出ているのに解放されない」（実際は1.96）が
+  // 起きて、数字が条件を説明できなくなる。
+  const shownAvgLevel = (Math.floor(gate.avgLevel * 10) / 10).toFixed(1);
+  const shownUnlearnedPct = Math.ceil(gate.unlearnedRatio * 100);
 
   return (
     <motion.div
@@ -147,6 +160,28 @@ export default function InlineResult({
               </div>
             ))}
           </div>
+
+          {/* 次の解放に何が足りていないか。どちらの数字もすぐ上のドーナツから
+              読める値（中央の平均Lvと、いちばん暗い2色の割合）なので、
+              新しい指標を覚えなくても対応が付く。 */}
+          {poolSize > 0 && poolSize < totalWords && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-surface-2 px-2.5 py-1.5 text-[11px] text-ink-3">
+              <span>次の解放まで</span>
+              <span
+                className="tabular-nums"
+                style={{ color: gate.meetsAvgLevel ? "var(--positive)" : undefined }}
+              >
+                平均Lv {shownAvgLevel} / {GAME.UNLOCK_AVG_LEVEL.toFixed(1)}以上
+              </span>
+              <span
+                className="tabular-nums"
+                style={{ color: gate.meetsUnlearnedRatio ? "var(--positive)" : undefined }}
+              >
+                未正解（未出題＋Lv.1） {shownUnlearnedPct}% /{" "}
+                {Math.round(GAME.UNLOCK_UNLEARNED_RATIO * 100)}%以下
+              </span>
+            </div>
+          )}
 
           {message && (
             <p className="mt-2 text-xs leading-relaxed text-ink-2">{message}</p>
