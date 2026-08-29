@@ -40,18 +40,18 @@ export interface RetentionLevel {
 }
 
 /**
- * 6段階の色。灰色（未出題）→緑→黄へ、輝度が単調に上がる連続スケール。
- * 「灰色＝まだ手つかず」「緑＝育ってきた」「黄＝定着」という信号機的な
- * 直感に合わせており、一目で段階の進み具合がわかることを優先している。
- * 全色 --surface-0(#12141A) 上で 4.5:1 以上。
+ * 6段階の色。灰色（未出題）→黄（育ってきた）→緑（定着）へ、輝度が単調に
+ * 上がる連続スケール。「灰色＝まだ手つかず」「黄＝育ってきた」「緑＝定着」
+ * という信号機的な直感に合わせており、一目で段階の進み具合がわかることを
+ * 優先している。全色 --surface-0(#12141A) 上で 4.5:1 以上。
  */
 export const RETENTION_LEVELS: RetentionLevel[] = [
   { level: 0, label: "未出題", color: "#8a8f94" },
-  { level: 1, label: "Lv.1", color: "#7ea08c" },
-  { level: 2, label: "Lv.2", color: "#6cb37e" },
-  { level: 3, label: "Lv.3", color: "#8ec25e" },
-  { level: 4, label: "Lv.4", color: "#bccf52" },
-  { level: 5, label: "Lv.5", color: "#e8d95a" },
+  { level: 1, label: "Lv.1", color: "#9a9a76" },
+  { level: 2, label: "Lv.2", color: "#b7ae5c" },
+  { level: 3, label: "Lv.3", color: "#d0c256" },
+  { level: 4, label: "Lv.4", color: "#e6d554" },
+  { level: 5, label: "Lv.5", color: "#a6e86a" },
 ];
 
 /**
