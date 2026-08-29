@@ -11,7 +11,7 @@ export interface StudyScreenProps {
   onModeChange: (mode: StudyMode) => void;
   /** ヘッダーに出す学習の進み具合 */
   status: {
-    /** 確定済みの回答数。出題中は正解数を出さない（結果発表まで伏せる） */
+    /** 確定済みの回答数。出題中のヘッダーに正解数は出さない（下記参照） */
     answered: number;
     /** このセットの問題数 */
     setSize: number;
@@ -46,7 +46,8 @@ export interface StudyScreenProps {
  * 入れ替わって見える（連続プレイのフロー状態を切らさない）。
  * 回答はPC・スマホともにタイピング固定。日本語IMEで自由記述し、
  * 完全一致で拾えない表記ゆれはAI判定に回す。採点は回答の確定ごとに裏で走り、
- * 正誤は10問ぶんまとめて結果発表で見せる。
+ * 判定は返ってきた設問から順にその行へ出る（手は次の設問に移ったあと）。
+ * リザルトで見せるのはセット全体の評価で、正誤そのものではない。
  */
 export default function StudyScreen({
   phase,

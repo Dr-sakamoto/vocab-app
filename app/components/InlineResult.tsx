@@ -25,8 +25,9 @@ interface InlineResultProps {
   unlockedThisRun: number;
   retention: RetentionSummary;
   /**
-   * 10問ぶんの答案（正誤つき）。要約より先に置く。
-   * このセットで学べるものは「どの語を落としたか」なので、そこを主役にする。
+   * 10問ぶんの答案（判定つき）。要約より先に置く。
+   * 判定は出題中にもう出ているが、ここは落とした語だけを続けて読み返せる
+   * 唯一の場なので、そこを主役にする。
    */
   answerSheet?: ReactNode;
   /**
