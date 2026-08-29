@@ -159,6 +159,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const resultUnlockAppliedRef = useRef<boolean>(false);
   /** 結果発表が出た時刻。直後の余分なEnterで答案を飛ばさないために見る */
   const resultShownAtRef = useRef<number>(0);
+  /**
+   * 遷移先の phase。router.push は非同期なので、URL が実際にそこへ着くまで
+   * phase を先に変えない（先に変えると、まだ着いていない URL の上に
+   * 結果発表の「次のセットへ」ボタンが押せる状態で出てしまう）。
+   */
+  const pendingPhaseRef = useRef<"quiz" | "result" | null>(null);
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
 
   const [dailyStreak, setDailyStreak] = useState<StreakState>(EMPTY_STREAK);
@@ -467,8 +473,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     unlockMore(step);
     if (step > 0) playCorrectSound();
 
-    resultShownAtRef.current = Date.now();
-    setPhase("result");
+    pendingPhaseRef.current = "result";
     router.push("/result");
   }, [
     entries,
@@ -570,7 +575,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
 
     setLastUnlockCount(0);
     resultUnlockAppliedRef.current = false;
-    setPhase("quiz");
+    pendingPhaseRef.current = "quiz";
     router.push("/");
   }, [
     entries,
@@ -582,10 +587,19 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     router,
   ]);
 
-  // `/result` への直接アクセスや再読み込みでは結果データを持っていないため、
-  // 出題画面へ戻す（結果は状態にしか無く、URLだけでは復元できない）。
+  // phase は URL が実際に着いてから確定させる（router.push は非同期）。
+  // 自分で仕掛けた遷移（pendingPhaseRef）が URL に反映されたらそこで phase を
+  // 追従させ、そうでない `/result` への直接アクセスや再読み込みは結果データを
+  // 持っていないため出題画面へ戻す（結果は状態にしか無く、URLだけでは復元できない）。
   useEffect(() => {
-    if (pathname === "/result" && phase !== "result") {
+    const landedPhase = pathname === "/result" ? "result" : "quiz";
+    if (pendingPhaseRef.current === landedPhase) {
+      pendingPhaseRef.current = null;
+      if (landedPhase === "result") resultShownAtRef.current = Date.now();
+      setPhase(landedPhase);
+      return;
+    }
+    if (pathname === "/result" && phase !== "result" && pendingPhaseRef.current === null) {
       router.replace("/");
     }
   }, [pathname, phase, router]);
