@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import InlineResult, { RetentionSummary } from "../InlineResult";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import QuizSheet, { QuizSheetProps } from "./QuizSheet";
@@ -98,6 +99,26 @@ export default function StudyScreen({
               <span className="tabular-nums">
                 {status.unlockedWordCount} / {status.totalWords} 語
               </span>
+              <Link
+                href="/progress"
+                aria-label="進捗を見る"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition hover:bg-surface-1 hover:text-ink-2"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M4 19V10" />
+                  <path d="M11 19V5" />
+                  <path d="M18 19v-7" />
+                </svg>
+              </Link>
               <button
                 type="button"
                 onClick={onOpenSettings}

@@ -75,6 +75,7 @@ export const STORAGE_KEYS = {
   MISTAKE_THRESHOLD: "vocab-mistake-threshold",
   FLASH_PROGRESS: "vocab-flash-progress",
   SYNC_BASE: "vocab-sync-base",
+  DAILY_PROGRESS: "vocab-daily-progress",
 } as const;
 
 export const BUTTON_CLASSES = {

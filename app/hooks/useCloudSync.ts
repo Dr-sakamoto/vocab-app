@@ -15,6 +15,7 @@ import {
 import { createSyncRunner } from "@/lib/syncRunner";
 import { StoredFlashProgress } from "@/lib/flashWeight";
 import { StreakState } from "@/lib/streak";
+import { DailyProgressMap } from "@/lib/dailyProgress";
 import { STORAGE_KEYS } from "@/lib/constants";
 import storage from "@/lib/storage";
 import { WordStat } from "@/lib/types";
@@ -43,6 +44,7 @@ interface UseCloudSyncProps {
   approvedAnswers: Record<string, string[]>;
   rejectedAnswers: Record<string, string[]>;
   dailyStreak: StreakState;
+  dailyProgress: DailyProgressMap;
   /**
    * localStorage の復元が終わったか。復元前に同期すると、空の進捗を
    * クラウドへ書き戻してしまうため、それまで自動同期は始めない。
@@ -80,6 +82,7 @@ export function useCloudSync({
   approvedAnswers,
   rejectedAnswers,
   dailyStreak,
+  dailyProgress,
   isReady,
   onMerged,
 }: UseCloudSyncProps): CloudSyncController {
@@ -89,12 +92,26 @@ export function useCloudSync({
 
   // 同期処理そのものは再生成せず、送る中身だけ ref で最新に保つ。
   // こうしないと1問ごとに認証購読が張り直されてしまう。
-  const snapshotRef = useRef({ stats, unlockedPoolSize, approvedAnswers, rejectedAnswers, dailyStreak });
+  const snapshotRef = useRef({
+    stats,
+    unlockedPoolSize,
+    approvedAnswers,
+    rejectedAnswers,
+    dailyStreak,
+    dailyProgress,
+  });
   const onMergedRef = useRef(onMerged);
   const statusTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    snapshotRef.current = { stats, unlockedPoolSize, approvedAnswers, rejectedAnswers, dailyStreak };
+    snapshotRef.current = {
+      stats,
+      unlockedPoolSize,
+      approvedAnswers,
+      rejectedAnswers,
+      dailyStreak,
+      dailyProgress,
+    };
     onMergedRef.current = onMerged;
   });
 
