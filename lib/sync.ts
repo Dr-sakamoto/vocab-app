@@ -12,6 +12,7 @@ import {
 } from "./wordProgress";
 import { StreakState, mergeStreaks } from "./streak";
 import { StoredFlashProgress, mergeStoredFlashProgress } from "./flashWeight";
+import { DailyProgressMap, mergeDailyProgress } from "./dailyProgress";
 import { WordStat } from "./types";
 
 export async function signUpWithEmail(
@@ -62,6 +63,7 @@ interface UploadProgressProps {
   approvedAnswers: Record<string, string[]>;
   rejectedAnswers: Record<string, string[]>;
   dailyStreak: StreakState;
+  dailyProgress: DailyProgressMap;
   flashProgress: StoredFlashProgress | null;
 }
 
@@ -137,6 +139,7 @@ export async function uploadProgress({
   approvedAnswers,
   rejectedAnswers,
   dailyStreak,
+  dailyProgress,
   flashProgress,
 }: UploadProgressProps): Promise<UploadProgressResult> {
   const user = await requireSignedInUser();
@@ -157,6 +160,7 @@ export async function uploadProgress({
       approved_answers: approvedAnswers,
       rejected_answers: rejectedAnswers,
       daily_streak: dailyStreak,
+      daily_progress: dailyProgress,
       flash_progress: flashProgress,
     },
     { onConflict: "user_id" },
@@ -181,6 +185,7 @@ interface DownloadAndMergeProps {
   approvedAnswers: Record<string, string[]>;
   rejectedAnswers: Record<string, string[]>;
   dailyStreak: StreakState;
+  dailyProgress: DailyProgressMap;
   flashProgress: StoredFlashProgress | null;
 }
 
@@ -190,6 +195,7 @@ export interface DownloadAndMergeResult extends SyncMetaOutcome {
   approvedAnswers: Record<string, string[]>;
   rejectedAnswers: Record<string, string[]>;
   dailyStreak: StreakState;
+  dailyProgress: DailyProgressMap;
   flashProgress: StoredFlashProgress | null;
 }
 
@@ -244,6 +250,7 @@ export function readRemoteMeta(row: unknown): {
   approvedAnswers: unknown;
   rejectedAnswers: unknown;
   dailyStreak: unknown;
+  dailyProgress: unknown;
   flashProgress: unknown;
 } {
   const meta = (row ?? {}) as Record<string, unknown>;
@@ -253,6 +260,7 @@ export function readRemoteMeta(row: unknown): {
     approvedAnswers: meta.approved_answers,
     rejectedAnswers: meta.rejected_answers,
     dailyStreak: meta.daily_streak,
+    dailyProgress: meta.daily_progress,
     flashProgress: meta.flash_progress,
   };
 }
@@ -263,6 +271,7 @@ export async function downloadAndMerge({
   approvedAnswers,
   rejectedAnswers,
   dailyStreak,
+  dailyProgress,
   flashProgress,
   syncBase,
 }: DownloadAndMergeProps): Promise<DownloadAndMergeResult> {
@@ -292,6 +301,7 @@ export async function downloadAndMerge({
     approvedAnswers: mergeApprovedAnswers(approvedAnswers, remoteMeta.approvedAnswers),
     rejectedAnswers: mergeRejectedAnswers(rejectedAnswers, remoteMeta.rejectedAnswers),
     dailyStreak: mergeStreaks(dailyStreak, remoteMeta.dailyStreak),
+    dailyProgress: mergeDailyProgress(dailyProgress, remoteMeta.dailyProgress),
     flashProgress: mergeStoredFlashProgress(flashProgress, remoteMeta.flashProgress),
     metaError: metaError ? describeError(metaError) : null,
   };

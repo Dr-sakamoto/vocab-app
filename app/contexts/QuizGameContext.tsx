@@ -47,6 +47,14 @@ import {
   recordPlay,
   toDateKey,
 } from "@/lib/streak";
+import {
+  DailyGainPoint,
+  DailyProgressMap,
+  EMPTY_DAILY_PROGRESS,
+  getDailyGains,
+  normalizeDailyProgress,
+  recordDailyProgress,
+} from "@/lib/dailyProgress";
 import { WordStat, PlayEvaluation, SessionAnswer } from "@/lib/types";
 import storage from "@/lib/storage";
 import { StudyScreenProps } from "../components/game/StudyScreen";
@@ -92,6 +100,15 @@ interface SettingsProps {
   cloudSync: ReturnType<typeof useCloudSync>;
 }
 
+export interface ProgressProps {
+  /** 全収録語を定着レベル（未出題＋Lv.1〜Lv.5の6段階）ごとに数えたもの */
+  levelCounts: number[];
+  /** 収録語の総数。ドーナツの分母 */
+  totalWords: number;
+  /** 直近14日ぶんの、定着語数の推移と前日比 */
+  dailyGains: DailyGainPoint[];
+}
+
 interface QuizGameContextValue {
   phase: "quiz" | "result";
   mode: StudyMode;
@@ -99,6 +116,7 @@ interface QuizGameContextValue {
   flash: FlashProps;
   study: Omit<StudyScreenProps, "phase">;
   settings: SettingsProps;
+  progress: ProgressProps;
 }
 
 const QuizGameContext = createContext<QuizGameContextValue | null>(null);
@@ -168,6 +186,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
 
   const [dailyStreak, setDailyStreak] = useState<StreakState>(EMPTY_STREAK);
+  const [dailyProgress, setDailyProgress] = useState<DailyProgressMap>(EMPTY_DAILY_PROGRESS);
   const [approvedAnswers, setApprovedAnswers] = useState<Record<string, string[]>>(() => {
     // 旧ID `w${i}` で保存されたキーもここで安定IDへ移行する
     try {
@@ -215,6 +234,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     setLastUnlockCount,
     pickNextQuestionIndex,
   } = useVocabPool({ stats, vocabItemsLength: VOCAB_ITEMS.length });
+
+  /** 進捗欄のドーナツ・日次伸び率は解放プールでなく収録語全体を見る */
+  const allIndices = useMemo(
+    () => Array.from({ length: VOCAB_ITEMS.length }, (_, i) => i),
+    [],
+  );
 
   const {
     entries,
@@ -332,6 +357,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         setPronunciationEnabledState(isPronunciationEnabled());
         setPronunciationVolumeState(getPronunciationVolume());
         setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
+        setDailyProgress(
+          normalizeDailyProgress(storage.get(STORAGE_KEYS.DAILY_PROGRESS, EMPTY_DAILY_PROGRESS)),
+        );
 
         const savedSpeed = Number(
           storage.get(STORAGE_KEYS.FLASH_SPEED, FLASH.DEFAULT_SPEED_SEC),
@@ -448,6 +476,19 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     // 正誤カウントに加えて分散学習の状態（最終解答時刻・連続正解数）も更新する
     setStats((prevStats) => applySetToStats(entries, prevStats));
 
+    // 進捗欄の「毎日の伸び率」用に、今日時点の定着語数（収録語全体）を記録する。
+    // セットを畳み込んだあとの統計を使う（そうしないと1セット遅れる）。
+    const statsAfterSet = applySetToStats(entries, stats);
+    setDailyProgress((prev) => {
+      const next = recordDailyProgress(
+        prev,
+        toDateKey(new Date()),
+        countRetained(allIndices, statsAfterSet),
+      );
+      if (next !== prev) storage.set(STORAGE_KEYS.DAILY_PROGRESS, next);
+      return next;
+    });
+
     setSetAnswers(answers);
     setSetScore(score);
     setResultEvaluation(
@@ -483,6 +524,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     unlockMore,
     unlockedIndices,
     unlockedPoolSize,
+    allIndices,
     router,
   ]);
 
@@ -649,6 +691,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       approvedAnswers: Record<string, string[]>;
       rejectedAnswers: Record<string, string[]>;
       dailyStreak: StreakState;
+      dailyProgress: DailyProgressMap;
     }) => {
       setStats(merged.stats);
       setUnlockedPoolSize(merged.unlockedPoolSize);
@@ -656,6 +699,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       setRejectedAnswers(merged.rejectedAnswers);
       setDailyStreak(merged.dailyStreak);
       storage.set(STORAGE_KEYS.STREAK, merged.dailyStreak);
+      setDailyProgress(merged.dailyProgress);
+      storage.set(STORAGE_KEYS.DAILY_PROGRESS, merged.dailyProgress);
       try {
         localStorage.setItem(
           APPROVED_ANSWERS_KEY,
@@ -676,6 +721,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     approvedAnswers,
     rejectedAnswers,
     dailyStreak,
+    dailyProgress,
     isReady: isLoaded,
     onMerged: handleSyncMerged,
   });
@@ -710,6 +756,19 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       totalWords: VOCAB_ITEMS.length,
     }),
     [unlockedIndices, stats, setAnswers],
+  );
+  /**
+   * 進捗欄（ドーナツ＋毎日の伸び率）の中身。解放プールではなく収録語全体を見る。
+   * こちらは「今どれだけ育っているか」の全体像を見せる場なので、
+   * 1セット分の変化を見やすくする InlineResult のプール限定リングとは分母が違う。
+   */
+  const progress = useMemo<ProgressProps>(
+    () => ({
+      levelCounts: countRetentionLevels(allIndices, stats),
+      totalWords: VOCAB_ITEMS.length,
+      dailyGains: getDailyGains(dailyProgress, toDateKey(new Date()), 14),
+    }),
+    [allIndices, stats, dailyProgress],
   );
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
   const setSize = entries.length || GAME.PLAY_LIMIT;
@@ -814,12 +873,14 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         onMistakeThresholdChange: handleMistakeThresholdChange,
         cloudSync,
       },
+      progress,
     }),
     [
       phase,
       mode,
       stats,
       unlockedIndices,
+      progress,
       currentTier,
       displayStreak,
       flashSpeed,
