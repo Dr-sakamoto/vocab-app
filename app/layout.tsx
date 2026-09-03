@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Newsreader, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import RegisterServiceWorker from "./components/RegisterServiceWorker";
-import { QuizGameProvider } from "./contexts/QuizGameContext";
 
 // 出題語以外のすべて（日本語・英数字とも）を受け持つ細めのゴシック。
 //
@@ -64,10 +63,11 @@ export default function RootLayout({
     >
       <body className="min-h-dvh flex flex-col safe-area">
         {/*
-          クイズの状態はレイアウト直下に置く。`/` と `/result` の間を
-          遷移しても採点中の裏処理やクラウド同期が途切れないようにするため。
+          クイズの状態を持つ Provider はここではなく app/(quiz)/layout.tsx に
+          置いている。単語クイズ（`/`・`/result`）と英作文（`/compose`）は
+          別のアプリで、状態も読み込むデータも共有しないため。
         */}
-        <QuizGameProvider>{children}</QuizGameProvider>
+        {children}
         <RegisterServiceWorker />
       </body>
     </html>

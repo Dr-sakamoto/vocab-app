@@ -1,9 +1,9 @@
 "use client";
 
-import StudyScreen from "./components/game/StudyScreen";
-import FlashScreen from "./components/flash/FlashScreen";
-import SettingsModal from "./components/SettingsModal";
-import { useQuizGame } from "./contexts/QuizGameContext";
+import StudyScreen from "../components/game/StudyScreen";
+import FlashScreen from "../components/flash/FlashScreen";
+import SettingsModal from "../components/SettingsModal";
+import { useQuizGame } from "../contexts/QuizGameContext";
 
 /**
  * 出題画面（`/`）。

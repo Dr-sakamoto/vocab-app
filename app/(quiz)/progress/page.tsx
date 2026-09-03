@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import RetentionRing from "../components/game/RetentionRing";
-import DailyGainChart from "../components/DailyGainChart";
+import RetentionRing from "../../components/game/RetentionRing";
+import DailyGainChart from "../../components/DailyGainChart";
 import { RETENTION_LEVELS } from "@/lib/retention";
-import { useQuizGame } from "../contexts/QuizGameContext";
+import { useQuizGame } from "../../contexts/QuizGameContext";
 
 /**
  * 進捗欄（`/progress`）。

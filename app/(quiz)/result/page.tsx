@@ -1,8 +1,8 @@
 "use client";
 
-import StudyScreen from "../components/game/StudyScreen";
-import SettingsModal from "../components/SettingsModal";
-import { useQuizGame } from "../contexts/QuizGameContext";
+import StudyScreen from "../../components/game/StudyScreen";
+import SettingsModal from "../../components/SettingsModal";
+import { useQuizGame } from "../../contexts/QuizGameContext";
 
 /**
  * 結果発表画面（`/result`）。
