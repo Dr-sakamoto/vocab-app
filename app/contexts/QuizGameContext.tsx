@@ -600,8 +600,18 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     speakEnglishWord(collocation ? `${target} ${collocation}` : target);
   }, [entries, phase]);
 
-  /** リザルトから次の10問セットへ。出題画面（`/`）へ遷移して中身を入れ替える */
+  /**
+   * リザルトから次の10問セットへ。出題画面（`/`）へ遷移して中身を入れ替える。
+   *
+   * 結果発表が出た直後の RESULT_ENTER_GRACE_MS 以内の呼び出しは無視する。
+   * スマホでは10問目の回答直後に仮想キーボードが閉じてレイアウトが動くため、
+   * そのタップ（Enter/Go）が結果発表の「次のセットへ」ボタンにゴースト
+   * クリックとして届き、表示直後に次のセットへ飛んでしまうことがある。
+   * ボタン押下・Enterキーのどちらの経路でもここを通るので、両方に効く。
+   */
   const continueToNextSet = useCallback(() => {
+    if (Date.now() - resultShownAtRef.current < RESULT_ENTER_GRACE_MS) return;
+
     markDailyPlay();
     setFlowPlayCount((count) => count + 1);
     setResultEvaluation(null);
@@ -657,8 +667,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       if (target?.closest?.("button")) return;
 
       if (phase === "result") {
-        // 回答を送り終えた勢いで余ったEnterでは進めない
-        if (Date.now() - resultShownAtRef.current < RESULT_ENTER_GRACE_MS) return;
+        // 猶予チェックは continueToNextSet 側にある（ボタン経由とも共通化）
         continueToNextSet();
         return;
       }
