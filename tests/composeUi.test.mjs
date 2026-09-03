@@ -108,6 +108,28 @@ test("習熟度の色は地の上で読める（WCAG AA）", () => {
   assert.ok(warning > negative && warning > positive * 0.9);
 });
 
+test("useQuizGame を使うページは (quiz) ルートグループの下に置く", () => {
+  // Provider は app/(quiz)/layout.tsx にしかない。外にページを足すと、
+  // ビルドの事前描画が "must be used within QuizGameProvider" で落ちる
+  // （実際に /progress の追加とぶつかった）。配置の約束をここで固定する。
+  const pages = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(new URL(dir + "/", root), { withFileTypes: true })) {
+      if (entry.isDirectory()) walk(join(dir, entry.name));
+      else if (entry.name === "page.tsx") pages.push(join(dir, entry.name));
+    }
+  };
+  walk("app");
+
+  for (const page of pages) {
+    if (!readSrc(page).includes("useQuizGame")) continue;
+    assert.ok(
+      page.startsWith("app/(quiz)/"),
+      `${page} が (quiz) グループの外で useQuizGame を使っている`,
+    );
+  }
+});
+
 test("単語アプリの状態（Provider）を英作文側に持ち込まない", () => {
   for (const file of composeFiles) {
     assert.ok(
