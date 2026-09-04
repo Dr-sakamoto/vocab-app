@@ -165,7 +165,15 @@ export default function StudyScreen({
               unlockedThisRun={result.unlockedThisRun}
               retention={result.retention}
               autoContinue={result.autoContinue}
-              answerSheet={<QuizSheet {...sheet} />}
+              answerSheet={
+                <QuizSheet
+                  {...sheet}
+                  visibleSlots={sheet.visibleSlots.filter((slot) => {
+                    const outcome = sheet.entries[slot]?.outcome;
+                    return outcome != null && !outcome.correct;
+                  })}
+                />
+              }
               onContinue={result.onContinue}
             />
           ) : (
