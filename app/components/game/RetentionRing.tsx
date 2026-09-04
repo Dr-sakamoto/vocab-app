@@ -12,11 +12,16 @@ export interface RetentionRingProps {
   poolSize: number;
 }
 
-/** 円周上の一区間だけを描くための dash 指定 */
+/** 隣り合う段の色が近くても境目がわかるよう、区間の前後に空ける隙間の弧長(px) */
+const SEGMENT_GAP = 1.4;
+
+/** 円周上の一区間だけを描くための dash 指定。区間の前後に SEGMENT_GAP 分の隙間を空ける */
 function arcDash(startRatio: number, lengthRatio: number) {
+  const length = Math.max(lengthRatio * CIRCUMFERENCE - SEGMENT_GAP, 0);
+  const offset = startRatio * CIRCUMFERENCE + SEGMENT_GAP / 2;
   return {
-    strokeDasharray: `${lengthRatio * CIRCUMFERENCE} ${CIRCUMFERENCE}`,
-    strokeDashoffset: -startRatio * CIRCUMFERENCE,
+    strokeDasharray: `${length} ${CIRCUMFERENCE}`,
+    strokeDashoffset: -offset,
   };
 }
 
@@ -27,8 +32,8 @@ function arcDash(startRatio: number, lengthRatio: number) {
  * 40/3440 = 1% のリングになり、1セット分の変化が目で見えないため。
  *
  * 未出題（一度も出題されていない）からLv.5（誤答から回復済みで定着）まで、
- * 段階が進むほど明るく・色相も紫からピンクへ動くグラデーションで積み上げて塗る。
- * 隣り合う段でも色相差があるため、明度だけの違いより見分けやすい。
+ * 段階が進むほど明るくなる色を積み上げて塗る。隣接する段は輝度差だけでは
+ * 境目が見えにくいため、区間の前後に隙間（SEGMENT_GAP）を空けて区切りを作る。
  * 1本のリングの中に「まだ浅い語がどれだけ残っているか」と
  * 「どれだけ育っているか」の両方が出る。実数の内訳はこのすぐ下に文字でも出す
  * （色だけに意味を乗せない）。

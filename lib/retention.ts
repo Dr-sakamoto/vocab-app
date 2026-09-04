@@ -44,6 +44,8 @@ export interface RetentionLevel {
  * 上がる連続スケール。「灰色＝まだ手つかず」「黄＝育ってきた」「緑＝定着」
  * という信号機的な直感に合わせており、一目で段階の進み具合がわかることを
  * 優先している。全色 --surface-0(#12141A) 上で 4.5:1 以上。
+ * リング側は隣接する段どうしの境目が輝度差だけでは見えづらいため、
+ * RetentionRing の SEGMENT_GAP（区間の隙間）で区切って見分けられるようにしている。
  */
 export const RETENTION_LEVELS: RetentionLevel[] = [
   { level: 0, label: "未出題", color: "#8a8f94" },
