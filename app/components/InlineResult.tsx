@@ -30,8 +30,8 @@ interface InlineResultProps {
   unlockedThisRun: number;
   retention: RetentionSummary;
   /**
-   * 10問ぶんの答案（正誤つき）。要約より先に置く。
-   * このセットで学べるものは「どの語を落としたか」なので、そこを主役にする。
+   * 誤答した問題だけの答案（正誤つき）。定着ドーナツより後ろ、
+   * スクロール領域の下側に置く。全問正解なら何も渡らない。
    */
   answerSheet?: ReactNode;
   /**
@@ -44,12 +44,15 @@ interface InlineResultProps {
 
 /**
  * 10問の小テストが終わったところで、問題ウィンドウの中身と入れ替わる結果発表。
- * ページ遷移せず、答案（正誤つき）と評価をその場で見せる。
+ * ページ遷移せず、評価と誤答した問題だけをその場で見せる。
+ *
+ * 「次のセットへ」は常に最上部に固定し、評価（ドーナツ）→誤答した問題の順に
+ * その下をスクロールする。誤答だけを残すのは、正解した問題を読み返す必要が
+ * 無いため（このセットで学べるものは「どの語を落としたか」）。
  *
  * 誤答が無ければ自動で次のセットへ流す（読むものが無いので止める理由がない）。
  * 誤答があるときは自動送りを止める。ここが「どの語を落としたか」を読む場で、
  * 読んでいる最中に画面が切り替わるほうが割り込みになる。
- * 面のどこを押しても進む挙動は持たない（答案をスクロールできなくなるため）。
  */
 export default function InlineResult({
   evaluation,
@@ -95,9 +98,22 @@ export default function InlineResult({
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="flex h-full min-h-0 flex-col"
     >
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 sm:px-6">
-        {answerSheet && <div className="mb-4">{answerSheet}</div>}
+      <div className="shrink-0 px-4 pt-3 pb-2 sm:px-6">
+        <button
+          type="button"
+          onClick={onContinue}
+          className="btn-accent flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm"
+        >
+          次のセットへ →
+          {autoContinue && (
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/15 text-xs tabular-nums">
+              {secondsLeft}
+            </span>
+          )}
+        </button>
+      </div>
 
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 sm:px-6">
         <div className="prompt-card p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
@@ -194,21 +210,8 @@ export default function InlineResult({
             </div>
           )}
         </div>
-      </div>
 
-      <div className="shrink-0 px-4 pb-3 pt-2 sm:px-6">
-        <button
-          type="button"
-          onClick={onContinue}
-          className="btn-accent flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm"
-        >
-          次のセットへ →
-          {autoContinue && (
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/15 text-xs tabular-nums">
-              {secondsLeft}
-            </span>
-          )}
-        </button>
+        {answerSheet && <div className="mt-4">{answerSheet}</div>}
       </div>
     </motion.div>
   );
