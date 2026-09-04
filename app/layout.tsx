@@ -64,8 +64,8 @@ export default function RootLayout({
       <body className="min-h-dvh flex flex-col safe-area">
         {/*
           クイズの状態を持つ Provider はここではなく app/(quiz)/layout.tsx に
-          置いている。単語クイズ（`/`・`/result`）と英作文（`/compose`）は
-          別のアプリで、状態も読み込むデータも共有しないため。
+          置いている。規約・プライバシーなどクイズの状態を要らない画面まで
+          出題プールの読み込みとクラウド同期を走らせないため。
         */}
         {children}
         <RegisterServiceWorker />

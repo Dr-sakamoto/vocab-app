@@ -49,9 +49,6 @@
   --positive: #5ecb8f; /* 9.1:1 */
   --negative: #ff6b6b; /* 6.6:1 */
   --negative-surface: #2a1518; /* この上で --ink-1 が 14.4:1 を保つ */
-  /* 「できてはいるが定着していない」中間段階。英作文の習熟度バーで
-     --negative（崩れている）と --positive（定着）の間を埋める。11.0:1 */
-  --warning: #e3c85c;
 }
 
 @theme inline {
@@ -68,7 +65,7 @@
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-negative-surface: var(--negative-surface);
-  --color-warning: var(--warning);
+
   /* 出題語以外のすべて（日本語・英数字とも）を受け持つ細めのゴシック */
   --font-ui: var(--font-ui);
   /* 出題語専用のセリフ体。UIはすべてサンセリフなので、書体系統の違いが
@@ -269,37 +266,6 @@ a {
 /* 進捗ゲージ */
 .gauge-track {
   background-color: var(--line);
-}
-
-/* 添削の差分（英作文）。削除は打ち消し線、追加は下線を併用し、
-   色を持たない・色が読めない環境でも区別が残るようにする（SC 1.4.1）。 */
-.diff-added {
-  color: var(--positive);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.diff-removed {
-  color: var(--negative);
-  text-decoration: line-through;
-}
-
-/* 英作文の答案欄。1文を書き切る前提なので、単語の1行入力より背を高く取る。 */
-.compose-field {
-  background-color: var(--surface-2);
-  border: 1px solid var(--line-strong);
-  color: var(--ink-1);
-  resize: none;
-  transition:
-    border-color 0.12s ease,
-    box-shadow 0.12s ease;
-}
-.compose-field::placeholder {
-  color: var(--ink-3);
-}
-.compose-field:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
-  outline: none;
 }
 
 /* 固定サイズの解答欄：横スクロールバーは見た目上隠す（入力自体は可能） */
