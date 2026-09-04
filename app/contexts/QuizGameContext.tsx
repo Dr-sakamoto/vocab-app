@@ -335,7 +335,10 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    * のほうで flushSync してから focus する。
    */
   const focusQuestion = useCallback((slot: number) => {
-    inputRefs.current[slot]?.focus();
+    // preventScroll: true — スマホでフォーカス直後にブラウザが独自に
+    // スクロール調整を入れると、窓送りのコンベアアニメーション
+    // （framer-motion の transform）と競合して「ガクン」と跳ねる。
+    inputRefs.current[slot]?.focus({ preventScroll: true });
   }, []);
 
   // セットを組み直したら1問目の回答欄にカーソルを置く。
@@ -553,8 +556,11 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     const next = windowStart + 1;
     const newBottom = next + 1;
     if (newBottom < entries.length) {
+      // preventScroll: true — 直後に始まるコンベアアニメーションの最中に
+      // ブラウザ側のスクロール調整が入ると、transform と競合して見た目が
+      // ガクつく（画面自体は quiz-shell で視覚ビューポートに固定済み）。
       flushSync(() => setWindowStart(next));
-      inputRefs.current[newBottom]?.focus();
+      inputRefs.current[newBottom]?.focus({ preventScroll: true });
     } else {
       // 最後の1問が上に繰り上がっただけ。キーボードを閉じて採点の締めに任せる
       flushSync(() => setWindowStart(next));

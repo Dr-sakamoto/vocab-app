@@ -119,7 +119,7 @@ test("窓をまたぐフォーカス移動は同期的に描き替える（キ�
   const page = readSrc("app/contexts/QuizGameContext.tsx");
   assert.ok(page.includes("const advanceWindow = useCallback"), "advanceWindow が無い");
   assert.ok(
-    /flushSync\(\(\) => setWindowStart\([^)]*\)\);\s*inputRefs\.current\[[^\]]*\]\?\.focus\(\);/.test(
+    /flushSync\(\(\) => setWindowStart\([^)]*\)\);\s*inputRefs\.current\[[^\]]*\]\?\.focus\([^)]*\);/.test(
       page,
     ),
     "描き替えを待たずに focus() している（次の入力欄がまだ無い）",
