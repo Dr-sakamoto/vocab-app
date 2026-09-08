@@ -53,6 +53,13 @@ interface InlineResultProps {
  * 誤答が無ければ自動で次のセットへ流す（読むものが無いので止める理由がない）。
  * 誤答があるときは自動送りを止める。ここが「どの語を落としたか」を読む場で、
  * 読んでいる最中に画面が切り替わるほうが割り込みになる。
+ *
+ * 出てから GAME.RESULT_CONTINUE_LOCK_MS のあいだ、「次のセットへ」は
+ * disabled にしておく。10問を送り続けた勢いで余った1打（スマホでは
+ * キーボードが閉じたあとのゴーストクリック）がここに届いて、結果を
+ * 一瞬も読めないまま次のセットへ飛ぶのを防ぐ。押せない状態を色でも示すのは
+ * 回答欄の送信ボタンと同じ扱い（押せるようになって初めて操作色になる）で、
+ * 弾かれたことが見えないまま無反応になるのを避けるため。
  */
 export default function InlineResult({
   evaluation,
@@ -65,6 +72,16 @@ export default function InlineResult({
   onContinue,
 }: InlineResultProps) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_CONTINUE_SECONDS);
+  /** 出た直後に届く「余りの1打」を受け付けないための錠。時間で自動的に開く */
+  const [locked, setLocked] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setLocked(false),
+      GAME.RESULT_CONTINUE_LOCK_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!autoContinue) return undefined;
@@ -102,11 +119,18 @@ export default function InlineResult({
         <button
           type="button"
           onClick={onContinue}
-          className="btn-accent flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm"
+          disabled={locked}
+          className={`flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm ${
+            locked ? "btn-quiet" : "btn-accent"
+          }`}
         >
           次のセットへ →
           {autoContinue && (
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/15 text-xs tabular-nums">
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs tabular-nums ${
+                locked ? "bg-surface-2" : "bg-black/15"
+              }`}
+            >
               {secondsLeft}
             </span>
           )}
