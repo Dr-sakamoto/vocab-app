@@ -27,7 +27,12 @@ import { useVisualViewportVars } from "../hooks/useVisualViewport";
 import { useCloudSync } from "../hooks/useCloudSync";
 
 import { evaluatePlay } from "@/lib/playEvaluation";
-import { applySetToStats, windowSlots, summarizeSet } from "@/lib/quizSet";
+import {
+  applySetToStats,
+  resolveResultContinue,
+  windowSlots,
+  summarizeSet,
+} from "@/lib/quizSet";
 import { evaluateUnlockGate } from "@/lib/unlockGate";
 import { getPoolTier } from "@/lib/poolTier";
 import { VOCAB_ITEMS } from "@/lib/vocab";
@@ -61,13 +66,6 @@ import { StudyScreenProps } from "../components/game/StudyScreen";
 
 const APPROVED_ANSWERS_KEY = "vocab-approved-answers";
 const REJECTED_ANSWERS_KEY = "vocab-rejected-answers";
-
-/**
- * 結果発表が出てから、Enterで次のセットへ進めるようになるまでの猶予。
- * 10問を Enter で送り続けた勢いのまま最後の1打が余ると、答案を一度も
- * 読まないまま次のセットへ飛んでしまう。
- */
-const RESULT_ENTER_GRACE_MS = 700;
 
 interface FlashProps {
   vocabItems: typeof VOCAB_ITEMS;
@@ -175,8 +173,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const didLoadFromStorageRef = useRef<boolean>(false);
   const resultUnlockAppliedRef = useRef<boolean>(false);
-  /** 結果発表が出た時刻。直後の余分なEnterで答案を飛ばさないために見る */
-  const resultShownAtRef = useRef<number>(0);
+  /**
+   * 「次のセットへ」を通してよくなる起点。結果発表が出た時刻から始まり、
+   * 勢いで余った入力を弾くたびに今へずれる（lib/quizSet.ts の
+   * resolveResultContinue）。
+   */
+  const continueGateAtRef = useRef<number>(0);
   /**
    * 遷移先の phase。router.push は非同期なので、URL が実際にそこへ着くまで
    * phase を先に変えない（先に変えると、まだ着いていない URL の上に
@@ -609,14 +611,23 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   /**
    * リザルトから次の10問セットへ。出題画面（`/`）へ遷移して中身を入れ替える。
    *
-   * 結果発表が出た直後の RESULT_ENTER_GRACE_MS 以内の呼び出しは無視する。
-   * スマホでは10問目の回答直後に仮想キーボードが閉じてレイアウトが動くため、
-   * そのタップ（Enter/Go）が結果発表の「次のセットへ」ボタンにゴースト
-   * クリックとして届き、表示直後に次のセットへ飛んでしまうことがある。
+   * 結果発表が出た直後の呼び出しは弾く（GAME.RESULT_CONTINUE_LOCK_MS）。
+   * 10問を送り続けた勢いのまま最後の1打が余ると、答案を一度も読まないまま
+   * 次のセットへ飛んでしまう。スマホでは10問目の回答直後に仮想キーボードが
+   * 閉じてレイアウトが動くため、そのタップ（Enter/Go）が「次のセットへ」に
+   * ゴーストクリックとして届くこともある。
+   *
+   * 弾いた入力は起点を今へずらすので、連打しているあいだは窓が明けない。
    * ボタン押下・Enterキーのどちらの経路でもここを通るので、両方に効く。
    */
   const continueToNextSet = useCallback(() => {
-    if (Date.now() - resultShownAtRef.current < RESULT_ENTER_GRACE_MS) return;
+    const gate = resolveResultContinue(
+      continueGateAtRef.current,
+      Date.now(),
+      GAME.RESULT_CONTINUE_LOCK_MS,
+    );
+    continueGateAtRef.current = gate.anchorAt;
+    if (!gate.allowed) return;
 
     markDailyPlay();
     setFlowPlayCount((count) => count + 1);
@@ -653,7 +664,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     const landedPhase = pathname === "/result" ? "result" : "quiz";
     if (pendingPhaseRef.current === landedPhase) {
       pendingPhaseRef.current = null;
-      if (landedPhase === "result") resultShownAtRef.current = Date.now();
+      if (landedPhase === "result") continueGateAtRef.current = Date.now();
       setPhase(landedPhase);
       return;
     }
@@ -673,7 +684,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       if (target?.closest?.("button")) return;
 
       if (phase === "result") {
-        // 猶予チェックは continueToNextSet 側にある（ボタン経由とも共通化）
+        // 猶予チェックは continueToNextSet 側にある（ボタン経由とも共通化）。
+        // 送り終えた勢いで余ったEnterはそこで弾かれ、起点も先へずれる
         continueToNextSet();
         return;
       }

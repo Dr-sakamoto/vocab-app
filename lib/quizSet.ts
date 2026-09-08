@@ -39,6 +39,33 @@ export function canAdvanceWindow(entries: QuizEntry[], windowStart: number): boo
   return true;
 }
 
+export interface ResultContinueGate {
+  /** 次のセットへ進めてよいか */
+  allowed: boolean;
+  /** 次に判定するときの起点。弾いた入力は起点を「弾いた時刻」へずらす */
+  anchorAt: number;
+}
+
+/**
+ * 結果発表から次のセットへ進めてよいかを判定する（起点から graceMs 経過が条件）。
+ *
+ * 10問を Enter／タップで送り続けた勢いは、最後の1打が余ったまま結果発表へ
+ * 着地する。時間の窓を固定にすると、窓が明けた直後に届いた「余りの1打」で
+ * 結局そのまま飛んでしまう。そこで弾くたびに起点を今へずらし、入力が
+ * graceMs だけ途切れて初めて通す——勢いで押し続けているあいだは進まず、
+ * 手を止めてもう一度押せば必ず通る。
+ *
+ * 判定を進めるのは呼び出し側の責任（返した anchorAt を次の判定へ渡す）。
+ */
+export function resolveResultContinue(
+  anchorAt: number,
+  now: number,
+  graceMs: number,
+): ResultContinueGate {
+  if (now - anchorAt >= graceMs) return { allowed: true, anchorAt };
+  return { allowed: false, anchorAt: now };
+}
+
 export interface SetSummary {
   answers: SessionAnswer[];
   score: number;
