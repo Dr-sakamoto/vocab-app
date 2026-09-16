@@ -46,14 +46,18 @@ export interface RetentionLevel {
  * 優先している。全色 --surface-0(#12141A) 上で 4.5:1 以上。
  * リング側は隣接する段どうしの境目が輝度差だけでは見えづらいため、
  * RetentionRing の SEGMENT_GAP（区間の隙間）で区切って見分けられるようにしている。
+ *
+ * 以前の版は隣接段の色相差が乏しく、暗い画面だと境目が見えにくかった。
+ * 現在の版は段ごとに色相（暖色グレー→金→オリーブ黄→黄緑→緑→ミント緑）を
+ * はっきりずらしつつ、彩度は抑えめにして他のUI要素と喧嘩しないようにしている。
  */
 export const RETENTION_LEVELS: RetentionLevel[] = [
-  { level: 0, label: "未出題", color: "#8a8f94" },
-  { level: 1, label: "Lv.1", color: "#9a9a76" },
-  { level: 2, label: "Lv.2", color: "#b7ae5c" },
-  { level: 3, label: "Lv.3", color: "#d0c256" },
-  { level: 4, label: "Lv.4", color: "#e6d554" },
-  { level: 5, label: "Lv.5", color: "#a6e86a" },
+  { level: 0, label: "未出題", color: "#92897f" },
+  { level: 1, label: "Lv.1", color: "#bc9837" },
+  { level: 2, label: "Lv.2", color: "#bbb236" },
+  { level: 3, label: "Lv.3", color: "#abca61" },
+  { level: 4, label: "Lv.4", color: "#a7d992" },
+  { level: 5, label: "Lv.5", color: "#b1e1c0" },
 ];
 
 /**
