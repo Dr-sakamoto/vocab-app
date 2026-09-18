@@ -40,22 +40,24 @@ export interface RetentionLevel {
 }
 
 /**
- * 6段階の色。灰色（未出題）→茶→橙→黄（育ってきた）→緑（定着）へ、輝度が単調に
+ * 6段階の色。灰色（未出題）→黄（育ってきた）→緑（定着）へ、輝度が単調に
  * 上がる連続スケール。「灰色＝まだ手つかず」「黄＝育ってきた」「緑＝定着」
  * という信号機的な直感に合わせており、一目で段階の進み具合がわかることを
  * 優先している。全色 --surface-0(#12141A) 上で 4.5:1 以上。
- * 中間の4段（Lv.1〜Lv.4）は明度だけでなく色相もずらしてあり、隣り合う段でも
- * 見分けがつく（元は全段が近い黄土色で、輝度差だけでは区別しにくかった）。
- * リング側は隣接する段どうしの境目が色だけでは見えづらいため、
+ * リング側は隣接する段どうしの境目が輝度差だけでは見えづらいため、
  * RetentionRing の SEGMENT_GAP（区間の隙間）で区切って見分けられるようにしている。
+ *
+ * 以前の版は隣接段の色相差が乏しく、暗い画面だと境目が見えにくかった。
+ * 現在の版は段ごとに色相（暖色グレー→金→オリーブ黄→黄緑→緑→ミント緑）を
+ * はっきりずらしつつ、彩度は抑えめにして他のUI要素と喧嘩しないようにしている。
  */
 export const RETENTION_LEVELS: RetentionLevel[] = [
-  { level: 0, label: "未出題", color: "#787e91" },
-  { level: 1, label: "Lv.1", color: "#a5824f" },
-  { level: 2, label: "Lv.2", color: "#c99a3e" },
-  { level: 3, label: "Lv.3", color: "#e0c23a" },
-  { level: 4, label: "Lv.4", color: "#d9e35a" },
-  { level: 5, label: "Lv.5", color: "#8ef58f" },
+  { level: 0, label: "未出題", color: "#92897f" },
+  { level: 1, label: "Lv.1", color: "#bc9837" },
+  { level: 2, label: "Lv.2", color: "#bbb236" },
+  { level: 3, label: "Lv.3", color: "#abca61" },
+  { level: 4, label: "Lv.4", color: "#a7d992" },
+  { level: 5, label: "Lv.5", color: "#b1e1c0" },
 ];
 
 /**
