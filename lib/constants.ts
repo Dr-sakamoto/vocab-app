@@ -48,6 +48,15 @@ export const GAME = {
    * ずらすので、連打しているあいだは進まない（落ち着いて押し直せば通る）。
    */
   RESULT_CONTINUE_LOCK_MS: 1000,
+  /**
+   * 苦手パーソナライズ（重み付き抽選）を止めて、収録語全体をシャッフル順で
+   * 機械的に流す周回数（判定は lib/lapOrder.ts）。
+   *
+   * 重み付き抽選は解放済みの狭いプールで同じ語を出し直すので、1セッションで
+   * 触れる語の幅が小さく、進んでいる手応えが出にくい。まずは全語を
+   * この回数だけ周回して、苦手の見極めはそのあとに回す。
+   */
+  LAP_LOCK_COUNT: 5,
 } as const;
 
 export const SOUND = {
@@ -89,6 +98,7 @@ export const STORAGE_KEYS = {
   FLASH_PROGRESS: "vocab-flash-progress",
   SYNC_BASE: "vocab-sync-base",
   DAILY_PROGRESS: "vocab-daily-progress",
+  LAP_ORDER: "vocab-lap-order",
 } as const;
 
 export const BUTTON_CLASSES = {
