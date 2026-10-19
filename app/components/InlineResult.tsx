@@ -21,6 +21,18 @@ export interface RetentionSummary {
   levelCounts: number[];
   /** 収録語の総数。プールがここまで届いていれば、もう解放するものが無い */
   totalWords: number;
+  /**
+   * 周回出題（lib/lapOrder.ts）のセットだったときの進み具合。
+   * 周回中は解放ゲートを使っていないので、「次の解放まで」の代わりにこれを出す。
+   */
+  lap?: {
+    /** 完了した周回数 */
+    completedLaps: number;
+    /** 苦手パーソナライズを止めておく周回数 */
+    lockCount: number;
+    /** いまの周の何語目まで出し終えたか */
+    cursor: number;
+  };
 }
 
 interface InlineResultProps {
@@ -97,7 +109,7 @@ export default function InlineResult({
 
   const { grade, title, message } = evaluation ?? {};
 
-  const { retained, poolSize, gain, levelCounts, totalWords } = retention;
+  const { retained, poolSize, gain, levelCounts, totalWords, lap } = retention;
 
   // 解放の条件はプール全体の分布で決まる（このセットの正答率では決まらない）。
   // 何が足りていないのかを出しておかないと、解放の有無が偶然に見えてしまう。
@@ -204,7 +216,31 @@ export default function InlineResult({
           {/* 次の解放に何が足りていないか。どちらの数字もすぐ上のドーナツから
               読める値（中央の平均Lvと、いちばん暗い2色の割合）なので、
               新しい指標を覚えなくても対応が付く。 */}
-          {poolSize > 0 && poolSize < totalWords && (
+          {/* 周回出題の進み具合。全語を何周目のどこまで流したか */}
+          {lap && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-surface-2 px-2.5 py-1.5 text-[11px] text-ink-3">
+              {lap.completedLaps < lap.lockCount && lap.cursor === 0 && lap.completedLaps > 0 ? (
+                <span>
+                  {lap.completedLaps} 周目を完走（残り {lap.lockCount - lap.completedLaps} 周）
+                </span>
+              ) : lap.completedLaps < lap.lockCount ? (
+                <>
+                  <span>
+                    周回 {lap.completedLaps + 1} / {lap.lockCount} 周目
+                  </span>
+                  <span className="tabular-nums">
+                    {lap.cursor.toLocaleString()} / {totalWords.toLocaleString()} 語
+                  </span>
+                </>
+              ) : (
+                <span>
+                  {lap.lockCount} 周完了。次のセットから苦手に合わせた出題に切り替わる
+                </span>
+              )}
+            </div>
+          )}
+
+          {!lap && poolSize > 0 && poolSize < totalWords && (
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-surface-2 px-2.5 py-1.5 text-[11px] text-ink-3">
               <span>次の解放まで</span>
               <span

@@ -34,6 +34,13 @@ import {
   summarizeSet,
 } from "@/lib/quizSet";
 import { evaluateUnlockGate } from "@/lib/unlockGate";
+import {
+  LapState,
+  createLapState,
+  isLapLocked,
+  normalizeLapState,
+  pickLapSet,
+} from "@/lib/lapOrder";
 import { getPoolTier } from "@/lib/poolTier";
 import { VOCAB_ITEMS } from "@/lib/vocab";
 import {
@@ -168,6 +175,15 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const [isComposing, setIsComposing] = useState<boolean>(false);
   /** 同一セッションで連続プレイした回数。多いほどフロー係数が上がる */
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
+  /**
+   * 周回出題の進み具合（lib/lapOrder.ts）。GAME.LAP_LOCK_COUNT 周を終えるまでは
+   * 苦手パーソナライズを止め、全語をシャッフル順で流す。保存値の復元前は null。
+   */
+  const [lapState, setLapState] = useState<LapState | null>(null);
+  /** 出題中のセットを解き終えたときの周回状態。セットの締めで lapState へ確定する */
+  const pendingLapRef = useRef<LapState | null>(null);
+  /** 締めたセットが周回出題だったか。結果発表で周回の進み具合を出すかどうか */
+  const [resultFromLap, setResultFromLap] = useState<boolean>(false);
 
   /** 設問ごとの回答欄。Enter で次の設問へフォーカスを送るのに使う */
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -397,6 +413,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           );
         }
 
+        setLapState(normalizeLapState(storage.get<unknown>(STORAGE_KEYS.LAP_ORDER, null)));
+
         // 単語進捗。旧ID `w${i}` で保存されたレコードは安定IDへ移行する
         const parsed = storage.get<unknown[] | null>(STORAGE_KEYS.PROGRESS, null);
         if (parsed && Array.isArray(parsed)) {
@@ -419,9 +437,20 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    * まとめて出すいまは、直前のセットで正解した語を外す（`excluded`）。
    * 答えを見たばかりの語をそのまま次のセットへ出しても想起の負荷にならない。
    * 落とした語は外さない——間隔反復の0日目に当たり、すぐ出し直すほうがよい。
+   *
+   * 周回出題の期間中は抽選しない。全語のシャッフル順から次の10語を
+   * そのまま取り出す（同じ周の中で同じ語は二度出ないので excluded も不要）。
    */
   const pickSet = useCallback(
     (excluded: number[], accuracy: number) => {
+      const lap = lapState ?? createLapState();
+      if (isLapLocked(lap, GAME.LAP_LOCK_COUNT)) {
+        const { indices, next } = pickLapSet(lap, VOCAB_ITEMS.length, GAME.PLAY_LIMIT);
+        pendingLapRef.current = next;
+        return indices.map((poolIndex) => ({ poolIndex, item: VOCAB_ITEMS[poolIndex] }));
+      }
+      pendingLapRef.current = null;
+
       const seen = new Set<number>(excluded);
       const picked: number[] = [];
       for (let i = 0; i < GAME.PLAY_LIMIT; i += 1) {
@@ -432,7 +461,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       }
       return picked.map((poolIndex) => ({ poolIndex, item: VOCAB_ITEMS[poolIndex] }));
     },
-    [pickNextQuestionIndex],
+    [lapState, pickNextQuestionIndex],
   );
 
   // 復元完了後に最初のセットを組む（復元された stats・プールを反映した抽選にする）
@@ -467,6 +496,11 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     storage.set(STORAGE_KEYS.POOL_SIZE, unlockedPoolSize);
   }, [unlockedPoolSize]);
 
+  useEffect(() => {
+    if (!didLoadFromStorageRef.current || !lapState) return;
+    storage.set(STORAGE_KEYS.LAP_ORDER, lapState);
+  }, [lapState]);
+
   // ── 10問セットの締め（評価 + 統計反映 + プール解放）─────────────────────
   /**
    * 全問の採点が返ってから一度だけ走る。10問ぶんの正誤をまとめて
@@ -480,6 +514,13 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
 
     // 正誤カウントに加えて分散学習の状態（最終解答時刻・連続正解数）も更新する
     setStats((prevStats) => applySetToStats(entries, prevStats));
+
+    // 周回出題のセットなら、解き終えたこの時点で周回を進める
+    setResultFromLap(pendingLapRef.current !== null);
+    if (pendingLapRef.current) {
+      setLapState(pendingLapRef.current);
+      pendingLapRef.current = null;
+    }
 
     // 進捗欄の「毎日の伸び率」用に、今日時点の定着語数（収録語全体）を記録する。
     // セットを畳み込んだあとの統計を使う（そうしないと1セット遅れる）。
@@ -781,8 +822,16 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       gain: countRetentionGain(setAnswers),
       levelCounts: countRetentionLevels(unlockedIndices, stats),
       totalWords: VOCAB_ITEMS.length,
+      lap:
+        resultFromLap && lapState
+          ? {
+              completedLaps: lapState.lap,
+              lockCount: GAME.LAP_LOCK_COUNT,
+              cursor: lapState.cursor,
+            }
+          : undefined,
     }),
-    [unlockedIndices, stats, setAnswers],
+    [unlockedIndices, stats, setAnswers, resultFromLap, lapState],
   );
   /**
    * 進捗欄（ドーナツ＋毎日の伸び率）の中身。解放プールではなく収録語全体を見る。
