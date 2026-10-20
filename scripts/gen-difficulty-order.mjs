@@ -16,10 +16,10 @@
  *      - google-10000-english（一般ウェブコーパス由来）
  *        https://github.com/first20hours/google-10000-english
  *
- * 序列は「出る順」（英語漬け.com の英検準1級プールにおける元の収録順）を
- * 主軸にする。元データは出る順に並んでおり、CEFR にも一般頻度表にも無い情報
+ * 序列は「出る順」（英語漬け.com の英検準1級プールにおける元の収録順）
+ * そのもの。元データは出る順に並んでおり、CEFR にも一般頻度表にも無い情報
  * （英検準1級での出題頻度）を持つ。準1級の受験者にとって最も価値のある
- * 並びはこれそのもの。
+ * 並びはこれ。
  *
  * 以前は CEFR バンドを主軸に、出る順はバンド内の並べ替えにだけ使っていた。
  * すると準1級の中心語の多く（書き言葉・学術語彙）は CEFR 表に載らないか
@@ -27,10 +27,11 @@
  * 回される。解放は10語ずつなので、alleviate（出る順2番）に届くまで
  * 約13,000問かかる計算だった。
  *
- * CEFR は「準1級の受験者がすでに知っている語」を後ろへ回すためにだけ使う。
- * B1 未満（A1/A2）の語は、その差の分だけ出る順の全体を飛び越えて後ろへ
- * 下げる。B1 で止めるのは、severe / inevitable / substantial のように
- * CEFR では B1 でも準1級の頻出語が多いため（出る順の先頭40語の約3分の1が B1）。
+ * 準1級の受験者がすでに知っている語（CEFR A1/A2 で、登録した訳語も基本の
+ * 意味のもの）は語彙データから外してある。A1/A2 でも account（説明）や
+ * novel（斬新な）のように準1級で問われる語義で登録している語は残し、
+ * 出る順どおりに出す。CEFR・頻度はここでは並べ替えに使わず、
+ * docs/vocab-difficulty.csv に監査用の根拠として出力するだけにとどめる。
  *
  * CEFR は本アプリの語彙の約5割しか収録していないため、未収録語のバンドは
  * 両方が判明している語から作った「頻度帯 → 平均CEFRバンド」の対応表で
@@ -49,18 +50,6 @@ import { dirname, join } from "node:path";
 import { VOCAB_ITEMS } from "../lib/vocab/index.ts";
 
 // ── 合成パラメータ（すべてここに集約する）────────────────────────────────
-/**
- * 準1級の受験者が既知とみなすバンドの上限（この値未満を既知語として下げる）。
- * CEFR_BANDS の添字で、2 = B1。
- */
-const ASSUMED_KNOWN_BELOW = 2;
-/**
- * 既知語を1バンド分の不足につき下げる幅（出る順スコア [0, 1) に対する加点）。
- * 1 にすると A2 の語は B1 以上の全語より後ろ、A1 はさらにその後ろへ回る。
- * CEFR 未収録で頻度から補完した語はバンドが小数になるので、その分だけ
- * 中間へ下がる。
- */
-const KNOWN_WORD_DEMOTION = 1.0;
 /** 頻度表（50k）に無い語の扱い。実際に稀な語なので最難関帯へ寄せる */
 const MISSING_FREQ_RANK = 60000;
 /**
@@ -313,10 +302,8 @@ async function main() {
     if (row.isPhrase) band = Math.max(band, phraseFloor) + PHRASE_PENALTY;
 
     row.cefrBand = band;
-    // 出る順が主軸。既知語（B1 未満）だけ、不足するバンド数に応じて後ろへ下げる。
-    // 複合語は phraseFloor + PHRASE_PENALTY で B1 以上になる（現データで 2.5）ので下がらない。
-    const knownDeficit = Math.max(0, ASSUMED_KNOWN_BELOW - band);
-    row.score = row.examScore + KNOWN_WORD_DEMOTION * knownDeficit;
+    // 序列は出る順そのもの。バンドは監査用CSVに出すだけで並べ替えには使わない
+    row.score = row.examScore;
   }
 
   // 同点は決定的に解く（出る順 → ID 辞書順）。再生成しても順序がぶれないように。
@@ -333,8 +320,7 @@ async function main() {
   const header = `// 自動生成: npx tsx scripts/gen-difficulty-order.mjs (${generatedAt})
 //
 // 出題順（段階的アンロックの順序）。出る順（英語漬け.com の英検準1級プールの
-// 元の収録順）を主軸に、準1級の受験者が既知とみなす CEFR A1/A2 の語だけを
-// 後ろへ回している。LLM の主観は入っていない。
+// 元の収録順）そのもの。LLM の主観は入っていない。
 //
 //   - CEFR: CEFR-J Vocabulary Profile 1.5 / Octanove Vocabulary Profile C1-C2 1.0
 //           https://github.com/openlanguageprofiles/olp-en-cefrj (CC BY-SA 4.0)
