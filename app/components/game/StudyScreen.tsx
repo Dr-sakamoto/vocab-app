@@ -91,7 +91,7 @@ export default function StudyScreen({
               )}
             </div>
             <div className="flex items-center gap-3">
-              {/* 到達段階（CEFR）だけは色で示す。順序尺度なので明度が単調に上がる
+              {/* 到達段階だけは色で示す。順序尺度なので明度が単調に上がる
                   連続スケールにしてある（lib/poolTier.ts）。 */}
               <span className="tabular-nums" style={{ color: status.tier.color }}>
                 {status.tier.label}
