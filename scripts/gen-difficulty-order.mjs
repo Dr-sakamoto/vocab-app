@@ -1,9 +1,8 @@
 /**
  * lib/vocab/difficultyOrder.ts と docs/vocab-difficulty.csv を生成する。
  *
- * 出題順（＝段階的アンロックの順序）を、外部の一般的な指標にもとづいて
- * 易しい語から並べ直すための序列表を作る。LLM の主観で並べるのではなく、
- * 公開データ2種を機械的に合成する。
+ * 出題順（＝段階的アンロックの順序）の序列表を作る。LLM の主観で並べるのではなく、
+ * 元データの収録順と公開データ2種を機械的に合成する。
  *
  *   1. CEFR レベル
  *      - CEFR-J Vocabulary Profile 1.5 (A1-B2)
@@ -17,11 +16,23 @@
  *      - google-10000-english（一般ウェブコーパス由来）
  *        https://github.com/first20hours/google-10000-english
  *
- * 序列は CEFR バンドを主軸に、バンド内の並べ替えには「出る順」
- * （英語漬け.com の英検準1級プールにおける元の収録順）を使う。
- * 元データは出る順に並んでおり、CEFR にも一般頻度表にも無い情報
- * （英検準1級での出題頻度）を持つため、バンド内タイブレークとしては
- * 汎用の字幕コーパス頻度より優先する。
+ * 序列は「出る順」（英語漬け.com の英検準1級プールにおける元の収録順）
+ * そのもの。元データは出る順に並んでおり、CEFR にも一般頻度表にも無い情報
+ * （英検準1級での出題頻度）を持つ。準1級の受験者にとって最も価値のある
+ * 並びはこれ。
+ *
+ * 以前は CEFR バンドを主軸に、出る順はバンド内の並べ替えにだけ使っていた。
+ * すると準1級の中心語の多く（書き言葉・学術語彙）は CEFR 表に載らないか
+ * C1 判定になるため、vase / soap / kettle のような A2〜B1 の語の後ろへ
+ * 回される。解放は10語ずつなので、alleviate（出る順2番）に届くまで
+ * 約13,000問かかる計算だった。
+ *
+ * 準1級の受験者がすでに知っている語（CEFR A1/A2 で、登録した訳語も基本の
+ * 意味のもの）は語彙データから外してある。A1/A2 でも account（説明）や
+ * novel（斬新な）のように準1級で問われる語義で登録している語は残し、
+ * 出る順どおりに出す。CEFR・頻度はここでは並べ替えに使わず、
+ * docs/vocab-difficulty.csv に監査用の根拠として出力するだけにとどめる。
+ *
  * CEFR は本アプリの語彙の約5割しか収録していないため、未収録語のバンドは
  * 両方が判明している語から作った「頻度帯 → 平均CEFRバンド」の対応表で
  * 補完する（このバンド推定にのみ字幕コーパス頻度を使う）。字幕コーパス
@@ -39,12 +50,6 @@ import { dirname, join } from "node:path";
 import { VOCAB_ITEMS } from "../lib/vocab/index.ts";
 
 // ── 合成パラメータ（すべてここに集約する）────────────────────────────────
-/**
- * CEFRバンドを主軸に、出る順（元データの収録順）をバンド内の並べ替えに使う。
- * 動かせる幅を1バンド未満に抑えることで、
- * 「出る順は早いが学習段階としては上の語」がバンドを飛び越えないようにする。
- */
-const EXAM_ORDER_WITHIN_BAND = 0.9;
 /** 頻度表（50k）に無い語の扱い。実際に稀な語なので最難関帯へ寄せる */
 const MISSING_FREQ_RANK = 60000;
 /**
@@ -297,20 +302,8 @@ async function main() {
     if (row.isPhrase) band = Math.max(band, phraseFloor) + PHRASE_PENALTY;
 
     row.cefrBand = band;
-    // 整数バンドを主軸に、バンド内は出る順の小数部で並べる。
-    // examScore は [0, 1) に収まるため、どんな値でも整数バンドをまたがない
-    // （継続値の band に freqScore を線形合成していた旧実装は、頻度が
-    // 難易度と緩く相関する前提に依存していた。出る順は難易度と無相関
-    // ―― 試験に出る語ほど難語なことも多い ―― なので、同じやり方で
-    // 合成するとバンド境界を平気で飛び越えてしまう。整数バンドで
-    // 主軸を固定することで、境界を壊さずに出る順を主要な並べ替え軸にする）
-    //
-    // 複合語・イディオムだけは従来どおり freqScore で並べる。出る順は
-    // 単語の難易度と無相関なので、複合語がこれで先頭付近に出ると
-    // 入門帯にイディオムが混入してしまう（PHRASE_PENALTY /
-    // phraseFloor が守ろうとしている「複合語は入門帯に置かない」を崩す）。
-    const withinBand = row.isPhrase ? row.freqScore : row.examScore;
-    row.score = Math.trunc(band) + EXAM_ORDER_WITHIN_BAND * withinBand;
+    // 序列は出る順そのもの。バンドは監査用CSVに出すだけで並べ替えには使わない
+    row.score = row.examScore;
   }
 
   // 同点は決定的に解く（出る順 → ID 辞書順）。再生成しても順序がぶれないように。
@@ -326,14 +319,13 @@ async function main() {
 
   const header = `// 自動生成: npx tsx scripts/gen-difficulty-order.mjs (${generatedAt})
 //
-// 出題順（段階的アンロックの順序）。易しい語から並んでいる。
-// CEFR バンドを主軸に、バンド内は出る順（英語漬け.com の英検準1級プールの
-// 元の収録順）で並べる。LLM の主観は入っていない。
+// 出題順（段階的アンロックの順序）。出る順（英語漬け.com の英検準1級プールの
+// 元の収録順）そのもの。LLM の主観は入っていない。
 //
 //   - CEFR: CEFR-J Vocabulary Profile 1.5 / Octanove Vocabulary Profile C1-C2 1.0
 //           https://github.com/openlanguageprofiles/olp-en-cefrj (CC BY-SA 4.0)
 //   - 頻度: FrequencyWords 2018 en_50k (OpenSubtitles)
-//           ※ CEFR未収録語のバンド推定にのみ使用。バンド内の並べ替えには
+//           ※ CEFR未収録語のバンド推定にのみ使用。並べ替えには
 //           使わない（出る順の方が英検準1級への関連度が高いため）
 //           https://github.com/hermitdave/FrequencyWords (MIT)
 //
@@ -341,7 +333,7 @@ async function main() {
 // 全語分を出力してある。語彙を追加したら生成スクリプトを再実行すること。
 // 未知のIDは lib/vocab/index.ts 側で末尾に回るため、再生成し忘れても壊れない。
 
-/** 安定IDを易しい順に並べたもの */
+/** 安定IDを出題順（解放順）に並べたもの */
 export const DIFFICULTY_ORDER: readonly string[] = [
 `;
   const body = rows.map((r) => `  ${JSON.stringify(r.item.id)},`).join("\n");

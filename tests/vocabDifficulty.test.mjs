@@ -30,7 +30,7 @@ test("ordered indices are a permutation of the vocabulary", () => {
   );
 });
 
-// ── 先頭が入門〜初級であること ──────────────────────────────────────────────
+// ── 序列の根拠（監査用CSV） ──────────────────────────────────────────────────
 
 /** 生成時の根拠（CEFRレベル・頻度順位）。序列表と対になる監査用データ */
 function readAuditRows() {
@@ -68,71 +68,51 @@ test("audit csv matches the shipped order", () => {
   );
 });
 
-test("the first 60 words (the starting pool) are entry level", () => {
-  const head = auditRows.slice(0, GAME.INITIAL_POOL_SIZE);
-  const offenders = head.filter((r) => !["A1", "A2"].includes(r.cefr));
-  assert.deepEqual(
-    offenders.map((r) => `${r.target}:${r.cefr || "CEFR未収録"}`),
-    [],
-    "初期プールはCEFR A1/A2 の語だけで構成されること",
-  );
-});
-
-test("difficulty rises monotonically across the order", () => {
-  const bandAt = (i) => Number(auditRows[i].effectiveBand);
-  const meanBand = (from, to) => {
-    const slice = auditRows.slice(from, to).map((_, k) => bandAt(from + k));
-    return slice.reduce((a, b) => a + b, 0) / slice.length;
-  };
-  const buckets = [
-    meanBand(0, 300),
-    meanBand(800, 1100),
-    meanBand(1700, 2000),
-    meanBand(2600, 2900),
-    meanBand(3140, 3440),
-  ];
-  for (let i = 1; i < buckets.length; i += 1) {
-    assert.ok(
-      buckets[i] > buckets[i - 1],
-      `難易度が単調に上がっていない: ${buckets.map((b) => b.toFixed(2)).join(" → ")}`,
-    );
-  }
-});
-
-test("idiomatic phrases are kept out of the early pool", () => {
-  const early = auditRows.slice(0, 300).filter((r) => r.isPhrase === "1");
-  assert.deepEqual(early, [], "複合語・イディオムは入門帯に置かない");
-});
-
-// ── バンド内の並び順が「出る順」を反映していること ──────────────────────────
+// ── 出る順そのものであること ────────────────────────────────────────────────
 //
 // 語彙データ（lib/vocab/basic.ts + advanced.ts）の配列順は、収録元
 // （英語漬け.com の英検準1級プール）における出題頻度順そのもの。
-// この情報を捨てて汎用の字幕コーパス頻度だけで並べ替えると、
-// 準1級の頻出語が難易度バンドの奥深くに埋もれてしまう
-// （例: alleviate / scrutinize / repercussions のような高頻出語）。
-// CEFRバンド（学習段階の主軸）はそのままに、バンド内の順序には
-// 出る順を使うことで、この情報を活かす。
-test("within a band, single words follow exam order (元データの収録順)", () => {
-  const singleWords = auditRows.filter((r) => r.isPhrase !== "1");
-  const offenders = [];
-  let prevBand = null;
-  let prevExamOrder = null;
-  for (const r of singleWords) {
-    const band = Math.trunc(Number(r.effectiveBand));
-    if (band !== prevBand) {
-      prevBand = band;
-      prevExamOrder = Number(r.examOrder);
-      continue;
-    }
-    if (Number(r.examOrder) < prevExamOrder) {
-      offenders.push(
-        `${r.target}: band=${band} examOrder=${r.examOrder} が直前の語(${prevExamOrder})より出る順が早い`,
-      );
-    }
-    prevExamOrder = Number(r.examOrder);
+// 以前は CEFR バンドを主軸にしていたため、準1級の中心語（alleviate /
+// scrutinize など CEFR では C1 か未収録の語）が vase / soap のような
+// A2〜B1 の語の後ろに埋もれ、10語ずつの解放では事実上届かなかった。
+
+test("the order is the exam order (元データの収録順)", () => {
+  assert.deepEqual(
+    auditRows.map((r) => Number(r.examOrder)),
+    auditRows.map((_, i) => i),
+  );
+});
+
+test("the starting pool is the top of the exam order", () => {
+  // 出る順の先頭の語（準1級で最も出る語）が最初から出題されること
+  const head = new Set(auditRows.slice(0, GAME.INITIAL_POOL_SIZE).map((r) => r.target));
+  for (const target of ["severe", "alleviate", "scrutinize", "implement", "undermine"]) {
+    assert.ok(head.has(target), `${target} が初期プールにない`);
   }
-  assert.deepEqual(offenders, [], "同一バンド内で出る順が逆転している語がある");
+});
+
+// ── 準1級の受験者が既知の語を収録しないこと ─────────────────────────────────
+//
+// CEFR A1/A2 の語は準1級の受験者がすでに知っている前提に立ち、語彙から外した
+// （vase / soap / refrigerator など）。残しているのは、準1級で問われる語義で
+// 訳語を登録している語だけ（account「説明」、novel「斬新な」、minute「議事録」
+// など）。語彙を足したときに基本語が紛れ込んだら、ここで気づけるようにする。
+const REVIEWED_ENTRY_LEVEL_IDS = [
+  "account:noun", "aisle:noun", "batch:noun", "blame:verb", "bug:noun",
+  "concentrated:adjective", "crisp:adjective", "curse:verb", "disturbing:adjective",
+  "envy:noun", "fare:noun", "feature:noun-verb", "forbid:verb", "frank:adjective",
+  "grace:noun", "hug:verb", "invade:verb", "lyric:noun", "minute:noun",
+  "novel:adjective", "pilgrim:noun", "pity:noun", "progressive:adjective",
+  "proper:adjective", "pursue:verb", "roundabout:adjective", "seek:verb",
+  "singular:adjective", "tidy:adjective", "weep:verb",
+];
+
+test("entry-level (A1/A2) words are only the reviewed ones", () => {
+  const entryLevel = auditRows
+    .filter((r) => ["A1", "A2"].includes(r.cefr))
+    .map((r) => r.id)
+    .sort();
+  assert.deepEqual(entryLevel, [...REVIEWED_ENTRY_LEVEL_IDS].sort());
 });
 
 // ── 既存ユーザーの解放状況が壊れないこと ────────────────────────────────────
@@ -182,7 +162,7 @@ test("a word studied far beyond the unlocked range is still offered", () => {
 
 test("unlockedPoolSize keeps meaning the number of unlocked words", () => {
   // 未挑戦なら「解放語数 = N」が保たれる（Tier倍率の前提を壊さない）
-  for (const size of [60, 90, 500, 3440]) {
+  for (const size of [60, 90, 500, VOCAB_ITEMS.length]) {
     assert.equal(
       getUnlockedIndices(DIFFICULTY_ORDERED_INDICES, size, emptyStats()).length,
       size,

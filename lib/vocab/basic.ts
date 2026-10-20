@@ -710,13 +710,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "drawer",
-    "partOfSpeech": "noun",
-    "answers": [
-      "引き出し"
-    ]
-  },
-  {
     "target": "informal",
     "partOfSpeech": "adjective",
     "answers": [
@@ -787,13 +780,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "pollution",
-    "partOfSpeech": "noun",
-    "answers": [
-      "汚染"
-    ]
-  },
-  {
     "target": "tightly",
     "partOfSpeech": "adverb",
     "answers": [
@@ -843,13 +829,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "slave",
-    "partOfSpeech": "noun",
-    "answers": [
-      "奴隷"
-    ]
-  },
-  {
     "target": "debt",
     "partOfSpeech": "noun",
     "answers": [
@@ -861,13 +840,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "verb",
     "answers": [
       "飼いならす"
-    ]
-  },
-  {
-    "target": "blank",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "空白の"
     ]
   },
   {
@@ -906,13 +878,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "silence",
-    "partOfSpeech": "noun",
-    "answers": [
-      "沈黙"
-    ]
-  },
-  {
     "target": "incredible",
     "partOfSpeech": "adjective",
     "answers": [
@@ -924,20 +889,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "adjective",
     "answers": [
       "不快な"
-    ]
-  },
-  {
-    "target": "envelope",
-    "partOfSpeech": "noun",
-    "answers": [
-      "封筒"
-    ]
-  },
-  {
-    "target": "ugly",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "醜い"
     ]
   },
   {
@@ -959,13 +910,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "verb",
     "answers": [
       "急上昇する"
-    ]
-  },
-  {
-    "target": "soap",
-    "partOfSpeech": "noun",
-    "answers": [
-      "せっけん"
     ]
   },
   {
@@ -1032,13 +976,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "rob",
-    "partOfSpeech": "verb",
-    "answers": [
-      "奪う"
-    ]
-  },
-  {
     "target": "vast",
     "partOfSpeech": "adjective",
     "answers": [
@@ -1088,13 +1025,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "adventure",
-    "partOfSpeech": "noun",
-    "answers": [
-      "冒険"
-    ]
-  },
-  {
     "target": "cart",
     "partOfSpeech": "noun",
     "answers": [
@@ -1102,24 +1032,10 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "earthquake",
-    "partOfSpeech": "noun",
-    "answers": [
-      "地震"
-    ]
-  },
-  {
     "target": "grace",
     "partOfSpeech": "noun",
     "answers": [
       "優雅さ"
-    ]
-  },
-  {
-    "target": "shell",
-    "partOfSpeech": "noun",
-    "answers": [
-      "貝殻"
     ]
   },
   {
@@ -1277,13 +1193,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "thin",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "薄い"
-    ]
-  },
-  {
     "target": "replacement",
     "partOfSpeech": "noun",
     "answers": [
@@ -1319,13 +1228,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "container",
-    "partOfSpeech": "noun",
-    "answers": [
-      "容器"
-    ]
-  },
-  {
     "target": "jealous",
     "partOfSpeech": "adjective",
     "answers": [
@@ -1358,21 +1260,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "adverbial phrase",
     "answers": [
       "実質的に"
-    ]
-  },
-  {
-    "target": "comb",
-    "partOfSpeech": "noun",
-    "answers": [
-      "くし"
-    ]
-  },
-  {
-    "target": "fiction",
-    "partOfSpeech": "noun",
-    "answers": [
-      "創作",
-      "作り話"
     ]
   },
   {
@@ -1453,13 +1340,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "roast",
-    "partOfSpeech": "verb",
-    "answers": [
-      "あぶり焼きにする"
-    ]
-  },
-  {
     "target": "neat",
     "partOfSpeech": "adjective",
     "answers": [
@@ -1497,13 +1377,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "kingdom",
-    "partOfSpeech": "noun",
-    "answers": [
-      "王国"
-    ]
-  },
-  {
     "target": "outstanding",
     "partOfSpeech": "adjective",
     "answers": [
@@ -1533,22 +1406,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "涙が出る",
       "泣き出す"
-    ]
-  },
-  {
-    "target": "ankle",
-    "partOfSpeech": "noun",
-    "answers": [
-      "足首",
-      "くるぶし"
-    ]
-  },
-  {
-    "target": "instead",
-    "partOfSpeech": "adverb",
-    "answers": [
-      "代わりに",
-      "その代わり"
     ]
   },
   {
@@ -1599,22 +1456,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "fortunately",
-    "partOfSpeech": "adverb",
-    "answers": [
-      "運よく",
-      "幸いにも"
-    ]
-  },
-  {
-    "target": "countryside",
-    "partOfSpeech": "noun",
-    "answers": [
-      "田舎",
-      "地方"
-    ]
-  },
-  {
     "target": "vanish",
     "partOfSpeech": "verb",
     "answers": [
@@ -1627,14 +1468,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "に似ている",
       "と同種である"
-    ]
-  },
-  {
-    "target": "atom",
-    "partOfSpeech": "noun",
-    "answers": [
-      "原子",
-      "微小分子"
     ]
   },
   {
@@ -1693,25 +1526,10 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "stairs",
-    "partOfSpeech": "noun",
-    "answers": [
-      "階段"
-    ]
-  },
-  {
     "target": "atlas",
     "partOfSpeech": "noun",
     "answers": [
       "地図帳"
-    ]
-  },
-  {
-    "target": "invention",
-    "partOfSpeech": "noun",
-    "answers": [
-      "発明",
-      "創造"
     ]
   },
   {
@@ -1751,14 +1569,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "adjective",
     "answers": [
       "浅い"
-    ]
-  },
-  {
-    "target": "bush",
-    "partOfSpeech": "noun",
-    "answers": [
-      "茂み",
-      "低木"
     ]
   },
   {
@@ -1888,13 +1698,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "breeze",
-    "partOfSpeech": "noun",
-    "answers": [
-      "そよ風"
-    ]
-  },
-  {
     "target": "parcel",
     "partOfSpeech": "noun",
     "answers": [
@@ -1951,21 +1754,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "headache",
-    "partOfSpeech": "noun",
-    "answers": [
-      "頭痛"
-    ]
-  },
-  {
-    "target": "feather",
-    "partOfSpeech": "noun",
-    "answers": [
-      "羽根",
-      "羽毛"
-    ]
-  },
-  {
     "target": "electricity",
     "partOfSpeech": "noun",
     "answers": [
@@ -2011,13 +1799,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "する傾向がある",
       "しがちである"
-    ]
-  },
-  {
-    "target": "injure",
-    "partOfSpeech": "verb",
-    "answers": [
-      "を傷つける"
     ]
   },
   {
@@ -2193,14 +1974,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "謝罪",
       "お詫び"
-    ]
-  },
-  {
-    "target": "refrigerator",
-    "partOfSpeech": "noun",
-    "answers": [
-      "冷蔵庫",
-      "冷却装置"
     ]
   },
   {
@@ -2407,13 +2180,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "screw",
-    "partOfSpeech": "noun",
-    "answers": [
-      "ねじ"
-    ]
-  },
-  {
     "target": "see out",
     "partOfSpeech": "phrase",
     "answers": [
@@ -2462,21 +2228,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "flour",
-    "partOfSpeech": "noun",
-    "answers": [
-      "小麦粉"
-    ]
-  },
-  {
-    "target": "vase",
-    "partOfSpeech": "noun",
-    "answers": [
-      "花瓶",
-      "つぼ"
-    ]
-  },
-  {
     "target": "grain",
     "partOfSpeech": "noun",
     "answers": [
@@ -2489,14 +2240,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "verb",
     "answers": [
       "を押しつぶす"
-    ]
-  },
-  {
-    "target": "pill",
-    "partOfSpeech": "noun",
-    "answers": [
-      "丸薬",
-      "錠剤"
     ]
   },
   {
@@ -2595,14 +2338,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "uncertain",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "不確実な",
-      "確信を持てない"
-    ]
-  },
-  {
     "target": "scarcely",
     "partOfSpeech": "adverb",
     "answers": [
@@ -2623,14 +2358,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "べたつく",
       "ねばねばした"
-    ]
-  },
-  {
-    "target": "apologize",
-    "partOfSpeech": "verb",
-    "answers": [
-      "謝る",
-      "謝罪する"
     ]
   },
   {
@@ -2763,13 +2490,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "scenery",
-    "partOfSpeech": "noun",
-    "answers": [
-      "風景"
-    ]
-  },
-  {
     "target": "efficiency",
     "partOfSpeech": "noun",
     "answers": [
@@ -2847,14 +2567,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "好ましい",
       "有利な"
-    ]
-  },
-  {
-    "target": "sew",
-    "partOfSpeech": "verb",
-    "answers": [
-      "縫う",
-      "繕う"
     ]
   },
   {
@@ -3185,14 +2897,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "advertisement",
-    "partOfSpeech": "noun",
-    "answers": [
-      "広告",
-      "宣伝"
-    ]
-  },
-  {
     "target": "fall in with",
     "partOfSpeech": "phrase",
     "answers": [
@@ -3397,14 +3101,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "greedy",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "貪欲な",
-      "欲張りの"
-    ]
-  },
-  {
     "target": "admire A for B",
     "partOfSpeech": "phrase",
     "answers": [
@@ -3434,14 +3130,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "部分的な",
       "一部の"
-    ]
-  },
-  {
-    "target": "awfully",
-    "partOfSpeech": "adverb",
-    "answers": [
-      "ひどく",
-      "恐ろしく"
     ]
   },
   {
@@ -3550,13 +3238,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "adjective",
     "answers": [
       "一握りの"
-    ]
-  },
-  {
-    "target": "pronounce",
-    "partOfSpeech": "verb",
-    "answers": [
-      "を発音する"
     ]
   },
   {
@@ -3735,14 +3416,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "verb",
     "answers": [
       "作動させる"
-    ]
-  },
-  {
-    "target": "composer",
-    "partOfSpeech": "noun",
-    "answers": [
-      "作曲",
-      "楽曲制作"
     ]
   },
   {
@@ -3945,14 +3618,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "paragraph",
-    "partOfSpeech": "noun",
-    "answers": [
-      "段落",
-      "区切り"
-    ]
-  },
-  {
     "target": "cast off",
     "partOfSpeech": "phrase",
     "answers": [
@@ -3966,13 +3631,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "うぬぼれの強い",
       "自惚れた"
-    ]
-  },
-  {
-    "target": "marvelous",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "素晴らしい"
     ]
   },
   {
@@ -4127,13 +3785,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "の郊外で",
       "の近郊で"
-    ]
-  },
-  {
-    "target": "symphony",
-    "partOfSpeech": "noun",
-    "answers": [
-      "交響曲"
     ]
   },
   {
@@ -4484,14 +4135,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "fascinating",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "魅惑的な",
-      "うっとりさせる"
-    ]
-  },
-  {
     "target": "dock",
     "partOfSpeech": "noun",
     "answers": [
@@ -4793,13 +4436,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "fantastic",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "素晴らしい"
-    ]
-  },
-  {
     "target": "get wet to the skin",
     "partOfSpeech": "phrase",
     "answers": [
@@ -5071,21 +4707,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "noun",
     "answers": [
       "戦士"
-    ]
-  },
-  {
-    "target": "verb",
-    "partOfSpeech": "noun",
-    "answers": [
-      "動詞"
-    ]
-  },
-  {
-    "target": "physically",
-    "partOfSpeech": "adverb",
-    "answers": [
-      "肉体的に",
-      "身体的に"
     ]
   },
   {
@@ -5816,14 +5437,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "inspiration",
-    "partOfSpeech": "noun",
-    "answers": [
-      "ひらめき",
-      "思い付き"
-    ]
-  },
-  {
     "target": "gleam",
     "partOfSpeech": "noun",
     "answers": [
@@ -6300,14 +5913,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "noun",
     "answers": [
       "大聖堂"
-    ]
-  },
-  {
-    "target": "robbery",
-    "partOfSpeech": "noun",
-    "answers": [
-      "強盗",
-      "強盗罪"
     ]
   },
   {
@@ -7000,14 +6605,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "midday",
-    "partOfSpeech": "noun",
-    "answers": [
-      "真昼",
-      "正午"
-    ]
-  },
-  {
     "target": "acquaint",
     "partOfSpeech": "verb",
     "answers": [
@@ -7035,13 +6632,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "noun",
     "answers": [
       "ゆりかご"
-    ]
-  },
-  {
-    "target": "noun",
-    "partOfSpeech": "noun",
-    "answers": [
-      "名詞"
     ]
   },
   {
@@ -7073,14 +6663,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "傷跡",
       "痕跡"
-    ]
-  },
-  {
-    "target": "disappointed",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "がっかりした",
-      "当ての外れた"
     ]
   },
   {
@@ -7152,14 +6734,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "impatient",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "せっかちな",
-      "性急な"
-    ]
-  },
-  {
     "target": "inquire",
     "partOfSpeech": "verb",
     "answers": [
@@ -7211,14 +6785,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "突入する",
       "侵入する"
-    ]
-  },
-  {
-    "target": "perfume",
-    "partOfSpeech": "noun",
-    "answers": [
-      "香水",
-      "芳香"
     ]
   },
   {
@@ -7304,13 +6870,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "輸送",
       "発送"
-    ]
-  },
-  {
-    "target": "architecture",
-    "partOfSpeech": "noun",
-    "answers": [
-      "建築"
     ]
   },
   {
@@ -7512,13 +7071,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "noun",
     "answers": [
       "馬鹿"
-    ]
-  },
-  {
-    "target": "plural",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "複数の"
     ]
   },
   {
@@ -7989,14 +7541,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "prediction",
-    "partOfSpeech": "noun",
-    "answers": [
-      "予測",
-      "予想"
-    ]
-  },
-  {
     "target": "ownership",
     "partOfSpeech": "noun",
     "answers": [
@@ -8193,13 +7737,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "AがBだと分かる",
       "認識する"
-    ]
-  },
-  {
-    "target": "receptionist",
-    "partOfSpeech": "noun",
-    "answers": [
-      "受付係"
     ]
   },
   {
@@ -8426,14 +7963,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "script",
-    "partOfSpeech": "noun",
-    "answers": [
-      "台本",
-      "脚本"
-    ]
-  },
-  {
     "target": "infectious",
     "partOfSpeech": "adjective",
     "answers": [
@@ -8544,13 +8073,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "に専念する",
       "奉納する"
-    ]
-  },
-  {
-    "target": "astronaut",
-    "partOfSpeech": "noun",
-    "answers": [
-      "宇宙飛行士"
     ]
   },
   {
@@ -9299,14 +8821,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "illegal",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "違法な",
-      "不法な"
-    ]
-  },
-  {
     "target": "accessible",
     "partOfSpeech": "adjective",
     "answers": [
@@ -9661,14 +9175,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "noun",
     "answers": [
       "尾根"
-    ]
-  },
-  {
-    "target": "adjective",
-    "partOfSpeech": "noun",
-    "answers": [
-      "形容詞",
-      "形容する言葉"
     ]
   },
   {
@@ -10143,14 +9649,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "したがって",
       "結果として"
-    ]
-  },
-  {
-    "target": "dizzy",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "めまいがする",
-      "ふらふらする"
     ]
   },
   {
@@ -10779,13 +10277,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "orphan",
-    "partOfSpeech": "noun",
-    "answers": [
-      "孤児"
-    ]
-  },
-  {
     "target": "smooth over",
     "partOfSpeech": "phrase",
     "answers": [
@@ -10922,13 +10413,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "始める",
       "開始する"
-    ]
-  },
-  {
-    "target": "cartoon",
-    "partOfSpeech": "noun",
-    "answers": [
-      "漫画"
     ]
   },
   {

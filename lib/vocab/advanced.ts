@@ -538,14 +538,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "tram",
-    "partOfSpeech": "noun",
-    "answers": [
-      "市街電車",
-      "路面電車"
-    ]
-  },
-  {
     "target": "let up",
     "partOfSpeech": "phrase",
     "answers": [
@@ -3113,13 +3105,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "foggy",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "霧のかかった"
-    ]
-  },
-  {
     "target": "prospective",
     "partOfSpeech": "adjective",
     "answers": [
@@ -3868,13 +3853,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "noun",
     "answers": [
       "気質"
-    ]
-  },
-  {
-    "target": "pollute",
-    "partOfSpeech": "verb",
-    "answers": [
-      "汚染する"
     ]
   },
   {
@@ -6120,14 +6098,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "verb",
     "answers": [
       "言い返す"
-    ]
-  },
-  {
-    "target": "gender",
-    "partOfSpeech": "noun",
-    "answers": [
-      "性別",
-      "性"
     ]
   },
   {
@@ -10106,13 +10076,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "reunion",
-    "partOfSpeech": "noun",
-    "answers": [
-      "同窓会"
-    ]
-  },
-  {
     "target": "radioactive",
     "partOfSpeech": "adjective",
     "answers": [
@@ -11675,14 +11638,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "opposed",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "反対した",
-      "対抗する"
-    ]
-  },
-  {
     "target": "improved",
     "partOfSpeech": "adjective",
     "answers": [
@@ -11843,14 +11798,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "脱水する",
       "乾燥させる"
-    ]
-  },
-  {
-    "target": "annoy",
-    "partOfSpeech": "verb",
-    "answers": [
-      "いらだたせる",
-      "悩ませる"
     ]
   },
   {
@@ -12721,14 +12668,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "に難色を示す",
       "眉をひそめる"
-    ]
-  },
-  {
-    "target": "encourage",
-    "partOfSpeech": "verb",
-    "answers": [
-      "を励ます",
-      "奨励する"
     ]
   },
   {
@@ -13972,14 +13911,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "appropriate",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "適切な",
-      "ふさわしい"
-    ]
-  },
-  {
     "target": "memento",
     "partOfSpeech": "noun",
     "answers": [
@@ -14007,13 +13938,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "partOfSpeech": "noun",
     "answers": [
       "恐怖症"
-    ]
-  },
-  {
-    "target": "thief",
-    "partOfSpeech": "noun",
-    "answers": [
-      "泥棒"
     ]
   },
   {
@@ -14132,13 +14056,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "仕事をしていない",
       "怠惰な"
-    ]
-  },
-  {
-    "target": "ancestor",
-    "partOfSpeech": "noun",
-    "answers": [
-      "祖先"
     ]
   },
   {
@@ -14333,14 +14250,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     ]
   },
   {
-    "target": "wander",
-    "partOfSpeech": "verb",
-    "answers": [
-      "歩き回る",
-      "放浪する"
-    ]
-  },
-  {
     "target": "discourage",
     "partOfSpeech": "verb",
     "answers": [
@@ -14463,14 +14372,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "前の",
       "優先的な"
-    ]
-  },
-  {
-    "target": "predict",
-    "partOfSpeech": "verb",
-    "answers": [
-      "を予測する",
-      "を予言する"
     ]
   },
   {
@@ -14691,13 +14592,6 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [
     "answers": [
       "花婿",
       "新郎"
-    ]
-  },
-  {
-    "target": "endangered",
-    "partOfSpeech": "adjective",
-    "answers": [
-      "絶滅の危機にさらされている"
     ]
   },
   {
