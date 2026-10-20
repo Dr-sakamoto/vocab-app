@@ -1,12 +1,17 @@
 import { QUESTIONS as basic } from "./basic";
 import { QUESTIONS as advanced } from "./advanced";
+import { QUESTIONS as staples } from "./staples";
 import { COLLOCATIONS } from "./collocations";
 import { DIFFICULTY_ORDER } from "./difficultyOrder";
 import { LEGACY_WORD_ID_ORDER } from "./legacyWordIds";
 import { parseLegacyWordId, toWordId } from "./wordId";
 import { VocabItem } from "../types";
 
-export const QUESTIONS: Omit<VocabItem, "id">[] = [...basic, ...advanced];
+/**
+ * 補充語（staples）は末尾に連結する。配列の添字は出題順には使わない
+ * （出題順は DIFFICULTY_ORDER が決める）ので、どこに連結しても出題には影響しない。
+ */
+export const QUESTIONS: Omit<VocabItem, "id">[] = [...basic, ...advanced, ...staples];
 
 /**
  * 出題される全単語。ID は配列順ではなく target + 品詞から決まる。
