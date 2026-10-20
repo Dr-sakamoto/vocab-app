@@ -33,6 +33,12 @@
  * 出る順どおりに出す。CEFR・頻度はここでは並べ替えに使わず、
  * docs/vocab-difficulty.csv に監査用の根拠として出力するだけにとどめる。
  *
+ * 元データに無かった準1級の定番語（lib/vocab/staples.ts）は出る順を持たない。
+ * 末尾に置くと事実上出題されないので、初期プールの後ろから元データ
+ * STAPLE_INTERVAL 語ごとに1語ずつ差し込む。解放1回（10語）につき1語ずつ
+ * 届く間隔で、初期プール（出る順の最上位）には手を付けない。
+ * 差し込む順は、補充語どうしの中で易しい順（推定バンド → 頻度順位）。
+ *
  * CEFR は本アプリの語彙の約5割しか収録していないため、未収録語のバンドは
  * 両方が判明している語から作った「頻度帯 → 平均CEFRバンド」の対応表で
  * 補完する（このバンド推定にのみ字幕コーパス頻度を使う）。字幕コーパス
@@ -48,8 +54,13 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { VOCAB_ITEMS } from "../lib/vocab/index.ts";
+import { QUESTIONS as STAPLES } from "../lib/vocab/staples.ts";
+import { toWordId } from "../lib/vocab/wordId.ts";
+import { GAME } from "../lib/constants.ts";
 
 // ── 合成パラメータ（すべてここに集約する）────────────────────────────────
+/** 補充語を差し込む間隔（元データ何語ごとに1語か）。解放1回分の語数に揃える */
+const STAPLE_INTERVAL = GAME.UNLOCK_STEP;
 /** 頻度表（50k）に無い語の扱い。実際に稀な語なので最難関帯へ寄せる */
 const MISSING_FREQ_RANK = 60000;
 /**
@@ -238,6 +249,8 @@ async function main() {
   // ── 各語の生データを集める ────────────────────────────────────────────
   // VOCAB_ITEMS の配列順＝英語漬け.com の英検準1級プールの収録順（出る順）。
   // basic.ts → advanced.ts の連結順がそのまま出る順になっている。
+  // 補充語（staples.ts）は末尾に連結されているので、添字は出る順を意味しない。
+  const stapleIds = new Set(STAPLES.map((q) => toWordId(q.target, q.partOfSpeech)));
   const rows = VOCAB_ITEMS.map((item, examOrder) => {
     const target = item.target.toLowerCase();
     const isPhrase = /[ '-]/.test(target);
@@ -258,6 +271,7 @@ async function main() {
 
     return {
       item,
+      isStaple: stapleIds.has(item.id),
       isPhrase,
       freqRank,
       cefr,
@@ -307,12 +321,32 @@ async function main() {
   }
 
   // 同点は決定的に解く（出る順 → ID 辞書順）。再生成しても順序がぶれないように。
-  rows.sort(
-    (a, b) =>
-      a.score - b.score ||
-      a.examOrder - b.examOrder ||
-      a.item.id.localeCompare(b.item.id),
-  );
+  const source = rows
+    .filter((r) => !r.isStaple)
+    .sort(
+      (a, b) =>
+        a.score - b.score ||
+        a.examOrder - b.examOrder ||
+        a.item.id.localeCompare(b.item.id),
+    );
+  const staples = rows
+    .filter((r) => r.isStaple)
+    .sort(
+      (a, b) =>
+        a.cefrBand - b.cefrBand ||
+        a.freqRank - b.freqRank ||
+        a.item.id.localeCompare(b.item.id),
+    );
+
+  // ── 補充語を初期プールの後ろへ一定間隔で差し込む ──────────────────────
+  const ordered = source.slice(0, GAME.INITIAL_POOL_SIZE);
+  let cursor = GAME.INITIAL_POOL_SIZE;
+  for (const staple of staples) {
+    ordered.push(staple, ...source.slice(cursor, cursor + STAPLE_INTERVAL));
+    cursor += STAPLE_INTERVAL;
+  }
+  ordered.push(...source.slice(cursor));
+  rows.splice(0, rows.length, ...ordered);
 
   const here = dirname(fileURLToPath(import.meta.url));
   const generatedAt = new Date().toISOString().slice(0, 10);
@@ -320,7 +354,8 @@ async function main() {
   const header = `// 自動生成: npx tsx scripts/gen-difficulty-order.mjs (${generatedAt})
 //
 // 出題順（段階的アンロックの順序）。出る順（英語漬け.com の英検準1級プールの
-// 元の収録順）そのもの。LLM の主観は入っていない。
+// 元の収録順）そのもの。元データに無かった定番語（lib/vocab/staples.ts）だけは
+// 初期プールの後ろへ一定間隔で差し込んでいる。LLM の主観は入っていない。
 //
 //   - CEFR: CEFR-J Vocabulary Profile 1.5 / Octanove Vocabulary Profile C1-C2 1.0
 //           https://github.com/openlanguageprofiles/olp-en-cefrj (CC BY-SA 4.0)
@@ -350,9 +385,10 @@ export const DIFFICULTY_ORDER: readonly string[] = [
         r.imputed ? "" : CEFR_BANDS[r.cefr],
         r.cefrBand.toFixed(2),
         r.freqRank >= MISSING_FREQ_RANK ? "" : r.freqRank,
-        r.examOrder,
+        // 補充語は出る順を持たないので空欄
+        r.isStaple ? "" : r.examOrder,
         r.isPhrase ? "1" : "",
-        r.score.toFixed(4),
+        r.isStaple ? "" : r.score.toFixed(4),
       ].join(","),
     ),
   ].join("\n");
