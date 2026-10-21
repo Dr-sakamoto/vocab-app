@@ -77,6 +77,7 @@ export default function QuizSheet({
                 word={entry.item.target}
                 collocation={entry.item.collocation}
                 answered={entry.committed}
+                audioOnly={entry.audioOnly === true && entry.outcome === null}
               />
               <div className="mt-1.5">
                 <TypingAnswerRow

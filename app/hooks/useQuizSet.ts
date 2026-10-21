@@ -16,6 +16,8 @@ interface UseQuizSetProps {
 export interface PickedQuestion {
   poolIndex: number;
   item: VocabItem;
+  /** 単語を見せず読み上げだけで出すか */
+  audioOnly?: boolean;
 }
 
 /**
@@ -62,12 +64,13 @@ export function useQuizSet({
   const startSet = useCallback((picked: PickedQuestion[]) => {
     // 飛んでいる採点が新しいセットの設問に紛れ込まないよう番号を進める
     requestIdsRef.current = picked.map((_, slot) => (requestIdsRef.current[slot] ?? 0) + 1);
-    const next = picked.map(({ poolIndex, item }) => ({
+    const next = picked.map(({ poolIndex, item, audioOnly }) => ({
       poolIndex,
       item,
       input: "",
       committed: false,
       outcome: null,
+      ...(audioOnly ? { audioOnly: true } : {}),
     }));
     entriesRef.current = next;
     setEntries(next);

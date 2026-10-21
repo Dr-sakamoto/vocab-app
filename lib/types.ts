@@ -103,4 +103,6 @@ export interface QuizEntry {
   committed: boolean;
   /** 採点が返ってきていれば入る。未確定・採点中は null */
   outcome: GradeOutcome | null;
+  /** 単語を見せず読み上げだけで出す設問か（lib/audioQuestion.ts）。採点が返ったら単語を見せる */
+  audioOnly?: boolean;
 }

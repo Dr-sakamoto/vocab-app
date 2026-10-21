@@ -22,7 +22,9 @@ import {
   getPronunciationVolume,
   setPronunciationVolume,
   speakEnglishWord,
+  canSpeak,
 } from "@/lib/speech";
+import { pickAudioOnlySlots } from "@/lib/audioQuestion";
 import { useVisualViewportVars } from "../hooks/useVisualViewport";
 import { useCloudSync } from "../hooks/useCloudSync";
 
@@ -49,7 +51,12 @@ import {
   migrateApprovedAnswers,
   migrateRejectedAnswers,
 } from "@/lib/wordProgress";
-import { countRetained, countRetentionGain, countRetentionLevels } from "@/lib/retention";
+import {
+  countRetained,
+  countRetentionGain,
+  countRetentionLevels,
+  getRetentionLevel,
+} from "@/lib/retention";
 import { GAME, STORAGE_KEYS, FLASH, SOUND } from "@/lib/constants";
 import {
   EMPTY_STREAK,
@@ -443,11 +450,25 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    */
   const pickSet = useCallback(
     (excluded: number[], accuracy: number) => {
+      // 定着が進んだ語の一部は単語を見せず音だけで出す（lib/audioQuestion.ts）。
+      // 読み上げがオフ・非対応の環境では出さない（聞く手段が無い）。
+      const toQuestions = (indices: number[]) => {
+        const audioOnly =
+          isPronunciationEnabled() && canSpeak()
+            ? pickAudioOnlySlots(indices.map((i) => getRetentionLevel(stats[i])))
+            : indices.map(() => false);
+        return indices.map((poolIndex, slot) => ({
+          poolIndex,
+          item: VOCAB_ITEMS[poolIndex],
+          audioOnly: audioOnly[slot],
+        }));
+      };
+
       const lap = lapState ?? createLapState();
       if (isLapLocked(lap, GAME.LAP_LOCK_COUNT)) {
         const { indices, next } = pickLapSet(lap, VOCAB_ITEMS.length, GAME.PLAY_LIMIT);
         pendingLapRef.current = next;
-        return indices.map((poolIndex) => ({ poolIndex, item: VOCAB_ITEMS[poolIndex] }));
+        return toQuestions(indices);
       }
       pendingLapRef.current = null;
 
@@ -459,9 +480,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         seen.add(nextIndex);
         picked.push(nextIndex);
       }
-      return picked.map((poolIndex) => ({ poolIndex, item: VOCAB_ITEMS[poolIndex] }));
+      return toQuestions(picked);
     },
-    [lapState, pickNextQuestionIndex],
+    [lapState, pickNextQuestionIndex, stats],
   );
 
   // 復元完了後に最初のセットを組む（復元された stats・プールを反映した抽選にする）
