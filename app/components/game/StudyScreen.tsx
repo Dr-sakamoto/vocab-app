@@ -83,7 +83,9 @@ export default function StudyScreen({
           <div className={`mb-1.5 flex justify-start ${chromeClass}`} aria-hidden={focused}>
             <ModeTabs mode={mode} onChange={onModeChange} />
           </div>
-          <div className="flex items-center justify-between gap-3 text-xs text-ink-3">
+          {/* 左右のまとまりは折り返さずに保ち、入りきらない幅ではまとまりごと
+              2行目へ送る（右端の設定ボタンが画面外へはみ出さないように） */}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-ink-3">
             <div className="flex items-center gap-3 whitespace-nowrap">
               {/* 出題中に正解数を出すと、そこで正誤が漏れて小テストにならない。
                   集中中に残す数字はこれだけなので、一段大きく濃くする */}
