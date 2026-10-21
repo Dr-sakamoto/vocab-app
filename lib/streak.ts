@@ -8,7 +8,16 @@ export interface StreakState {
   longest: number;
   /** 最後にプレイした日（ローカル日付キー "YYYY-MM-DD"）。未プレイは null。 */
   lastPlayedDate: string | null;
+  /**
+   * プレイした日の一覧（昇順・重複なし）。週次目標（lib/weeklyGoal.ts）の集計に使う。
+   * この項目を足す前の保存値には無いので任意。空のときはキーごと持たない。
+   * 直近 PLAYED_DATES_HISTORY_DAYS 日ぶんだけ残す。
+   */
+  playedDates?: string[];
 }
+
+/** playedDates に残す日数。週次目標の連続週数はこの範囲（約57週）までしか数えない */
+export const PLAYED_DATES_HISTORY_DAYS = 400;
 
 export const EMPTY_STREAK: StreakState = {
   current: 0,
@@ -37,6 +46,27 @@ function dayDiff(fromKey: string, toKey: string): number {
   return Math.round(ms / 86_400_000);
 }
 
+function isDateKey(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+/**
+ * プレイ日の一覧を検証・重複除去・昇順に整え、最新の日から
+ * PLAYED_DATES_HISTORY_DAYS 日より前を切り捨てる。
+ */
+export function normalizePlayedDates(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const sorted = [...new Set(raw.filter(isDateKey))].sort();
+  const latest = sorted.at(-1);
+  if (!latest) return [];
+  return sorted.filter((key) => dayDiff(key, latest) < PLAYED_DATES_HISTORY_DAYS);
+}
+
+/** playedDates が空なら持たせない（項目を足す前の保存値と同じ形に保つ） */
+function withPlayedDates(state: StreakState, playedDates: string[]): StreakState {
+  return playedDates.length > 0 ? { ...state, playedDates } : state;
+}
+
 /** 不正な保存値を安全な StreakState へ正規化する。 */
 export function normalizeStreak(raw: unknown): StreakState {
   if (!raw || typeof raw !== "object") return { ...EMPTY_STREAK };
@@ -45,15 +75,15 @@ export function normalizeStreak(raw: unknown): StreakState {
     typeof r.current === "number" && r.current >= 0 ? Math.floor(r.current) : 0;
   const longest =
     typeof r.longest === "number" && r.longest >= 0 ? Math.floor(r.longest) : 0;
-  const lastPlayedDate =
-    typeof r.lastPlayedDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.lastPlayedDate)
-      ? r.lastPlayedDate
-      : null;
-  return {
-    current,
-    longest: Math.max(longest, current),
-    lastPlayedDate,
-  };
+  const lastPlayedDate = isDateKey(r.lastPlayedDate) ? r.lastPlayedDate : null;
+  return withPlayedDates(
+    {
+      current,
+      longest: Math.max(longest, current),
+      lastPlayedDate,
+    },
+    normalizePlayedDates(r.playedDates),
+  );
 }
 
 /**
@@ -75,11 +105,14 @@ export function recordPlay(state: StreakState, todayKey: string): StreakState {
     nextCurrent = 1;
   }
 
-  return {
-    current: nextCurrent,
-    longest: Math.max(s.longest, nextCurrent),
-    lastPlayedDate: todayKey,
-  };
+  return withPlayedDates(
+    {
+      current: nextCurrent,
+      longest: Math.max(s.longest, nextCurrent),
+      lastPlayedDate: todayKey,
+    },
+    normalizePlayedDates([...(s.playedDates ?? []), todayKey]),
+  );
 }
 
 /**
@@ -106,10 +139,19 @@ export function getDisplayStreak(state: StreakState, todayKey: string): number {
  * - 古い方の最終プレイ日がその前日なら、連続は端末をまたいで続いている
  *   （PCで月曜、スマホで火曜に続けた場合を途切れさせない）
  * - 最長記録は単純に大きい方
+ * - プレイ日の一覧は和集合
  */
 export function mergeStreaks(rawA: unknown, rawB: unknown): StreakState {
   const a = normalizeStreak(rawA);
   const b = normalizeStreak(rawB);
+  const playedDates = normalizePlayedDates([
+    ...(a.playedDates ?? []),
+    ...(b.playedDates ?? []),
+  ]);
+  return withPlayedDates(mergeStreakCounts(a, b), playedDates);
+}
+
+function mergeStreakCounts(a: StreakState, b: StreakState): StreakState {
   const longest = Math.max(a.longest, b.longest);
 
   if (a.lastPlayedDate === null) return normalizeStreak({ ...b, longest });
