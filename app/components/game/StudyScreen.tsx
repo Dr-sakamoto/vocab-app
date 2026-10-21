@@ -4,7 +4,9 @@ import Link from "next/link";
 import InlineResult, { RetentionSummary } from "../InlineResult";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import QuizSheet, { QuizSheetProps } from "./QuizSheet";
+import WeeklyGoalBadge from "../WeeklyGoalBadge";
 import { PlayEvaluation, PoolTier } from "@/lib/types";
+import { WeeklyGoalStatus } from "@/lib/weeklyGoal";
 
 export interface StudyScreenProps {
   phase: "quiz" | "result";
@@ -19,7 +21,7 @@ export interface StudyScreenProps {
     /** 結果発表でだけ使う正解数 */
     score: number;
     progressPct: number;
-    streakDays: number;
+    weeklyGoal: WeeklyGoalStatus;
     /** 実際に出題対象となっている語数（解放カウンタではなくプールの実数） */
     unlockedWordCount: number;
     totalWords: number;
@@ -86,12 +88,10 @@ export default function StudyScreen({
                   </>
                 )}
               </span>
-              {status.streakDays > 0 && (
-                <span className="tabular-nums">連続 {status.streakDays} 日</span>
-              )}
+              <WeeklyGoalBadge status={status.weeklyGoal} />
             </div>
             <div className="flex items-center gap-3">
-              {/* 到達段階（CEFR）だけは色で示す。順序尺度なので明度が単調に上がる
+              {/* 到達段階だけは色で示す。順序尺度なので明度が単調に上がる
                   連続スケールにしてある（lib/poolTier.ts）。 */}
               <span className="tabular-nums" style={{ color: status.tier.color }}>
                 {status.tier.label}

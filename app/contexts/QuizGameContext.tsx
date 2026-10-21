@@ -54,7 +54,6 @@ import { GAME, STORAGE_KEYS, FLASH, SOUND } from "@/lib/constants";
 import {
   EMPTY_STREAK,
   StreakState,
-  getDisplayStreak,
   normalizeStreak,
   recordPlay,
   toDateKey,
@@ -67,6 +66,7 @@ import {
   normalizeDailyProgress,
   recordDailyProgress,
 } from "@/lib/dailyProgress";
+import { collectPlayedDates, getWeeklyGoalStatus, WeeklyGoalStatus } from "@/lib/weeklyGoal";
 import { WordStat, PlayEvaluation, SessionAnswer } from "@/lib/types";
 import storage from "@/lib/storage";
 import { StudyScreenProps } from "../components/game/StudyScreen";
@@ -80,7 +80,7 @@ interface FlashProps {
   unlockedIndices: number[];
   totalWords: number;
   tier: ReturnType<typeof getPoolTier>;
-  streakDays: number;
+  weeklyGoal: WeeklyGoalStatus;
   speedSeconds: number;
   mode: StudyMode;
   mistakeOnly: boolean;
@@ -857,7 +857,18 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     }),
     [allIndices, stats, dailyProgress],
   );
-  const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
+  /**
+   * 週次目標の進み具合。プレイ日の記録（playedDates）を足す前の分は、
+   * 連続日数と日次の定着記録（セットを解き終えた日）から埋める。
+   */
+  const weeklyGoal = useMemo(
+    () =>
+      getWeeklyGoalStatus(
+        collectPlayedDates(dailyStreak, Object.keys(dailyProgress)),
+        toDateKey(new Date()),
+      ),
+    [dailyStreak, dailyProgress],
+  );
   const setSize = entries.length || GAME.PLAY_LIMIT;
 
   /**
@@ -897,7 +908,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         unlockedIndices,
         totalWords: VOCAB_ITEMS.length,
         tier: currentTier,
-        streakDays: displayStreak,
+        weeklyGoal,
         speedSeconds: flashSpeed,
         mode,
         mistakeOnly: mode === "mistakeFlash",
@@ -913,7 +924,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           setSize,
           score: setScore,
           progressPct,
-          streakDays: displayStreak,
+          weeklyGoal,
           unlockedWordCount: displayIndices.length,
           totalWords: VOCAB_ITEMS.length,
           tier: currentTier,
@@ -970,7 +981,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       displayIndices,
       progress,
       currentTier,
-      displayStreak,
+      weeklyGoal,
       flashSpeed,
       mistakeThreshold,
       handleModeChange,

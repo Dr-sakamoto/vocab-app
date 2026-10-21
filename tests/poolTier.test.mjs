@@ -23,13 +23,23 @@ function legacyTier(poolSize) {
 }
 
 // Tier 境界は、出題順がCEFRバンド主軸だった頃のバンド境界から決めたもの。
-// 出題順を出る順主軸へ変えた後は、境界はCEFRバンドと対応しない
-// （ラベル A1〜C2 の見直しは別途）。境界を動かすと獲得倍率が変わるので、
-// ラベルを見直すまでは語数の値そのものを固定しておく。
+// 出題順を出る順へ変えた後は、境界はCEFRバンドと対応しない。境界を動かすと
+// 獲得倍率が変わるので、語数の値そのものを固定しておく。
 test("Tier 境界の語数は従来のまま（出題順の変更で獲得倍率を動かさない）", () => {
   assert.deepEqual(
     POOL_TIERS.map((t) => t.minPool),
     [3325, 2726, 2126, 1666, 1206, 746, 430, 114, 11, 1],
+  );
+});
+
+test("Tier のラベルは CEFR レベルを名乗らない（中身が CEFR 順ではないため）", () => {
+  // 出題順は出る順なので、最初の段階から alleviate / scrutinize が出る。
+  // 「A1」と表示すると入門語の段階だと誤解させる。
+  const cefrLike = POOL_TIERS.filter((t) => /\b[ABC][12]\b/.test(t.label));
+  assert.deepEqual(cefrLike.map((t) => t.label), []);
+  assert.deepEqual(
+    POOL_TIERS.map((t) => t.label),
+    POOL_TIERS.map((_, i) => `Stage ${POOL_TIERS.length - i}`),
   );
 });
 

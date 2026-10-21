@@ -9,6 +9,8 @@ import {
   wordIndexOf,
 } from "../lib/vocab/index.js";
 import { DIFFICULTY_ORDER } from "../lib/vocab/difficultyOrder.js";
+import { QUESTIONS as STAPLES } from "../lib/vocab/staples.js";
+import { toWordId } from "../lib/vocab/wordId.js";
 import { getUnlockedIndices } from "../lib/vocabPool.js";
 import { GAME } from "../lib/constants.js";
 
@@ -76,11 +78,41 @@ test("audit csv matches the shipped order", () => {
 // scrutinize など CEFR では C1 か未収録の語）が vase / soap のような
 // A2〜B1 の語の後ろに埋もれ、10語ずつの解放では事実上届かなかった。
 
-test("the order is the exam order (元データの収録順)", () => {
+/** 元データに無かった定番語（lib/vocab/staples.ts）。出る順を持たない */
+const isStaple = (r) => r.examOrder === "";
+
+test("source words follow the exam order (元データの収録順)", () => {
+  const source = auditRows.filter((r) => !isStaple(r));
   assert.deepEqual(
-    auditRows.map((r) => Number(r.examOrder)),
-    auditRows.map((_, i) => i),
+    source.map((r) => Number(r.examOrder)),
+    source.map((_, i) => i),
   );
+});
+
+// ── 補充語が序盤に届くこと ──────────────────────────────────────────────────
+//
+// 補充語を末尾に置くと、10語ずつの解放では事実上出題されない。
+// 初期プールの後ろから元データ10語ごとに1語ずつ差し込み、
+// 解放1回につき1語ずつ届くようにしている。
+
+test("every staple word is in the order", () => {
+  const staples = new Set(auditRows.filter(isStaple).map((r) => r.id));
+  for (const q of STAPLES) {
+    assert.ok(staples.has(toWordId(q.target, q.partOfSpeech)), `${q.target} が序列にない`);
+  }
+  assert.equal(staples.size, STAPLES.length);
+});
+
+test("staple words stay out of the starting pool and arrive one per unlock", () => {
+  const positions = auditRows.flatMap((r, i) => (isStaple(r) ? [i] : []));
+  assert.ok(positions[0] >= GAME.INITIAL_POOL_SIZE, "初期プールに補充語を入れない");
+  for (let k = 1; k < positions.length; k += 1) {
+    assert.equal(
+      positions[k] - positions[k - 1],
+      GAME.UNLOCK_STEP + 1,
+      "補充語の間隔が解放1回分（10語）になっていない",
+    );
+  }
 });
 
 test("the starting pool is the top of the exam order", () => {
