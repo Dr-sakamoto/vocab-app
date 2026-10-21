@@ -812,15 +812,26 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const currentTier = useMemo(() => getPoolTier(unlockedPoolSize), [unlockedPoolSize]);
 
   /**
+   * 画面に出す「出題プール」。周回出題の期間中は全語をシャッフル順で流すので、
+   * 出題対象は解放プールではなく収録語全体になる。解放プール（上位N語 ∪
+   * 挑戦済みの語）を分母にすると、周回で触れた語の分だけ毎セット分母が増え、
+   * 定着の割合が伸びないうえ、ヘッダーの語数も実際の出題範囲と食い違う。
+   * 周回中かどうかは復元前（null）も周回の最初として扱う。
+   */
+  const lapLocked = lapState ? isLapLocked(lapState, GAME.LAP_LOCK_COUNT) : true;
+  const displayIndices = lapLocked ? allIndices : unlockedIndices;
+
+  /**
    * 定着ドーナツの中身。新しい保存データは持たず、既存の correct/wrong 統計と
    * そのセットの回答だけから出す（＝同期済みのデータだけで完結する）。
+   * 分母は displayIndices（周回中は収録語全体）。
    */
   const retention = useMemo(
     () => ({
-      retained: countRetained(unlockedIndices, stats),
-      poolSize: unlockedIndices.length,
+      retained: countRetained(displayIndices, stats),
+      poolSize: displayIndices.length,
       gain: countRetentionGain(setAnswers),
-      levelCounts: countRetentionLevels(unlockedIndices, stats),
+      levelCounts: countRetentionLevels(displayIndices, stats),
       totalWords: VOCAB_ITEMS.length,
       lap:
         resultFromLap && lapState
@@ -831,7 +842,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
             }
           : undefined,
     }),
-    [unlockedIndices, stats, setAnswers, resultFromLap, lapState],
+    [displayIndices, stats, setAnswers, resultFromLap, lapState],
   );
   /**
    * 進捗欄（ドーナツ＋毎日の伸び率）の中身。解放プールではなく収録語全体を見る。
@@ -914,7 +925,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           score: setScore,
           progressPct,
           weeklyGoal,
-          unlockedWordCount: unlockedIndices.length,
+          unlockedWordCount: displayIndices.length,
           totalWords: VOCAB_ITEMS.length,
           tier: currentTier,
         },
@@ -967,6 +978,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       mode,
       stats,
       unlockedIndices,
+      displayIndices,
       progress,
       currentTier,
       weeklyGoal,
