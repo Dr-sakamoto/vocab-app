@@ -35,6 +35,8 @@ export interface StudyScreenProps {
     retention: RetentionSummary;
     /** 復習する誤答が無いときだけ自動で次のセットへ流す */
     autoContinue: boolean;
+    /** 試験日まであと何日。未設定なら null */
+    examDaysLeft: number | null;
     onContinue: () => void;
   };
   onOpenSettings: () => void;
@@ -165,6 +167,7 @@ export default function StudyScreen({
               unlockedThisRun={result.unlockedThisRun}
               retention={result.retention}
               autoContinue={result.autoContinue}
+              examDaysLeft={result.examDaysLeft}
               answerSheet={
                 <QuizSheet
                   {...sheet}

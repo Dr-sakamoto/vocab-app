@@ -67,6 +67,7 @@ import {
   normalizeDailyProgress,
   recordDailyProgress,
 } from "@/lib/dailyProgress";
+import { ExamPlan, buildExamPlan, getPacePerDay, normalizeExamDate } from "@/lib/examPlan";
 import { WordStat, PlayEvaluation, SessionAnswer } from "@/lib/types";
 import storage from "@/lib/storage";
 import { StudyScreenProps } from "../components/game/StudyScreen";
@@ -102,6 +103,8 @@ interface SettingsProps {
   onFlashSpeedChange: (value: number) => void;
   mistakeThreshold: number;
   onMistakeThresholdChange: (value: number) => void;
+  examDate: string | null;
+  onExamDateChange: (value: string | null) => void;
   cloudSync: ReturnType<typeof useCloudSync>;
 }
 
@@ -112,6 +115,8 @@ export interface ProgressProps {
   totalWords: number;
   /** 直近14日ぶんの、定着語数の推移と前日比 */
   dailyGains: DailyGainPoint[];
+  /** 試験日が設定されていれば、残り日数と定着ペースの見積もり */
+  exam: (ExamPlan & { examDate: string }) | null;
 }
 
 interface QuizGameContextValue {
@@ -205,6 +210,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
 
   const [dailyStreak, setDailyStreak] = useState<StreakState>(EMPTY_STREAK);
   const [dailyProgress, setDailyProgress] = useState<DailyProgressMap>(EMPTY_DAILY_PROGRESS);
+  /** 受験予定日（"YYYY-MM-DD"）。端末ローカルだけで持つ */
+  const [examDate, setExamDate] = useState<string | null>(null);
   const [approvedAnswers, setApprovedAnswers] = useState<Record<string, string[]>>(() => {
     // 旧ID `w${i}` で保存されたキーもここで安定IDへ移行する
     try {
@@ -327,6 +334,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     storage.set(STORAGE_KEYS.FLASH_SPEED, clamped);
   }, []);
 
+  const handleExamDateChange = useCallback((value: string | null) => {
+    const next = normalizeExamDate(value);
+    setExamDate(next);
+    storage.set(STORAGE_KEYS.EXAM_DATE, next);
+  }, []);
+
   const handleMistakeThresholdChange = useCallback((value: number) => {
     const clamped = Math.min(
       FLASH.MISTAKE_THRESHOLD_MAX,
@@ -381,6 +394,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         setDailyProgress(
           normalizeDailyProgress(storage.get(STORAGE_KEYS.DAILY_PROGRESS, EMPTY_DAILY_PROGRESS)),
         );
+
+        setExamDate(normalizeExamDate(storage.get<unknown>(STORAGE_KEYS.EXAM_DATE, null)));
 
         const savedSpeed = Number(
           storage.get(STORAGE_KEYS.FLASH_SPEED, FLASH.DEFAULT_SPEED_SEC),
@@ -838,14 +853,27 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    * こちらは「今どれだけ育っているか」の全体像を見せる場なので、
    * 1セット分の変化を見やすくする InlineResult のプール限定リングとは分母が違う。
    */
-  const progress = useMemo<ProgressProps>(
-    () => ({
+  const progress = useMemo<ProgressProps>(() => {
+    const todayKey = toDateKey(new Date());
+    const dailyGains = getDailyGains(dailyProgress, todayKey, 14);
+    return {
       levelCounts: countRetentionLevels(allIndices, stats),
       totalWords: VOCAB_ITEMS.length,
-      dailyGains: getDailyGains(dailyProgress, toDateKey(new Date()), 14),
-    }),
-    [allIndices, stats, dailyProgress],
-  );
+      dailyGains,
+      exam: examDate
+        ? {
+            examDate,
+            ...buildExamPlan({
+              examDate,
+              todayKey,
+              retained: countRetained(allIndices, stats),
+              totalWords: VOCAB_ITEMS.length,
+              pacePerDay: getPacePerDay(dailyGains),
+            }),
+          }
+        : null,
+    };
+  }, [allIndices, stats, dailyProgress, examDate]);
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
   const setSize = entries.length || GAME.PLAY_LIMIT;
 
@@ -926,6 +954,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           // 落とした語がある回は読ませる。読んでいる途中で次のセットへ
           // 切り替わるほうが割り込みになる
           autoContinue: setScore >= setSize,
+          examDaysLeft: progress.exam?.daysLeft ?? null,
           onContinue: continueToNextSet,
         },
         onOpenSettings,
@@ -947,6 +976,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         onFlashSpeedChange: handleFlashSpeedChange,
         mistakeThreshold,
         onMistakeThresholdChange: handleMistakeThresholdChange,
+        examDate,
+        onExamDateChange: handleExamDateChange,
         cloudSync,
       },
       progress,
@@ -988,6 +1019,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       handlePronunciationVolumeChange,
       handleFlashSpeedChange,
       handleMistakeThresholdChange,
+      examDate,
+      handleExamDateChange,
       cloudSync,
     ],
   );
