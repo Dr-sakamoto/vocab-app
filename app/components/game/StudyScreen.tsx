@@ -47,7 +47,7 @@ export interface StudyScreenProps {
  *
  * 画面遷移を持たず、10問の小テストとそのリザルトが問題ウィンドウの中身だけ
  * 入れ替わって見える（連続プレイのフロー状態を切らさない）。
- * 出題中の答案は常に上下2問（上＝採点中／採点済み、下＝回答中）で、
+ * 出題中の答案は常に窓の3問（上＝採点中／採点済み、下のほう＝回答中）で、
  * 1画面に収まってスクロールしない。
  * 回答はPC・スマホともにタイピング固定。日本語IMEで自由記述し、
  * 完全一致で拾えない表記ゆれはAI判定に回す。採点は回答の確定ごとに裏で走り、
@@ -177,10 +177,10 @@ export default function StudyScreen({
               onContinue={result.onContinue}
             />
           ) : (
-            /* 上詰め固定・スクロールなし。出題中に見えているのは上下2問だけで、
+            /* 上詰め固定・スクロールなし。出題中に見えているのは窓の3問だけで、
                下の答え合わせが済み次第、窓が1つずつ前へ進む。打っているあいだ
                答案が動かないので、次の設問を目で探し直す手間が要らない。 */
-            <div className="min-h-0 flex-1 overflow-hidden">
+            <div data-quiz-viewport className="min-h-0 flex-1 overflow-hidden">
               <div className="w-full px-1 pt-2 pb-4">
                 <QuizSheet {...sheet} />
 
