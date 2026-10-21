@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { evaluateAnswer } from "@/lib/answerEvaluation";
+import { recordAiVerdict, toAiVerdictRecord } from "@/lib/aiVerdictLog";
 import { judgeAnswerWithAi, isAiReviewConfigured } from "@/lib/aiReview";
 import { checkRateLimit } from "@/lib/rateLimit";
 
@@ -94,6 +96,11 @@ export async function POST(req) {
     if (!verdict) {
       return Response.json(result);
     }
+
+    // AIの判定を語×回答ごとに集計する（正解データを直す材料）。
+    // 応答を返してから書くので、採点の待ち時間は増えない。
+    const record = toAiVerdictRecord(body?.wordId, target, input, verdict.approved);
+    if (record) after(() => recordAiVerdict(record));
 
     return Response.json({
       ...result,
