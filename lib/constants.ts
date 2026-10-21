@@ -65,6 +65,14 @@ export const GAME = {
   LAP_LOCK_COUNT: 1,
 } as const;
 
+/**
+ * 週次目標（判定は lib/weeklyGoal.ts）。週のうちこの日数プレイすれば達成。
+ * 残りの日は休んでも連続達成週数は途切れない。
+ */
+export const WEEKLY_GOAL = {
+  DAYS: 5,
+} as const;
+
 export const SOUND = {
   DEFAULT_VOLUME: 0.7,
   MIN_VOLUME: 0,
