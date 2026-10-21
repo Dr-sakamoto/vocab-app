@@ -17,6 +17,8 @@ import {
 import { FLASH, STORAGE_KEYS } from "@/lib/constants";
 import storage from "@/lib/storage";
 import { VocabItem, WordStat, PoolTier } from "@/lib/types";
+import { WeeklyGoalStatus } from "@/lib/weeklyGoal";
+import WeeklyGoalBadge from "../WeeklyGoalBadge";
 
 export interface FlashScreenProps {
   vocabItems: VocabItem[];
@@ -25,7 +27,7 @@ export interface FlashScreenProps {
   unlockedIndices: number[];
   totalWords: number;
   tier: PoolTier;
-  streakDays: number;
+  weeklyGoal: WeeklyGoalStatus;
   speedSeconds: number;
   mode: StudyMode;
   /** true の場合、よく間違える語（苦手語）だけに絞って出題する */
@@ -57,7 +59,7 @@ export default function FlashScreen({
   unlockedIndices,
   totalWords,
   tier,
-  streakDays,
+  weeklyGoal,
   speedSeconds,
   mode,
   mistakeOnly = false,
@@ -133,7 +135,7 @@ export default function FlashScreen({
           </div>
           <div className="flex items-center justify-between gap-3 text-xs text-ink-3">
             <div className="flex items-center gap-3">
-              {streakDays > 0 && <span className="tabular-nums">連続 {streakDays} 日</span>}
+              <WeeklyGoalBadge status={weeklyGoal} />
             </div>
             <div className="flex items-center gap-3">
               <span className="tabular-nums" style={{ color: tier.color }}>
