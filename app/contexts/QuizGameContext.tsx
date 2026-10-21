@@ -289,7 +289,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * 効果音は回答ごとには鳴らさない。1問ずつ鳴らすとそこで正誤が漏れて、
-   * 結果発表まで伏せる意味が無くなる。プールが解放される出来にだけ鳴らす。
+   * 結果発表まで伏せる意味が無くなる。セットの締めで、まれにしか起きない
+   * 前進（プールの解放・全問正解）にだけ鳴らす。
    */
   const playCorrectSound = useCallback(() => {
     const sound = correctSoundRef.current;
@@ -558,7 +559,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     );
 
     unlockMore(step);
-    if (step > 0) playCorrectSound();
+    if (step > 0 || score === GAME.PLAY_LIMIT) playCorrectSound();
 
     pendingPhaseRef.current = "result";
     router.push("/result");
