@@ -22,6 +22,11 @@ export interface QuizSheetProps {
   registerInput: (slot: number, element: HTMLInputElement | null) => void;
 }
 
+/** いま見えている設問のうち、まだ確定していない最初の1問（答えるべき欄） */
+function firstOpenSlot(entries: QuizEntry[], visibleSlots: number[]): number | undefined {
+  return visibleSlots.find((slot) => entries[slot] && !entries[slot].committed);
+}
+
 /**
  * 10問の小テストの答案用紙。出題中は上下2問ずつ、結果発表では10問ぶんを描く。
  *
@@ -56,6 +61,7 @@ export default function QuizSheet({
   onCompositionEnd,
   registerInput,
 }: QuizSheetProps) {
+  const activeSlot = firstOpenSlot(entries, visibleSlots);
   return (
     <ol className="flex flex-col gap-4">
       <AnimatePresence initial={false}>
@@ -91,6 +97,7 @@ export default function QuizSheet({
                   committed={entry.committed}
                   revealed={entry.outcome !== null}
                   outcome={entry.outcome}
+                  autoFocus={slot === activeSlot}
                 />
               </div>
             </motion.li>

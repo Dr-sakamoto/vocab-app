@@ -1,11 +1,11 @@
 "use client";
 
-import { KeyboardEvent, Ref } from "react";
+import { KeyboardEvent, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { GradeOutcome } from "@/lib/types";
 
 export interface TypingAnswerRowProps {
-  inputRef?: Ref<HTMLInputElement>;
+  inputRef?: (element: HTMLInputElement | null) => void;
   input: string;
   onInputChange: (value: string) => void;
   /** 回答を確定して次の設問へ。Enter と右端のボタンから呼ぶ */
@@ -21,6 +21,12 @@ export interface TypingAnswerRowProps {
   revealed: boolean;
   /** 採点結果。revealed が false のあいだは使わない */
   outcome: GradeOutcome | null;
+  /**
+   * 描かれた時点でカーソルを置くか。いま答えるべき設問の欄にだけ立てる。
+   * 進捗ページやフラッシュから戻って答案が描き直されたとき、もう一度
+   * タップしなくてもそのまま打ち始められるようにする。
+   */
+  autoFocus?: boolean;
 }
 
 /**
@@ -55,7 +61,21 @@ export default function TypingAnswerRow({
   committed,
   revealed,
   outcome,
+  autoFocus = false,
 }: TypingAnswerRowProps) {
+  const ownRef = useRef<HTMLInputElement | null>(null);
+  const setRefs = (element: HTMLInputElement | null) => {
+    ownRef.current = element;
+    inputRef?.(element);
+  };
+
+  // 描かれたときに一度だけ。preventScroll は窓送りのアニメーションと
+  // ブラウザのスクロール調整がぶつからないようにするため（advanceWindow と同じ）
+  const autoFocusOnMount = useRef(autoFocus);
+  useEffect(() => {
+    if (autoFocusOnMount.current) ownRef.current?.focus({ preventScroll: true });
+  }, []);
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") return;
     // IMEの変換確定のEnterでは設問を送らない（打ち終える前に飛んでしまう）
@@ -76,7 +96,7 @@ export default function TypingAnswerRow({
     <>
       <div className="relative">
         <input
-          ref={inputRef}
+          ref={setRefs}
           data-quiz-answer
           value={input}
           onChange={(e) => onInputChange(e.target.value)}
