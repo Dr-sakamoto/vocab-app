@@ -2,6 +2,7 @@ import { QUESTIONS as basic } from "./basic";
 import { QUESTIONS as advanced } from "./advanced";
 import { QUESTIONS as staples } from "./staples";
 import { COLLOCATIONS } from "./collocations";
+import { CONTEXT_PHRASES } from "./contextPhrases";
 import { DIFFICULTY_ORDER } from "./difficultyOrder";
 import { LEGACY_WORD_ID_ORDER } from "./legacyWordIds";
 import { parseLegacyWordId, toWordId } from "./wordId";
@@ -23,7 +24,9 @@ export const QUESTIONS: Omit<VocabItem, "id">[] = [...basic, ...advanced, ...sta
 export const VOCAB_ITEMS: VocabItem[] = QUESTIONS.map((q) => {
   const id = toWordId(q.target, q.partOfSpeech);
   const collocation = COLLOCATIONS[id];
-  return collocation ? { ...q, id, collocation } : { ...q, id };
+  if (collocation) return { ...q, id, collocation };
+  const context = CONTEXT_PHRASES[id];
+  return context ? { ...q, id, context } : { ...q, id };
 });
 
 export const VOCAB_IDS: string[] = VOCAB_ITEMS.map((item) => item.id);
@@ -81,3 +84,4 @@ export function resolveWordId(rawId: string): string | null {
 
 export { toWordId } from "./wordId";
 export { COLLOCATIONS } from "./collocations";
+export { CONTEXT_PHRASES } from "./contextPhrases";

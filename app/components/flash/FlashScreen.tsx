@@ -17,6 +17,7 @@ import {
 import { FLASH, STORAGE_KEYS } from "@/lib/constants";
 import storage from "@/lib/storage";
 import { VocabItem, WordStat, PoolTier } from "@/lib/types";
+import { getPromptPhrase } from "@/lib/vocab/phrase";
 import { WeeklyGoalStatus } from "@/lib/weeklyGoal";
 import WeeklyGoalBadge from "../WeeklyGoalBadge";
 
@@ -118,7 +119,8 @@ export default function FlashScreen({
   const q = candidates.length > 0 ? vocabItems[index] : undefined;
 
   // 出題と同じく、句動詞は目的語まで含めて読み上げる
-  const spokenText = q ? (q.collocation ? `${q.target} ${q.collocation}` : q.target) : "";
+  const phrase = q ? getPromptPhrase(q) : undefined;
+  const spokenText = q ? (phrase ? `${q.target} ${phrase}` : q.target) : "";
 
   useEffect(() => {
     if (!spokenText) return undefined;
@@ -204,9 +206,9 @@ export default function FlashScreen({
                       </div>
                       <div className="mt-3 break-words font-word text-xl tracking-[0.01em] text-ink-2 sm:text-3xl">
                         {q.target}
-                        {q.collocation && (
+                        {phrase && (
                           <span className="ml-2 inline-block text-sm text-ink-3 sm:text-lg">
-                            [{q.collocation}]
+                            [{phrase}]
                           </span>
                         )}
                       </div>
