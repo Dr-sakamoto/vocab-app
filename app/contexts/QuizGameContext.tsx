@@ -263,6 +263,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     entries,
     setId,
     startSet,
+    markShown,
     setInput,
     commit,
     canAdvance,
@@ -640,14 +641,15 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     advanceWindow();
   }, [phase, entries, windowStart, canAdvance, advanceWindow]);
 
-  /** 回答欄にカーソルが入ったら、その設問を読み上げる */
+  /** 回答欄にカーソルが入ったら、その設問を読み上げ、想起時間の計測を始める */
   const handleFocusSlot = useCallback((slot: number) => {
     if (phase !== "quiz") return;
     const entry = entries[slot];
     if (!entry) return;
+    markShown(slot);
     const { target, collocation } = entry.item;
     speakEnglishWord(collocation ? `${target} ${collocation}` : target);
-  }, [entries, phase]);
+  }, [entries, phase, markShown]);
 
   /**
    * リザルトから次の10問セットへ。出題画面（`/`）へ遷移して中身を入れ替える。

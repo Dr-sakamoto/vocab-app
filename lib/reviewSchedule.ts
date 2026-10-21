@@ -75,22 +75,46 @@ export function getRetentionFactor(
 }
 
 /**
+ * 「迷って正解」とみなす想起時間（回答欄にカーソルが入ってから最初の1文字を
+ * 打つまで）の下限。本番の語彙問題・長文で要るのは一瞬で意味が分かることなので、
+ * 時間をかけてやっと思い出せた語は、正解でも間隔を伸ばさない。
+ */
+export const HESITANT_RECALL_MS = 6_000;
+/**
+ * これ以上かかった想起時間は判定に使わない。よそ見や中断で手が止まっていた
+ * 可能性が高く、思い出す速さを表していない。
+ */
+export const IGNORED_RECALL_MS = 30_000;
+
+/** 想起時間から「迷って正解」かを判定する。測れていない（undefined）なら false */
+export function isHesitantRecall(recallMs: number | undefined): boolean {
+  if (typeof recallMs !== "number" || !Number.isFinite(recallMs)) return false;
+  return recallMs >= HESITANT_RECALL_MS && recallMs < IGNORED_RECALL_MS;
+}
+
+/**
  * 1回の解答を統計へ反映する。正誤カウントに加えて、分散学習が使う
  * 「最終解答時刻」と「連続正解数」も同時に更新する。
+ *
+ * hesitant（迷って正解）のときは正解数と解答時刻だけを進め、連続正解数は
+ * 据え置く。誤答のようにリセットはしないが、次の復習は今の段の間隔のまま
+ * やってくる。
  */
 export function applyAnswerToStat(
   stat: WordStat | undefined,
   ok: boolean,
   now: number = Date.now(),
+  hesitant: boolean = false,
 ): WordStat {
   const correct = stat?.correct ?? 0;
   const wrong = stat?.wrong ?? 0;
+  const streak = Math.max(0, Math.floor(stat?.correctStreak ?? 0));
   return ok
     ? {
         correct: correct + 1,
         wrong,
         lastAnswered: now,
-        correctStreak: Math.max(0, Math.floor(stat?.correctStreak ?? 0)) + 1,
+        correctStreak: hesitant ? streak : streak + 1,
       }
     : { correct, wrong: wrong + 1, lastAnswered: now, correctStreak: 0 };
 }
