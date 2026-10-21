@@ -35,6 +35,9 @@ export interface StudyScreenProps {
     retention: RetentionSummary;
     /** 復習する誤答が無いときだけ自動で次のセットへ流す */
     autoContinue: boolean;
+    /** 締めたセットの所要時間と、今日の学習時間の合計（ミリ秒） */
+    setDurationMs: number;
+    todayStudyMs: number;
     onContinue: () => void;
   };
   onOpenSettings: () => void;
@@ -165,6 +168,8 @@ export default function StudyScreen({
               unlockedThisRun={result.unlockedThisRun}
               retention={result.retention}
               autoContinue={result.autoContinue}
+              setDurationMs={result.setDurationMs}
+              todayStudyMs={result.todayStudyMs}
               answerSheet={
                 <QuizSheet
                   {...sheet}

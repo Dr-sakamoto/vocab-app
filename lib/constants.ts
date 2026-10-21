@@ -99,6 +99,7 @@ export const STORAGE_KEYS = {
   SYNC_BASE: "vocab-sync-base",
   DAILY_PROGRESS: "vocab-daily-progress",
   LAP_ORDER: "vocab-lap-order",
+  DAILY_TIME: "vocab-daily-time",
 } as const;
 
 export const BUTTON_CLASSES = {
