@@ -4,7 +4,9 @@ import Link from "next/link";
 import InlineResult, { RetentionSummary } from "../InlineResult";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import QuizSheet, { QuizSheetProps } from "./QuizSheet";
+import WeeklyGoalBadge from "../WeeklyGoalBadge";
 import { PlayEvaluation, PoolTier } from "@/lib/types";
+import { WeeklyGoalStatus } from "@/lib/weeklyGoal";
 
 export interface StudyScreenProps {
   phase: "quiz" | "result";
@@ -19,7 +21,7 @@ export interface StudyScreenProps {
     /** 結果発表でだけ使う正解数 */
     score: number;
     progressPct: number;
-    streakDays: number;
+    weeklyGoal: WeeklyGoalStatus;
     /** 今日解き終えたセット数と、1日の目標セット数 */
     todaySets: number;
     dailyGoal: number;
@@ -92,9 +94,7 @@ export default function StudyScreen({
                 )}
               </span>
               <DailyGoalDots done={status.todaySets} goal={status.dailyGoal} />
-              {status.streakDays > 0 && (
-                <span className="tabular-nums">連続 {status.streakDays} 日</span>
-              )}
+              <WeeklyGoalBadge status={status.weeklyGoal} />
             </div>
             <div className="flex items-center gap-3">
               {/* 到達段階だけは色で示す。順序尺度なので明度が単調に上がる
@@ -224,6 +224,7 @@ export default function StudyScreen({
 /**
  * 今日の目標の進み具合。目標までのセットを丸で並べ、解き終えたぶんを塗る。
  * 目標を超えたあとは丸を増やさず、数だけ添える（やりすぎを煽らない）。
+ * 隣に週次目標（今週 n / 5 日）が並ぶので、文字は付けず丸だけにして幅を詰める。
  */
 function DailyGoalDots({ done, goal }: { done: number; goal: number }) {
   const reached = done >= goal;
@@ -231,9 +232,9 @@ function DailyGoalDots({ done, goal }: { done: number; goal: number }) {
     <span
       className="flex items-center gap-1"
       role="img"
+      title={`今日の目標 ${goal} セット`}
       aria-label={`今日の目標 ${goal} セット中 ${Math.min(done, goal)} セット`}
     >
-      <span className={`whitespace-nowrap ${reached ? "text-positive" : ""}`}>今日</span>
       {Array.from({ length: goal }).map((_, i) => (
         <span
           key={i}
