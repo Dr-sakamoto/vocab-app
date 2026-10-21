@@ -85,7 +85,7 @@ export default function TypingAnswerRow({
           onCompositionEnd={onCompositionEnd}
           onFocus={onFocus}
           readOnly={revealed}
-          placeholder={revealed ? "未回答" : "日本語訳を入力..."}
+          placeholder={revealed ? "未回答" : "日本語訳（ひらがなのままでOK）"}
           aria-label="日本語訳を入力してください"
           className={`answer-field w-full rounded-lg py-3 pl-4 text-base outline-none ${fieldStateClass} ${
             revealed ? "pr-10" : "pr-14"
