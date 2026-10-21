@@ -20,6 +20,9 @@ export interface StudyScreenProps {
     score: number;
     progressPct: number;
     streakDays: number;
+    /** 今日解き終えたセット数と、1日の目標セット数 */
+    todaySets: number;
+    dailyGoal: number;
     /** 実際に出題対象となっている語数（解放カウンタではなくプールの実数） */
     unlockedWordCount: number;
     totalWords: number;
@@ -35,6 +38,8 @@ export interface StudyScreenProps {
     retention: RetentionSummary;
     /** 復習する誤答が無いときだけ自動で次のセットへ流す */
     autoContinue: boolean;
+    /** このセットでちょうど今日の目標に届いた */
+    goalJustReached: boolean;
     onContinue: () => void;
   };
   onOpenSettings: () => void;
@@ -86,6 +91,7 @@ export default function StudyScreen({
                   </>
                 )}
               </span>
+              <DailyGoalDots done={status.todaySets} goal={status.dailyGoal} />
               {status.streakDays > 0 && (
                 <span className="tabular-nums">連続 {status.streakDays} 日</span>
               )}
@@ -165,6 +171,9 @@ export default function StudyScreen({
               unlockedThisRun={result.unlockedThisRun}
               retention={result.retention}
               autoContinue={result.autoContinue}
+              goalJustReached={result.goalJustReached}
+              todaySets={status.todaySets}
+              dailyGoal={status.dailyGoal}
               answerSheet={
                 <QuizSheet
                   {...sheet}
@@ -209,5 +218,31 @@ export default function StudyScreen({
         </main>
       </div>
     </div>
+  );
+}
+
+/**
+ * 今日の目標の進み具合。目標までのセットを丸で並べ、解き終えたぶんを塗る。
+ * 目標を超えたあとは丸を増やさず、数だけ添える（やりすぎを煽らない）。
+ */
+function DailyGoalDots({ done, goal }: { done: number; goal: number }) {
+  const reached = done >= goal;
+  return (
+    <span
+      className="flex items-center gap-1"
+      role="img"
+      aria-label={`今日の目標 ${goal} セット中 ${Math.min(done, goal)} セット`}
+    >
+      <span className={`whitespace-nowrap ${reached ? "text-positive" : ""}`}>今日</span>
+      {Array.from({ length: goal }).map((_, i) => (
+        <span
+          key={i}
+          className={`h-1.5 w-1.5 rounded-full ${
+            i < done ? (reached ? "bg-positive" : "bg-accent") : "bg-line-strong"
+          }`}
+        />
+      ))}
+      {done > goal && <span className="tabular-nums text-positive">+{done - goal}</span>}
+    </span>
   );
 }

@@ -51,6 +51,11 @@ interface InlineResultProps {
    * 復習の途中で画面が切り替わらないようにする。
    */
   autoContinue?: boolean;
+  /** このセットでちょうど今日の目標セット数に届いたか */
+  goalJustReached?: boolean;
+  /** 今日解き終えたセット数（このセットを含む）と目標セット数 */
+  todaySets?: number;
+  dailyGoal?: number;
   onContinue: () => void;
 }
 
@@ -81,6 +86,9 @@ export default function InlineResult({
   retention,
   answerSheet,
   autoContinue = true,
+  goalJustReached = false,
+  todaySets = 0,
+  dailyGoal = 0,
   onContinue,
 }: InlineResultProps) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_CONTINUE_SECONDS);
@@ -150,6 +158,28 @@ export default function InlineResult({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 sm:px-6">
+        {/* 今日のゴールに届いた瞬間だけ大きく見せる。ここで終えてもいい、
+            という区切りにもなる（続けるかどうかは本人が決める） */}
+        {goalJustReached ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+            className="mb-3 rounded-lg border border-positive bg-surface-2 px-3 py-2.5 text-center"
+          >
+            <div className="text-base text-positive">今日の目標達成</div>
+            <div className="mt-0.5 text-xs text-ink-2">
+              {dailyGoal} セット完了。ここで終えても、続けてもいい
+            </div>
+          </motion.div>
+        ) : (
+          dailyGoal > 0 &&
+          todaySets < dailyGoal && (
+            <div className="mb-2 text-center text-xs tabular-nums text-ink-3">
+              今日の目標まであと {dailyGoal - todaySets} セット
+            </div>
+          )
+        )}
         <div className="prompt-card p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">

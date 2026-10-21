@@ -57,6 +57,13 @@ export const GAME = {
    * この回数だけ周回して、苦手の見極めはそのあとに回す。
    */
   LAP_LOCK_COUNT: 5,
+  /**
+   * 1日の目標セット数（lib/dailyGoal.ts）。1セットは10問・2分前後なので、
+   * 既定の3セットで5〜6分。「これだけやれば今日は勝ち」と思える小ささにする。
+   */
+  DAILY_GOAL_DEFAULT: 3,
+  DAILY_GOAL_MIN: 1,
+  DAILY_GOAL_MAX: 10,
 } as const;
 
 export const SOUND = {
@@ -99,6 +106,8 @@ export const STORAGE_KEYS = {
   SYNC_BASE: "vocab-sync-base",
   DAILY_PROGRESS: "vocab-daily-progress",
   LAP_ORDER: "vocab-lap-order",
+  DAILY_SETS: "vocab-daily-sets",
+  DAILY_GOAL: "vocab-daily-goal",
 } as const;
 
 export const BUTTON_CLASSES = {

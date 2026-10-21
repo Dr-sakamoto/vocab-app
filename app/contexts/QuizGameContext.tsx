@@ -67,6 +67,13 @@ import {
   normalizeDailyProgress,
   recordDailyProgress,
 } from "@/lib/dailyProgress";
+import {
+  DailySetsMap,
+  clampDailyGoal,
+  getTodaySets,
+  normalizeDailySets,
+  recordSetCompleted,
+} from "@/lib/dailyGoal";
 import { WordStat, PlayEvaluation, SessionAnswer } from "@/lib/types";
 import storage from "@/lib/storage";
 import { StudyScreenProps } from "../components/game/StudyScreen";
@@ -102,6 +109,8 @@ interface SettingsProps {
   onFlashSpeedChange: (value: number) => void;
   mistakeThreshold: number;
   onMistakeThresholdChange: (value: number) => void;
+  dailyGoal: number;
+  onDailyGoalChange: (value: number) => void;
   cloudSync: ReturnType<typeof useCloudSync>;
 }
 
@@ -205,6 +214,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
 
   const [dailyStreak, setDailyStreak] = useState<StreakState>(EMPTY_STREAK);
   const [dailyProgress, setDailyProgress] = useState<DailyProgressMap>(EMPTY_DAILY_PROGRESS);
+  /** 今日何セット解き終えたか（1日の目標用）。端末ローカルだけで持つ */
+  const [dailySets, setDailySets] = useState<DailySetsMap>({});
+  const [dailyGoal, setDailyGoalState] = useState<number>(GAME.DAILY_GOAL_DEFAULT);
   const [approvedAnswers, setApprovedAnswers] = useState<Record<string, string[]>>(() => {
     // 旧ID `w${i}` で保存されたキーもここで安定IDへ移行する
     try {
@@ -327,6 +339,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     storage.set(STORAGE_KEYS.FLASH_SPEED, clamped);
   }, []);
 
+  const handleDailyGoalChange = useCallback((value: number) => {
+    const clamped = clampDailyGoal(value);
+    setDailyGoalState(clamped);
+    storage.set(STORAGE_KEYS.DAILY_GOAL, clamped);
+  }, []);
+
   const handleMistakeThresholdChange = useCallback((value: number) => {
     const clamped = Math.min(
       FLASH.MISTAKE_THRESHOLD_MAX,
@@ -380,6 +398,11 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         setDailyStreak(normalizeStreak(storage.get(STORAGE_KEYS.STREAK, EMPTY_STREAK)));
         setDailyProgress(
           normalizeDailyProgress(storage.get(STORAGE_KEYS.DAILY_PROGRESS, EMPTY_DAILY_PROGRESS)),
+        );
+
+        setDailySets(normalizeDailySets(storage.get<unknown>(STORAGE_KEYS.DAILY_SETS, {})));
+        setDailyGoalState(
+          clampDailyGoal(storage.get<unknown>(STORAGE_KEYS.DAILY_GOAL, GAME.DAILY_GOAL_DEFAULT)),
         );
 
         const savedSpeed = Number(
@@ -532,6 +555,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         countRetained(allIndices, statsAfterSet),
       );
       if (next !== prev) storage.set(STORAGE_KEYS.DAILY_PROGRESS, next);
+      return next;
+    });
+
+    setDailySets((prev) => {
+      const next = recordSetCompleted(prev, toDateKey(new Date()));
+      storage.set(STORAGE_KEYS.DAILY_SETS, next);
       return next;
     });
 
@@ -847,6 +876,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     [allIndices, stats, dailyProgress],
   );
   const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
+  const todaySets = getTodaySets(dailySets, toDateKey(new Date()));
   const setSize = entries.length || GAME.PLAY_LIMIT;
 
   /**
@@ -903,6 +933,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           score: setScore,
           progressPct,
           streakDays: displayStreak,
+          todaySets,
+          dailyGoal,
           unlockedWordCount: unlockedIndices.length,
           totalWords: VOCAB_ITEMS.length,
           tier: currentTier,
@@ -926,6 +958,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           // 落とした語がある回は読ませる。読んでいる途中で次のセットへ
           // 切り替わるほうが割り込みになる
           autoContinue: setScore >= setSize,
+          // 結果発表に着いた時点で todaySets はこのセットを数え終えている
+          goalJustReached: todaySets === dailyGoal,
           onContinue: continueToNextSet,
         },
         onOpenSettings,
@@ -947,6 +981,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         onFlashSpeedChange: handleFlashSpeedChange,
         mistakeThreshold,
         onMistakeThresholdChange: handleMistakeThresholdChange,
+        dailyGoal,
+        onDailyGoalChange: handleDailyGoalChange,
         cloudSync,
       },
       progress,
@@ -959,6 +995,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       progress,
       currentTier,
       displayStreak,
+      todaySets,
+      dailyGoal,
+      handleDailyGoalChange,
       flashSpeed,
       mistakeThreshold,
       handleModeChange,
