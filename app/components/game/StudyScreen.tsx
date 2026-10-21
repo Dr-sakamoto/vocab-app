@@ -168,6 +168,7 @@ export default function StudyScreen({
               answerSheet={
                 <QuizSheet
                   {...sheet}
+                  showConfusables
                   visibleSlots={sheet.visibleSlots.filter((slot) => {
                     const outcome = sheet.entries[slot]?.outcome;
                     return outcome != null && !outcome.correct;
