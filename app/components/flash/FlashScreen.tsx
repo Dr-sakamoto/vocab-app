@@ -26,6 +26,7 @@ export interface FlashScreenProps {
   totalWords: number;
   tier: PoolTier;
   streakDays: number;
+  longestStreak: number;
   speedSeconds: number;
   mode: StudyMode;
   /** true の場合、よく間違える語（苦手語）だけに絞って出題する */
@@ -58,6 +59,7 @@ export default function FlashScreen({
   totalWords,
   tier,
   streakDays,
+  longestStreak,
   speedSeconds,
   mode,
   mistakeOnly = false,
@@ -133,7 +135,13 @@ export default function FlashScreen({
           </div>
           <div className="flex items-center justify-between gap-3 text-xs text-ink-3">
             <div className="flex items-center gap-3">
-              {streakDays > 0 && <span className="tabular-nums">連続 {streakDays} 日</span>}
+              {streakDays > 0 ? (
+                <span className="tabular-nums">連続 {streakDays} 日</span>
+              ) : (
+                longestStreak > 0 && (
+                  <span className="tabular-nums">おかえり · 最長 {longestStreak} 日</span>
+                )
+              )}
             </div>
             <div className="flex items-center gap-3">
               <span className="tabular-nums" style={{ color: tier.color }}>

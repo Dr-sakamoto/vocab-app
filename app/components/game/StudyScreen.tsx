@@ -20,6 +20,8 @@ export interface StudyScreenProps {
     score: number;
     progressPct: number;
     streakDays: number;
+    /** これまでの最長連続日数。連続が途切れているときの「おかえり」に使う */
+    longestStreak: number;
     /** 実際に出題対象となっている語数（解放カウンタではなくプールの実数） */
     unlockedWordCount: number;
     totalWords: number;
@@ -86,8 +88,15 @@ export default function StudyScreen({
                   </>
                 )}
               </span>
-              {status.streakDays > 0 && (
+              {status.streakDays > 0 ? (
                 <span className="tabular-nums">連続 {status.streakDays} 日</span>
+              ) : (
+                /* 途切れたことを責めない。戻ってきたことと、最長記録だけを見せる */
+                status.longestStreak > 0 && (
+                  <span className="tabular-nums">
+                    おかえり · 最長 {status.longestStreak} 日
+                  </span>
+                )
               )}
             </div>
             <div className="flex items-center gap-3">

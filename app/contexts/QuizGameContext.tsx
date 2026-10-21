@@ -55,6 +55,7 @@ import {
   EMPTY_STREAK,
   StreakState,
   getDisplayStreak,
+  getNextFreezeDate,
   normalizeStreak,
   recordPlay,
   toDateKey,
@@ -81,6 +82,7 @@ interface FlashProps {
   totalWords: number;
   tier: ReturnType<typeof getPoolTier>;
   streakDays: number;
+  longestStreak: number;
   speedSeconds: number;
   mode: StudyMode;
   mistakeOnly: boolean;
@@ -112,6 +114,14 @@ export interface ProgressProps {
   totalWords: number;
   /** 直近14日ぶんの、定着語数の推移と前日比 */
   dailyGains: DailyGainPoint[];
+  /** 毎日ストリーク。おやすみ（1日休んでも途切れない）の次の使用可能日つき */
+  streak: {
+    current: number;
+    longest: number;
+    /** 次におやすみが使える日（"YYYY-MM-DD"）。今日なら使用可 */
+    nextFreezeDate: string;
+    todayKey: string;
+  };
 }
 
 interface QuizGameContextValue {
@@ -303,7 +313,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   // プレイ開始時に「今日プレイした」ことを記録し、毎日ストリークを更新する。
   const markDailyPlay = useCallback(() => {
     setDailyStreak((prev) => {
-      const next = recordPlay(prev, toDateKey(new Date()));
+      // 1日だけの空白はおやすみで埋める（lib/streak.ts）
+      const next = recordPlay(prev, toDateKey(new Date()), { allowFreeze: true });
       if (next !== prev) storage.set(STORAGE_KEYS.STREAK, next);
       return next;
     });
@@ -838,15 +849,22 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    * こちらは「今どれだけ育っているか」の全体像を見せる場なので、
    * 1セット分の変化を見やすくする InlineResult のプール限定リングとは分母が違う。
    */
+  const todayKey = toDateKey(new Date());
+  const displayStreak = getDisplayStreak(dailyStreak, todayKey, { allowFreeze: true });
   const progress = useMemo<ProgressProps>(
     () => ({
       levelCounts: countRetentionLevels(allIndices, stats),
       totalWords: VOCAB_ITEMS.length,
-      dailyGains: getDailyGains(dailyProgress, toDateKey(new Date()), 14),
+      dailyGains: getDailyGains(dailyProgress, todayKey, 14),
+      streak: {
+        current: displayStreak,
+        longest: dailyStreak.longest,
+        nextFreezeDate: getNextFreezeDate(dailyStreak, todayKey),
+        todayKey,
+      },
     }),
-    [allIndices, stats, dailyProgress],
+    [allIndices, stats, dailyProgress, dailyStreak, displayStreak, todayKey],
   );
-  const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
   const setSize = entries.length || GAME.PLAY_LIMIT;
 
   /**
@@ -887,6 +905,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         totalWords: VOCAB_ITEMS.length,
         tier: currentTier,
         streakDays: displayStreak,
+        longestStreak: dailyStreak.longest,
         speedSeconds: flashSpeed,
         mode,
         mistakeOnly: mode === "mistakeFlash",
@@ -903,6 +922,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           score: setScore,
           progressPct,
           streakDays: displayStreak,
+          longestStreak: dailyStreak.longest,
           unlockedWordCount: unlockedIndices.length,
           totalWords: VOCAB_ITEMS.length,
           tier: currentTier,
@@ -959,6 +979,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       progress,
       currentTier,
       displayStreak,
+      dailyStreak.longest,
       flashSpeed,
       mistakeThreshold,
       handleModeChange,

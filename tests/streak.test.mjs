@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   EMPTY_STREAK,
+  STREAK_FREEZE_INTERVAL_DAYS,
   getDisplayStreak,
+  getNextFreezeDate,
   hasPlayedToday,
   mergeStreaks,
   normalizeStreak,
@@ -124,4 +126,70 @@ test("mergeStreaks tolerates junk from the cloud", () => {
   assert.deepEqual(mergeStreaks(local, null), local);
   assert.deepEqual(mergeStreaks(local, "nonsense"), local);
   assert.deepEqual(mergeStreaks(local, { current: -1, lastPlayedDate: "not-a-date" }), local);
+});
+
+// ── おやすみ（ストリークフリーズ） ─────────────────────────────────────────
+
+const FREEZE = { allowFreeze: true };
+
+test("おやすみ: 1日だけの空白は埋めて連続を保つ（埋めた日は数えない）", () => {
+  let s = recordPlay(EMPTY_STREAK, "2026-07-07", FREEZE);
+  s = recordPlay(s, "2026-07-08", FREEZE); // current 2
+  s = recordPlay(s, "2026-07-10", FREEZE); // 07-09 を休んだ
+  assert.equal(s.current, 3);
+  assert.equal(s.lastFreezeDate, "2026-07-09");
+});
+
+test("おやすみ: 2日以上の空白は埋めない", () => {
+  let s = recordPlay(EMPTY_STREAK, "2026-07-07", FREEZE);
+  s = recordPlay(s, "2026-07-10", FREEZE);
+  assert.equal(s.current, 1);
+  assert.equal(s.lastFreezeDate, undefined);
+});
+
+test("おやすみ: 使ってから所定の日数は使えない", () => {
+  let s = recordPlay(EMPTY_STREAK, "2026-07-01", FREEZE);
+  s = recordPlay(s, "2026-07-03", FREEZE); // 07-02 を埋める
+  s = recordPlay(s, "2026-07-04", FREEZE);
+  s = recordPlay(s, "2026-07-06", FREEZE); // 07-05 は 3日後なのでまだ使えない
+  assert.equal(s.current, 1);
+  assert.equal(s.lastFreezeDate, "2026-07-02");
+});
+
+test("おやすみ: 間隔が明ければもう一度使える", () => {
+  let s = { current: 5, longest: 5, lastPlayedDate: "2026-07-08", lastFreezeDate: "2026-07-02" };
+  s = recordPlay(s, "2026-07-10", FREEZE); // 07-09 は 07-02 から7日後
+  assert.equal(STREAK_FREEZE_INTERVAL_DAYS, 7);
+  assert.equal(s.current, 6);
+  assert.equal(s.lastFreezeDate, "2026-07-09");
+});
+
+test("おやすみ: 既定（オプションなし）では従来どおりリセット", () => {
+  let s = recordPlay(EMPTY_STREAK, "2026-07-07");
+  s = recordPlay(s, "2026-07-08");
+  s = recordPlay(s, "2026-07-10");
+  assert.equal(s.current, 1);
+  assert.equal("lastFreezeDate" in s, false);
+});
+
+test("おやすみ: 昨日を休んだだけなら表示上はまだ途切れていない", () => {
+  const s = { current: 4, longest: 4, lastPlayedDate: "2026-07-08" };
+  assert.equal(getDisplayStreak(s, "2026-07-10", FREEZE), 4);
+  assert.equal(getDisplayStreak(s, "2026-07-10"), 0);
+  assert.equal(getDisplayStreak(s, "2026-07-11", FREEZE), 0);
+});
+
+test("おやすみ: 次に使える日", () => {
+  assert.equal(getNextFreezeDate(EMPTY_STREAK, "2026-07-10"), "2026-07-10");
+  const used = { current: 3, longest: 3, lastPlayedDate: "2026-07-10", lastFreezeDate: "2026-07-09" };
+  assert.equal(getNextFreezeDate(used, "2026-07-10"), "2026-07-16");
+  assert.equal(getNextFreezeDate(used, "2026-07-20"), "2026-07-20");
+});
+
+test("おやすみ: 保存値の正規化と端末間マージで使用日を保つ", () => {
+  assert.equal(normalizeStreak({ current: 1, lastFreezeDate: "bad" }).lastFreezeDate, undefined);
+  const a = { current: 3, longest: 3, lastPlayedDate: "2026-07-10", lastFreezeDate: "2026-07-01" };
+  const b = { current: 2, longest: 2, lastPlayedDate: "2026-07-09", lastFreezeDate: "2026-07-05" };
+  assert.equal(mergeStreaks(a, b).lastFreezeDate, "2026-07-05");
+  assert.equal(mergeStreaks(a, EMPTY_STREAK).lastFreezeDate, "2026-07-01");
 });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import RetentionRing from "../../components/game/RetentionRing";
 import DailyGainChart from "../../components/DailyGainChart";
 import { RETENTION_LEVELS } from "@/lib/retention";
+import { STREAK_FREEZE_INTERVAL_DAYS } from "@/lib/streak";
 import { useQuizGame } from "../../contexts/QuizGameContext";
 
 /**
@@ -16,7 +17,9 @@ import { useQuizGame } from "../../contexts/QuizGameContext";
  */
 export default function ProgressPage() {
   const { progress } = useQuizGame();
-  const { levelCounts, totalWords, dailyGains } = progress;
+  const { levelCounts, totalWords, dailyGains, streak } = progress;
+  const freezeReady = streak.nextFreezeDate <= streak.todayKey;
+  const [, freezeMonth, freezeDay] = streak.nextFreezeDate.split("-").map(Number);
 
   const totalMastered = levelCounts[5] ?? 0;
   const latestGain = dailyGains[dailyGains.length - 1]?.gain ?? 0;
@@ -45,6 +48,25 @@ export default function ProgressPage() {
           </Link>
           <h1 className="text-sm text-ink-1">進捗</h1>
         </header>
+
+        <div className="prompt-card p-4">
+          <h2 className="text-xs text-ink-3">毎日ストリーク</h2>
+          <div className="mt-2 flex items-baseline gap-3 tabular-nums">
+            <span className="text-lg text-ink-1">
+              {streak.current}
+              <span className="ml-1 text-xs text-ink-3">日連続</span>
+            </span>
+            <span className="text-xs text-ink-3">最長 {streak.longest} 日</span>
+          </div>
+          {/* 休んでも途切れない仕組みを先に知っておけば、1日空いたときに
+              「もう途切れた」と諦めずに戻ってこられる */}
+          <p className="mt-2 text-xs leading-relaxed text-ink-2">
+            {STREAK_FREEZE_INTERVAL_DAYS}日に1回まで、1日休んでも連続は途切れない（おやすみ）。
+            <span className="ml-1 tabular-nums text-ink-3">
+              {freezeReady ? "いま使える" : `次は ${freezeMonth}/${freezeDay} から使える`}
+            </span>
+          </p>
+        </div>
 
         <div className="prompt-card p-4">
           <h2 className="text-xs text-ink-3">定着レベルの内訳（収録語全体）</h2>
