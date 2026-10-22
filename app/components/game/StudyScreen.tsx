@@ -63,17 +63,33 @@ export default function StudyScreen({
   result,
   onOpenSettings,
 }: StudyScreenProps) {
+  /**
+   * 1問目を確定してから結果発表までは、押せるもの（モード切替・進捗・設定）と
+   * 出題に関係しない数字（段階・語数）を隠す。視界に押せるものがあると
+   * 脱線のきっかけになる。セットの区切り（未回答の出題画面と結果発表）では出す。
+   *
+   * 消さずに invisible で隠すのは、レイアウトを動かさないため。消すと
+   * 1問目を送った瞬間に答案がせり上がり、打っている位置がずれる。
+   */
+  const focused = phase === "quiz" && status.answered > 0;
+  const chromeClass = `transition-opacity duration-300 ${
+    focused ? "pointer-events-none invisible opacity-0" : "opacity-100"
+  }`;
+
   return (
     <div className="quiz-shell app-shell relative flex h-dvh flex-col overflow-hidden">
       <div className="relative z-10 mx-auto flex h-full w-full max-w-2xl flex-col p-3">
         <header className="shrink-0">
-          <div className="mb-1.5 flex justify-start">
+          <div className={`mb-1.5 flex justify-start ${chromeClass}`} aria-hidden={focused}>
             <ModeTabs mode={mode} onChange={onModeChange} />
           </div>
-          <div className="flex items-center justify-between gap-3 text-xs text-ink-3">
-            <div className="flex items-center gap-3">
-              {/* 出題中に正解数を出すと、そこで正誤が漏れて小テストにならない */}
-              <span className="tabular-nums">
+          {/* 左右のまとまりは折り返さずに保ち、入りきらない幅ではまとまりごと
+              2行目へ送る（右端の設定ボタンが画面外へはみ出さないように） */}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-ink-3">
+            <div className="flex items-center gap-3 whitespace-nowrap">
+              {/* 出題中に正解数を出すと、そこで正誤が漏れて小テストにならない。
+                  集中中に残す数字はこれだけなので、一段大きく濃くする */}
+              <span className="tabular-nums text-sm text-ink-2">
                 {phase === "result" ? (
                   <>
                     <span className="text-ink-1">{status.score}</span>
@@ -90,7 +106,10 @@ export default function StudyScreen({
               </span>
               <WeeklyGoalBadge status={status.weeklyGoal} />
             </div>
-            <div className="flex items-center gap-3">
+            <div
+              className={`flex items-center gap-3 whitespace-nowrap ${chromeClass}`}
+              aria-hidden={focused}
+            >
               {/* 到達段階だけは色で示す。順序尺度なので明度が単調に上がる
                   連続スケールにしてある（lib/poolTier.ts）。 */}
               <span className="tabular-nums" style={{ color: status.tier.color }}>
