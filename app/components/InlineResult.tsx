@@ -115,6 +115,13 @@ export default function InlineResult({
 
   const { grade, title, message } = evaluation ?? {};
 
+  /**
+   * まれにしか起きない前進（全問正解・プールの解放）だけは、結果発表の
+   * 区切りで大きく祝う。いつ来るか分からないごほうびが没入を支える。
+   * 毎回出すと意味が薄れるので、それ以外のセットでは何も足さない。
+   */
+  const celebrate = score === playLimit || unlockedThisRun > 0;
+
   const { retained, poolSize, gain, levelCounts, totalWords, lap } = retention;
 
   // 解放の条件はプール全体の分布で決まる（このセットの正答率では決まらない）。
@@ -186,14 +193,21 @@ export default function InlineResult({
         <div className="prompt-card p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
-              <motion.span
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: "easeOut", delay: 0.1 }}
-                className="text-3xl text-ink-1"
-              >
-                {grade}
-              </motion.span>
+              <span className="relative inline-block">
+                {celebrate && <Burst />}
+                <motion.span
+                  initial={celebrate ? { opacity: 0, scale: 0.4 } : { opacity: 0, y: 4 }}
+                  animate={celebrate ? { opacity: 1, scale: [0.4, 1.35, 1] } : { opacity: 1, y: 0 }}
+                  transition={
+                    celebrate
+                      ? { duration: 0.6, ease: "easeOut", delay: 0.15 }
+                      : { duration: 0.2, ease: "easeOut", delay: 0.1 }
+                  }
+                  className={`relative inline-block text-3xl ${celebrate ? "text-positive" : "text-ink-1"}`}
+                >
+                  {grade}
+                </motion.span>
+              </span>
               <span className="text-sm text-ink-2">{title}</span>
             </div>
             <div className="text-sm tabular-nums text-ink-3">
@@ -258,9 +272,17 @@ export default function InlineResult({
 
           {/* 解放は稀にしか起きない前進の合図。ここは操作色を使ってよい */}
           {unlockedThisRun > 0 && (
-            <div className="mt-2 rounded-md border-l-2 border-accent bg-surface-2 px-2.5 py-1.5 text-xs text-accent">
-              新たに {unlockedThisRun} 語がプールに追加された
-            </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.5 }}
+              className="mt-2 rounded-md border border-accent bg-surface-2 px-3 py-2.5 text-center"
+            >
+              <div className="text-base text-accent">新しい語が解放された</div>
+              <div className="mt-0.5 text-xs tabular-nums text-ink-2">
+                +{unlockedThisRun} 語がプールに追加
+              </div>
+            </motion.div>
           )}
 
           {message && (
@@ -329,5 +351,33 @@ export default function InlineResult({
         {answerSheet && <div className="mt-4">{answerSheet}</div>}
       </div>
     </motion.div>
+  );
+}
+
+/** 評価の文字から放射状に散る粒。色はトークン（正解色と操作色）だけを使う */
+function Burst() {
+  const count = 12;
+  return (
+    <span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2">
+      {Array.from({ length: count }).map((_, i) => {
+        const angle = (i / count) * Math.PI * 2;
+        const distance = 34 + (i % 3) * 8;
+        return (
+          <motion.span
+            key={i}
+            className={`absolute h-1.5 w-1.5 rounded-full ${i % 2 ? "bg-accent" : "bg-positive"}`}
+            style={{ left: -3, top: -3 }}
+            initial={{ x: 0, y: 0, opacity: 0, scale: 0.5 }}
+            animate={{
+              x: Math.cos(angle) * distance,
+              y: Math.sin(angle) * distance,
+              opacity: [0, 1, 0],
+              scale: [0.5, 1, 0.6],
+            }}
+            transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
+          />
+        );
+      })}
+    </span>
   );
 }
