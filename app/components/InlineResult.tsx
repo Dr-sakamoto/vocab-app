@@ -52,6 +52,10 @@ interface InlineResultProps {
    */
   autoContinue?: boolean;
   onContinue: () => void;
+  /** このセットで落とした語数。0 なら復習の導線を出さない */
+  mistakeCount?: number;
+  /** 落とした語だけを苦手フラッシュで流す */
+  onReviewMistakes?: () => void;
 }
 
 /**
@@ -82,6 +86,8 @@ export default function InlineResult({
   answerSheet,
   autoContinue = true,
   onContinue,
+  mistakeCount = 0,
+  onReviewMistakes,
 }: InlineResultProps) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_CONTINUE_SECONDS);
   /** 出た直後に届く「余りの1打」を受け付けないための錠。時間で自動的に開く */
@@ -307,6 +313,18 @@ export default function InlineResult({
             )}
           </details>
         </div>
+
+        {/* 誤答を読んで自分で次へ押す代わりに、落とした語を自動送りで
+            眺めて復習できるようにする（押すのは1回だけ） */}
+        {mistakeCount > 0 && onReviewMistakes && (
+          <button
+            type="button"
+            onClick={onReviewMistakes}
+            className="btn-quiet mt-3 flex h-11 w-full items-center justify-center rounded-lg text-sm"
+          >
+            落とした {mistakeCount} 語をフラッシュで流す
+          </button>
+        )}
 
         {answerSheet && <div className="mt-4">{answerSheet}</div>}
       </div>

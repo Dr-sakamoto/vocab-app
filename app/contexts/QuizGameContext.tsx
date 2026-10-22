@@ -86,6 +86,8 @@ interface FlashProps {
   mode: StudyMode;
   mistakeOnly: boolean;
   mistakeThreshold: number;
+  /** 結果発表から「落とした語をフラッシュで流す」を選んだときの対象 */
+  focusIndices: number[] | null;
   onModeChange: (mode: StudyMode) => void;
   onOpenSettings: () => void;
 }
@@ -174,6 +176,11 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     FLASH.MISTAKE_THRESHOLD_DEFAULT,
   );
   const [isComposing, setIsComposing] = useState<boolean>(false);
+  /**
+   * 結果発表から苦手フラッシュへ渡す、直前のセットで落とした語。
+   * タブでモードを選び直したら外す（通常の苦手フラッシュに戻る）。
+   */
+  const [reviewIndices, setReviewIndices] = useState<number[] | null>(null);
   /** 同一セッションで連続プレイした回数。多いほどフロー係数が上がる */
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
   /**
@@ -342,6 +349,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   // `/` にしか無いので、結果発表（`/result`）から選んだときはそこへ戻す。
   const handleModeChange = useCallback((next: StudyMode) => {
     setMode(next);
+    setReviewIndices(null);
     if (next === "flash" || next === "mistakeFlash") {
       markDailyPlay();
       if (pathname !== "/") router.push("/");
@@ -702,6 +710,22 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     router,
   ]);
 
+  /**
+   * 結果発表で落とした語だけを、苦手フラッシュで流す。読むだけの復習を
+   * 「自分で次へ押す」より受け身で済ませられるようにする。
+   * テストのタブへ戻ると、同じ結果発表から次のセットへ進める（phase は result のまま）。
+   */
+  const reviewMistakesInFlash = useCallback(() => {
+    const missed = entries
+      .filter((entry) => entry.outcome !== null && !entry.outcome.correct)
+      .map((entry) => entry.poolIndex);
+    if (missed.length === 0) return;
+    setReviewIndices(missed);
+    setMode("mistakeFlash");
+    markDailyPlay();
+    if (pathname !== "/") router.push("/");
+  }, [entries, markDailyPlay, pathname, router]);
+
   // phase は URL が実際に着いてから確定させる（router.push は非同期）。
   // 自分で仕掛けた遷移（pendingPhaseRef）が URL に反映されたらそこで phase を
   // 追従させ、そうでない `/result` への直接アクセスや再読み込みは結果データを
@@ -919,6 +943,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         mode,
         mistakeOnly: mode === "mistakeFlash",
         mistakeThreshold,
+        focusIndices: mode === "mistakeFlash" ? reviewIndices : null,
         onModeChange: handleModeChange,
         onOpenSettings,
       },
@@ -955,6 +980,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           // 切り替わるほうが割り込みになる
           autoContinue: setScore >= setSize,
           onContinue: continueToNextSet,
+          onReviewMistakes: reviewMistakesInFlash,
         },
         onOpenSettings,
       },
@@ -1009,6 +1035,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       lastUnlockCount,
       retention,
       continueToNextSet,
+      reviewIndices,
+      reviewMistakesInFlash,
       isSettingsOpen,
       soundVolume,
       handleSoundVolumeChange,

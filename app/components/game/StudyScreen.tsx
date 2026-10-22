@@ -38,6 +38,8 @@ export interface StudyScreenProps {
     /** 復習する誤答が無いときだけ自動で次のセットへ流す */
     autoContinue: boolean;
     onContinue: () => void;
+    /** 落とした語だけを苦手フラッシュで流す */
+    onReviewMistakes: () => void;
   };
   onOpenSettings: () => void;
 }
@@ -195,6 +197,8 @@ export default function StudyScreen({
                 />
               }
               onContinue={result.onContinue}
+              mistakeCount={status.setSize - status.score}
+              onReviewMistakes={result.onReviewMistakes}
             />
           ) : (
             /* 上詰め固定・スクロールなし。出題中に見えているのは窓の3問だけで、
