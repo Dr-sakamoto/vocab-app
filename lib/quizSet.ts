@@ -1,4 +1,4 @@
-import { applyAnswerToStat } from "./reviewSchedule";
+import { applyAnswerToStat, isHesitantRecall } from "./reviewSchedule";
 import { QuizEntry, SessionAnswer, WordStat } from "./types";
 
 /**
@@ -121,6 +121,7 @@ export function applySetToStats(
       next[entry.poolIndex],
       entry.outcome?.correct ?? false,
       now,
+      isHesitantRecall(entry.recallMs),
     );
   }
   return next;

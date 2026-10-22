@@ -103,4 +103,11 @@ export interface QuizEntry {
   committed: boolean;
   /** 採点が返ってきていれば入る。未確定・採点中は null */
   outcome: GradeOutcome | null;
+  /** 回答欄に初めてカーソルが入った時刻（epoch ミリ秒）。想起時間の起点 */
+  shownAt?: number;
+  /**
+   * 想起時間：shownAt から最初の1文字を打つまで（ミリ秒）。打ち直しても
+   * 最初の値のまま。正解でも長ければ間隔を伸ばさない（lib/reviewSchedule.ts）
+   */
+  recallMs?: number;
 }
