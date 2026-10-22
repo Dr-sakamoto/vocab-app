@@ -77,6 +77,13 @@ import {
   normalizeDailyProgress,
   recordDailyProgress,
 } from "@/lib/dailyProgress";
+import {
+  DailyTimeMap,
+  clampSetDuration,
+  getTodayTime,
+  normalizeDailyTime,
+  recordStudyTime,
+} from "@/lib/studyTime";
 import { ExamPlan, buildExamPlan, getPacePerDay, normalizeExamDate } from "@/lib/examPlan";
 import {
   DailySetsMap,
@@ -239,6 +246,14 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
 
   const [dailyStreak, setDailyStreak] = useState<StreakState>(EMPTY_STREAK);
   const [dailyProgress, setDailyProgress] = useState<DailyProgressMap>(EMPTY_DAILY_PROGRESS);
+  /** 1日の学習時間（端末ローカル）と、締めたセットの所要時間 */
+  const [dailyTime, setDailyTime] = useState<DailyTimeMap>({});
+  const [setDurationMs, setSetDurationMs] = useState<number>(0);
+  /**
+   * いまのセットで最初に打ち始めた時刻。出題画面を開いたまま置いておいた
+   * 時間を数えないよう、セットの組み立てではなく最初の入力から測る。
+   */
+  const setStartedAtRef = useRef<number | null>(null);
   /** 受験予定日（"YYYY-MM-DD"）。端末ローカルだけで持つ */
   const [examDate, setExamDate] = useState<string | null>(null);
   /** 今日何セット解き終えたか（1日の目標用）。端末ローカルだけで持つ */
@@ -436,6 +451,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           normalizeDailyProgress(storage.get(STORAGE_KEYS.DAILY_PROGRESS, EMPTY_DAILY_PROGRESS)),
         );
 
+        setDailyTime(normalizeDailyTime(storage.get<unknown>(STORAGE_KEYS.DAILY_TIME, {})));
         setExamDate(normalizeExamDate(storage.get<unknown>(STORAGE_KEYS.EXAM_DATE, null)));
         setDailySets(normalizeDailySets(storage.get<unknown>(STORAGE_KEYS.DAILY_SETS, {})));
         setDailyGoalState(
@@ -609,6 +625,17 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
 
+    const duration = clampSetDuration(
+      setStartedAtRef.current === null ? 0 : Date.now() - setStartedAtRef.current,
+    );
+    setStartedAtRef.current = null;
+    setSetDurationMs(duration);
+    setDailyTime((prev) => {
+      const next = recordStudyTime(prev, toDateKey(new Date()), duration);
+      storage.set(STORAGE_KEYS.DAILY_TIME, next);
+      return next;
+    });
+
     setDailySets((prev) => {
       const next = recordSetCompleted(prev, toDateKey(new Date()));
       storage.set(STORAGE_KEYS.DAILY_SETS, next);
@@ -701,6 +728,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    * だけでは窓は動かず、まだ答えていない下へフォーカスを送るだけ。
    */
   const submitSlot = useCallback((slot: number) => {
+    // 空欄のまま送るだけのセットでも所要時間を測れるように、確定でも起点を置く
+    if (setStartedAtRef.current === null) setStartedAtRef.current = Date.now();
     commit(slot);
     if (canAdvance(windowStart)) {
       advanceWindow();
@@ -1007,6 +1036,14 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       ? 100
       : Math.max(0, Math.min(100, (answeredCount / setSize) * 100));
 
+  const handleInputChange = useCallback(
+    (slot: number, value: string) => {
+      if (setStartedAtRef.current === null) setStartedAtRef.current = Date.now();
+      setInput(slot, value);
+    },
+    [setInput],
+  );
+
   const registerInput = useCallback((slot: number, element: HTMLInputElement | null) => {
     inputRefs.current[slot] = element;
   }, []);
@@ -1052,7 +1089,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           entries,
           visibleSlots,
           isComposing,
-          onInputChange: setInput,
+          onInputChange: handleInputChange,
           onSubmitSlot: submitSlot,
           onFocusSlot: handleFocusSlot,
           onCompositionStart: () => setIsComposing(true),
@@ -1067,6 +1104,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           // 落とした語がある回は読ませる。読んでいる途中で次のセットへ
           // 切り替わるほうが割り込みになる
           autoContinue: setScore >= setSize,
+          setDurationMs,
+          todayStudyMs: getTodayTime(dailyTime, toDateKey(new Date())),
           examDaysLeft: progress.exam?.daysLeft ?? null,
           // 結果発表に着いた時点で todaySets はこのセットを数え終えている
           goalJustReached: todaySets === dailyGoal,
@@ -1123,7 +1162,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       entries,
       visibleSlots,
       isComposing,
-      setInput,
+      handleInputChange,
+      setDurationMs,
+      dailyTime,
       submitSlot,
       handleFocusSlot,
       registerInput,

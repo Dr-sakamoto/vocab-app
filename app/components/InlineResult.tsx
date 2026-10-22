@@ -6,6 +6,7 @@ import RetentionRing from "./game/RetentionRing";
 import { RETENTION_LEVELS } from "@/lib/retention";
 import { evaluateUnlockGate, unlockProgress } from "@/lib/unlockGate";
 import { GAME } from "@/lib/constants";
+import { formatDayTime, formatSetDuration } from "@/lib/studyTime";
 import { PlayEvaluation } from "@/lib/types";
 
 const AUTO_CONTINUE_SECONDS = 10;
@@ -51,6 +52,9 @@ interface InlineResultProps {
    * 復習の途中で画面が切り替わらないようにする。
    */
   autoContinue?: boolean;
+  /** このセットの所要時間と、今日の学習時間の合計（ミリ秒） */
+  setDurationMs?: number;
+  todayStudyMs?: number;
   /** 試験日まであと何日。未設定なら null */
   examDaysLeft?: number | null;
   /** このセットでちょうど今日の目標セット数に届いたか */
@@ -92,6 +96,8 @@ export default function InlineResult({
   retention,
   answerSheet,
   autoContinue = true,
+  setDurationMs = 0,
+  todayStudyMs = 0,
   examDaysLeft = null,
   goalJustReached = false,
   todaySets = 0,
@@ -249,8 +255,17 @@ export default function InlineResult({
               </span>
               <span className="text-sm text-ink-2">{title}</span>
             </div>
-            <div className="text-sm tabular-nums text-ink-3">
-              {score} / {playLimit} 正解
+            <div className="text-right tabular-nums">
+              <div className="text-sm text-ink-3">
+                {score} / {playLimit} 正解
+              </div>
+              {/* 1セットがどれだけ短いかを毎回見せる。始めるハードルを下げ、
+                  時間の感覚がずれたときの手がかりにもなる */}
+              {setDurationMs > 0 && (
+                <div className="text-[11px] text-ink-3">
+                  {formatSetDuration(setDurationMs)} · 今日 {formatDayTime(todayStudyMs)}
+                </div>
+              )}
             </div>
           </div>
 
