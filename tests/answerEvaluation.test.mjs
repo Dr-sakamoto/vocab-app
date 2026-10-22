@@ -191,3 +191,13 @@ test("does not extend typo tolerance to very short kana words", async () => {
 
   assert.equal(result.status, "wrong");
 });
+
+test("accepts hiragana answers that include auxiliary verbs", async () => {
+  const result = await evaluateAnswer({
+    input: "さけられない",
+    answers: ["避けられない", "不可避の"],
+    partOfSpeech: "adjective",
+  });
+
+  assert.equal(result.status, "alternative");
+});

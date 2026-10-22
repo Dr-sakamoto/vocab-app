@@ -43,6 +43,8 @@ export interface StudyScreenProps {
     /** このセットでちょうど今日の目標に届いた */
     goalJustReached: boolean;
     onContinue: () => void;
+    /** 落とした語だけを苦手フラッシュで流す */
+    onReviewMistakes: () => void;
   };
   onOpenSettings: () => void;
 }
@@ -52,7 +54,7 @@ export interface StudyScreenProps {
  *
  * 画面遷移を持たず、10問の小テストとそのリザルトが問題ウィンドウの中身だけ
  * 入れ替わって見える（連続プレイのフロー状態を切らさない）。
- * 出題中の答案は常に上下2問（上＝採点中／採点済み、下＝回答中）で、
+ * 出題中の答案は常に窓の3問（上＝採点中／採点済み、下のほう＝回答中）で、
  * 1画面に収まってスクロールしない。
  * 回答はPC・スマホともにタイピング固定。日本語IMEで自由記述し、
  * 完全一致で拾えない表記ゆれはAI判定に回す。採点は回答の確定ごとに裏で走り、
@@ -68,17 +70,33 @@ export default function StudyScreen({
   result,
   onOpenSettings,
 }: StudyScreenProps) {
+  /**
+   * 1問目を確定してから結果発表までは、押せるもの（モード切替・進捗・設定）と
+   * 出題に関係しない数字（段階・語数）を隠す。視界に押せるものがあると
+   * 脱線のきっかけになる。セットの区切り（未回答の出題画面と結果発表）では出す。
+   *
+   * 消さずに invisible で隠すのは、レイアウトを動かさないため。消すと
+   * 1問目を送った瞬間に答案がせり上がり、打っている位置がずれる。
+   */
+  const focused = phase === "quiz" && status.answered > 0;
+  const chromeClass = `transition-opacity duration-300 ${
+    focused ? "pointer-events-none invisible opacity-0" : "opacity-100"
+  }`;
+
   return (
     <div className="quiz-shell app-shell relative flex h-dvh flex-col overflow-hidden">
       <div className="relative z-10 mx-auto flex h-full w-full max-w-2xl flex-col p-3">
         <header className="shrink-0">
-          <div className="mb-1.5 flex justify-start">
+          <div className={`mb-1.5 flex justify-start ${chromeClass}`} aria-hidden={focused}>
             <ModeTabs mode={mode} onChange={onModeChange} />
           </div>
-          <div className="flex items-center justify-between gap-3 text-xs text-ink-3">
-            <div className="flex items-center gap-3">
-              {/* 出題中に正解数を出すと、そこで正誤が漏れて小テストにならない */}
-              <span className="tabular-nums">
+          {/* 左右のまとまりは折り返さずに保ち、入りきらない幅ではまとまりごと
+              2行目へ送る（右端の設定ボタンが画面外へはみ出さないように） */}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-ink-3">
+            <div className="flex items-center gap-3 whitespace-nowrap">
+              {/* 出題中に正解数を出すと、そこで正誤が漏れて小テストにならない。
+                  集中中に残す数字はこれだけなので、一段大きく濃くする */}
+              <span className="tabular-nums text-sm text-ink-2">
                 {phase === "result" ? (
                   <>
                     <span className="text-ink-1">{status.score}</span>
@@ -96,7 +114,10 @@ export default function StudyScreen({
               <DailyGoalDots done={status.todaySets} goal={status.dailyGoal} />
               <WeeklyGoalBadge status={status.weeklyGoal} />
             </div>
-            <div className="flex items-center gap-3">
+            <div
+              className={`flex items-center gap-3 whitespace-nowrap ${chromeClass}`}
+              aria-hidden={focused}
+            >
               {/* 到達段階だけは色で示す。順序尺度なので明度が単調に上がる
                   連続スケールにしてある（lib/poolTier.ts）。 */}
               <span className="tabular-nums" style={{ color: status.tier.color }}>
@@ -177,6 +198,7 @@ export default function StudyScreen({
               answerSheet={
                 <QuizSheet
                   {...sheet}
+                  showConfusables
                   visibleSlots={sheet.visibleSlots.filter((slot) => {
                     const outcome = sheet.entries[slot]?.outcome;
                     return outcome != null && !outcome.correct;
@@ -184,12 +206,14 @@ export default function StudyScreen({
                 />
               }
               onContinue={result.onContinue}
+              mistakeCount={status.setSize - status.score}
+              onReviewMistakes={result.onReviewMistakes}
             />
           ) : (
-            /* 上詰め固定・スクロールなし。出題中に見えているのは上下2問だけで、
+            /* 上詰め固定・スクロールなし。出題中に見えているのは窓の3問だけで、
                下の答え合わせが済み次第、窓が1つずつ前へ進む。打っているあいだ
                答案が動かないので、次の設問を目で探し直す手間が要らない。 */
-            <div className="min-h-0 flex-1 overflow-hidden">
+            <div data-quiz-viewport className="min-h-0 flex-1 overflow-hidden">
               <div className="w-full px-1 pt-2 pb-4">
                 <QuizSheet {...sheet} />
 
