@@ -25,6 +25,11 @@ export interface QuizSheetProps {
   showConfusables?: boolean;
 }
 
+/** いま見えている設問のうち、まだ確定していない最初の1問（答えるべき欄） */
+function firstOpenSlot(entries: QuizEntry[], visibleSlots: number[]): number | undefined {
+  return visibleSlots.find((slot) => entries[slot] && !entries[slot].committed);
+}
+
 /**
  * 10問の小テストの答案用紙。出題中は窓の3問ずつ、結果発表では10問ぶんを描く。
  *
@@ -60,6 +65,7 @@ export default function QuizSheet({
   registerInput,
   showConfusables = false,
 }: QuizSheetProps) {
+  const activeSlot = firstOpenSlot(entries, visibleSlots);
   return (
     <ol className="flex flex-col gap-4">
       <AnimatePresence initial={false}>
@@ -95,6 +101,7 @@ export default function QuizSheet({
                   committed={entry.committed}
                   revealed={entry.outcome !== null}
                   outcome={entry.outcome}
+                  autoFocus={slot === activeSlot}
                   confusable={showConfusables ? getConfusable(entry.item.id) : null}
                 />
               </div>
