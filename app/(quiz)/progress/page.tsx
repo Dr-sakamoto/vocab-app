@@ -3,6 +3,7 @@
 import Link from "next/link";
 import RetentionRing from "../../components/game/RetentionRing";
 import DailyGainChart from "../../components/DailyGainChart";
+import ActivityCalendar from "../../components/ActivityCalendar";
 import { RETENTION_LEVELS } from "@/lib/retention";
 import { ProgressProps, useQuizGame } from "../../contexts/QuizGameContext";
 
@@ -16,7 +17,7 @@ import { ProgressProps, useQuizGame } from "../../contexts/QuizGameContext";
  */
 export default function ProgressPage() {
   const { progress } = useQuizGame();
-  const { levelCounts, totalWords, dailyGains, exam } = progress;
+  const { levelCounts, totalWords, dailyGains, exam, calendar } = progress;
 
   const totalMastered = levelCounts[5] ?? 0;
   const latestGain = dailyGains[dailyGains.length - 1]?.gain ?? 0;
@@ -73,6 +74,13 @@ export default function ProgressPage() {
                 <span className="tabular-nums">{(levelCounts[level] ?? 0).toLocaleString()}語</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="prompt-card p-4">
+          <h2 className="text-xs text-ink-3">学習カレンダー（直近8週）</h2>
+          <div className="mt-3">
+            <ActivityCalendar weeks={calendar} />
           </div>
         </div>
 

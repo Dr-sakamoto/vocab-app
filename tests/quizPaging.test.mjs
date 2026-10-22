@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
-import { windowSlots, canAdvanceWindow } from "../lib/quizSet.js";
+import { windowSlots, canAdvanceWindow, QUIZ_WINDOW_SIZE } from "../lib/quizSet.js";
 
-// 10問は1セットのまま、画面に出すのは常に上下2問（上＝採点中／採点済み、
-// 下＝いま回答中）。上下2問という窓は静的なページ送りではなく、
-// 「下を確定していて、かつ上の採点がすでに返っている」ときだけ1つずつ
-// 前へ進む（＝随時採点：答え合わせを見ないまま次の問題が出ることはない）。
+// 10問は1セットのまま、画面に出すのは常に窓の3問（上＝採点中／採点済み、
+// 下のほう＝いま回答中）。窓は静的なページ送りではなく、
+// 「窓の中をすべて確定していて、かつ上の採点がすでに返っている」ときだけ
+// 1つずつ前へ進む（＝随時採点：答え合わせを見ないまま次の問題が出ることはない）。
 //
 // 前提として崩してはいけないのは、採点が回答と並走することのほう。
 // 1問だけを出すと確定した瞬間に打つものが消え、採点の往復が待ち時間として
@@ -35,15 +35,17 @@ function entry({ committed = false, correct = null } = {}) {
   };
 }
 
-test("窓は常に上下2問（末尾では上の1問だけ）", () => {
-  assert.deepEqual(windowSlots(0, 10), [0, 1]);
-  assert.deepEqual(windowSlots(5, 10), [5, 6]);
+test("窓は常に3問（末尾では残りの問題だけ）", () => {
+  assert.equal(QUIZ_WINDOW_SIZE, 3);
+  assert.deepEqual(windowSlots(0, 10), [0, 1, 2]);
+  assert.deepEqual(windowSlots(5, 10), [5, 6, 7]);
+  assert.deepEqual(windowSlots(8, 10), [8, 9]);
   assert.deepEqual(windowSlots(9, 10), [9]);
 });
 
 test("添字が範囲外でも壊れない", () => {
   assert.deepEqual(windowSlots(0, 0), []);
-  assert.deepEqual(windowSlots(-3, 10), [0, 1], "負の添字は先頭へ寄せる");
+  assert.deepEqual(windowSlots(-3, 10), [0, 1, 2], "負の添字は先頭へ寄せる");
   assert.deepEqual(windowSlots(42, 10), [9], "行き過ぎた添字は末尾へ寄せる");
 });
 
@@ -67,12 +69,40 @@ test("下を確定していて、上の採点も済んでいれば進めてよ�
   assert.equal(canAdvanceWindow(entries, 0), true);
 });
 
+test("窓の途中に未確定の設問が残っていれば進めない", () => {
+  const entries = [
+    entry({ committed: true, correct: true }),
+    entry({ committed: false }),
+    entry({ committed: true }),
+  ];
+  assert.equal(canAdvanceWindow(entries, 0), false);
+});
+
+test("窓の3問をすべて確定し、上の採点が済んでいれば進めてよい", () => {
+  const entries = [
+    entry({ committed: true, correct: false }),
+    entry({ committed: true }),
+    entry({ committed: true }),
+    entry({ committed: false }),
+  ];
+  assert.equal(canAdvanceWindow(entries, 0), true);
+});
+
+test("3問目を確定していなければ、上の採点が済んでいても進めない", () => {
+  const entries = [
+    entry({ committed: true, correct: true }),
+    entry({ committed: true }),
+    entry({ committed: false }),
+  ];
+  assert.equal(canAdvanceWindow(entries, 0), false);
+});
+
 test("末尾（下が無い）なら進めない", () => {
   const entries = [entry({ committed: true, correct: true })];
   assert.equal(canAdvanceWindow(entries, 0), false);
 });
 
-test("出題中は窓の2問だけ、結果発表では10問すべてを描く", () => {
+test("出題中は窓の3問だけ、結果発表では10問すべてを描く", () => {
   // 出題ロジックは `/` と `/result` の画面遷移をまたぐ Provider に置かれている。
   const page = readSrc("app/contexts/QuizGameContext.tsx");
   assert.ok(
@@ -148,4 +178,17 @@ test("上の採点が確定後に返ってきた場合も、自動で窓を進�
     ),
     "採点待ちで足止めされたあとの自動進行が無い",
   );
+});
+
+test("縦が詰まった画面でも、回答中の欄は表示枠の下に隠れない", () => {
+  // 窓の3問が収まらない小さい画面（キーボード表示中など）では、回答中の欄が
+  // 見える位置まで表示枠を送る。利用者が自分でスクロールする領域にはしない。
+  const studyScreen = readSrc("app/components/game/StudyScreen.tsx");
+  const row = readSrc("app/components/game/TypingAnswerRow.tsx");
+  assert.ok(
+    studyScreen.includes('data-quiz-viewport className="min-h-0 flex-1 overflow-hidden"'),
+    "答案の表示枠に目印が無い、または手でスクロールできる",
+  );
+  assert.match(row, /closest<HTMLElement>\("\[data-quiz-viewport\]"\)/);
+  assert.match(row, /keepInView\(e\.currentTarget\);/);
 });

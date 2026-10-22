@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   EMPTY_DAILY_PROGRESS,
+  getActivityCalendar,
   getDailyGains,
   mergeDailyProgress,
   normalizeDailyProgress,
@@ -85,4 +86,36 @@ test("getDailyGains reports a negative gain when mastered words drop", () => {
   const map = { "2026-07-06": 10, "2026-07-07": 8 };
   const points = getDailyGains(map, "2026-07-07", 2);
   assert.deepEqual(points[1], { date: "2026-07-07", total: 8, gain: -2 });
+});
+
+// ── 学習カレンダー ───────────────────────────────────────────────────────
+
+test("カレンダーは月曜始まりの週ごとに並び、今日より後のマスは空ける", () => {
+  // 2026-10-21 は水曜
+  const weeks = getActivityCalendar({}, "2026-10-21", 2);
+  assert.equal(weeks.length, 2);
+  assert.equal(weeks[0][0].date, "2026-10-12"); // 前の週の月曜
+  assert.equal(weeks[1][0].date, "2026-10-19"); // 今週の月曜
+  assert.equal(weeks[1][2].date, "2026-10-21"); // 今日（水）
+  assert.equal(weeks[1][3].date, null); // 木曜以降はまだ来ていない
+  assert.equal(weeks[1][6].date, null);
+});
+
+test("記録のある日が学習した日で、伸びは前日比", () => {
+  const map = { "2026-10-19": 10, "2026-10-21": 15 };
+  const [week] = getActivityCalendar(map, "2026-10-21", 1);
+  assert.deepEqual(
+    week.slice(0, 3).map(({ played, gain }) => [played, gain]),
+    [
+      [true, 10],
+      [false, 0],
+      [true, 5],
+    ],
+  );
+});
+
+test("日曜が今日なら最終週は7マスすべて埋まる", () => {
+  const [week] = getActivityCalendar({}, "2026-10-25", 1);
+  assert.equal(week[6].date, "2026-10-25");
+  assert.equal(week.every((day) => day.date !== null), true);
 });

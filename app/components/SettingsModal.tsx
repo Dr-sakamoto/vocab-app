@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import SyncButton from "./SyncButton";
-import { SOUND, FLASH } from "@/lib/constants";
+import { buildReminderIcs, parseReminderTime } from "@/lib/reminderCalendar";
+import { SOUND, FLASH, GAME } from "@/lib/constants";
 import type { CloudSyncController } from "@/app/hooks/useCloudSync";
 
 export interface SettingsModalProps {
@@ -19,6 +21,8 @@ export interface SettingsModalProps {
   onMistakeThresholdChange: (value: number) => void;
   examDate: string | null;
   onExamDateChange: (value: string | null) => void;
+  dailyGoal: number;
+  onDailyGoalChange: (value: number) => void;
   cloudSync: CloudSyncController;
 }
 
@@ -38,6 +42,8 @@ export default function SettingsModal({
   onMistakeThresholdChange,
   examDate,
   onExamDateChange,
+  dailyGoal,
+  onDailyGoalChange,
   cloudSync,
 }: SettingsModalProps) {
   if (!isOpen) return null;
@@ -71,6 +77,25 @@ export default function SettingsModal({
           <p className="mt-1.5 text-[11px] text-ink-3">
             設定すると、進捗ページに残り日数と今のペースでの到達見込みが出る
           </p>
+        </div>
+
+        <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm text-ink-1">1日の目標</span>
+            <span className="text-xs tabular-nums text-ink-3">
+              {dailyGoal} セット
+            </span>
+          </div>
+          <input
+            type="range"
+            min={GAME.DAILY_GOAL_MIN}
+            max={GAME.DAILY_GOAL_MAX}
+            step={1}
+            value={dailyGoal}
+            onChange={(e) => onDailyGoalChange(Number(e.target.value))}
+            aria-label="1日の目標セット数"
+            className="w-full accent-[var(--accent)]"
+          />
         </div>
 
         <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
@@ -176,9 +201,58 @@ export default function SettingsModal({
           </p>
         </div>
 
+        <ReminderSection />
+
         <h3 className="mb-2 text-sm text-ink-2">クラウド同期</h3>
         <SyncButton sync={cloudSync} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * 毎日のリマインダー。プッシュ通知の代わりに、端末のカレンダーへ毎日の予定
+ * （通知つき）として登録してもらう。サーバー不要で、どの端末でも確実に鳴る。
+ */
+function ReminderSection() {
+  const [time, setTime] = useState("20:00");
+  const valid = parseReminderTime(time) !== null;
+
+  const download = () => {
+    if (!valid) return;
+    const ics = buildReminderIcs({ time, url: window.location.origin, now: new Date() });
+    const href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = "vocab-reminder.ics";
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+  };
+
+  return (
+    <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-ink-1">毎日のリマインダー</span>
+        <input
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          aria-label="リマインダーの時刻"
+          className="answer-field rounded-md px-2 py-1 text-sm tabular-nums"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={download}
+        disabled={!valid}
+        className="btn-quiet mt-2 flex h-10 w-full items-center justify-center rounded-lg text-sm"
+      >
+        カレンダーに追加
+      </button>
+      <p className="mt-1.5 text-[11px] text-ink-3">
+        端末のカレンダーに、毎日この時刻の予定（通知つき）として登録する。
+        やめるときはカレンダーから予定を消す
+      </p>
     </div>
   );
 }

@@ -32,6 +32,7 @@ import {
   resolveResultContinue,
   windowSlots,
   summarizeSet,
+  QUIZ_WINDOW_SIZE,
 } from "@/lib/quizSet";
 import { evaluateUnlockGate } from "@/lib/unlockGate";
 import {
@@ -59,14 +60,23 @@ import {
   toDateKey,
 } from "@/lib/streak";
 import {
+  CalendarDay,
   DailyGainPoint,
   DailyProgressMap,
   EMPTY_DAILY_PROGRESS,
+  getActivityCalendar,
   getDailyGains,
   normalizeDailyProgress,
   recordDailyProgress,
 } from "@/lib/dailyProgress";
 import { ExamPlan, buildExamPlan, getPacePerDay, normalizeExamDate } from "@/lib/examPlan";
+import {
+  DailySetsMap,
+  clampDailyGoal,
+  getTodaySets,
+  normalizeDailySets,
+  recordSetCompleted,
+} from "@/lib/dailyGoal";
 import { collectPlayedDates, getWeeklyGoalStatus, WeeklyGoalStatus } from "@/lib/weeklyGoal";
 import { WordStat, PlayEvaluation, SessionAnswer } from "@/lib/types";
 import storage from "@/lib/storage";
@@ -86,6 +96,8 @@ interface FlashProps {
   mode: StudyMode;
   mistakeOnly: boolean;
   mistakeThreshold: number;
+  /** 結果発表から「落とした語をフラッシュで流す」を選んだときの対象 */
+  focusIndices: number[] | null;
   onModeChange: (mode: StudyMode) => void;
   onOpenSettings: () => void;
 }
@@ -105,6 +117,8 @@ interface SettingsProps {
   onMistakeThresholdChange: (value: number) => void;
   examDate: string | null;
   onExamDateChange: (value: string | null) => void;
+  dailyGoal: number;
+  onDailyGoalChange: (value: number) => void;
   cloudSync: ReturnType<typeof useCloudSync>;
 }
 
@@ -117,6 +131,8 @@ export interface ProgressProps {
   dailyGains: DailyGainPoint[];
   /** 試験日が設定されていれば、残り日数と定着ペースの見積もり */
   exam: (ExamPlan & { examDate: string }) | null;
+  /** 直近8週の学習カレンダー（月曜始まり、古い週が先頭） */
+  calendar: CalendarDay[][];
 }
 
 interface QuizGameContextValue {
@@ -135,7 +151,7 @@ const QuizGameContext = createContext<QuizGameContextValue | null>(null);
  * クイズ本編の状態と、結果発表への遷移をまとめて持つプロバイダ。
  *
  * 10問を一枚の小テストとして出し、英単語を見て日本語訳をタイピングで答える。
- * 答案は1セット10問のまま、画面に出るのは常に上下2問（上＝採点中／採点済み、
+ * 答案は1セット10問のまま、画面に出るのは常に窓の3問（上＝採点中／採点済み、
  * 下＝いま回答中）で、スクロールしない。
  * 確定した回答はその場で裏の採点へ回り（完全一致で拾えない表記ゆれは
  * /api/check が形態素解析→AI判定まで1往復で確定させる）、正誤は設問ごとに
@@ -155,7 +171,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   /** 問題ウィンドウの中身。`/` が出題、`/result` が結果発表 */
   const [phase, setPhase] = useState<"quiz" | "result">("quiz");
   /**
-   * 出題中に見せる上下2問の「上」の添字。上＝採点中／採点済み、下＝いま回答中。
+   * 出題中に見せる窓（3問）の「上」の添字。上＝採点中／採点済み、下のほう＝いま回答中。
    * 常に前進のみで、`canAdvance` が許すとき（下を確定していて、上の採点が
    * すでに返っているとき）だけ1つ進む。
    */
@@ -178,6 +194,11 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     FLASH.MISTAKE_THRESHOLD_DEFAULT,
   );
   const [isComposing, setIsComposing] = useState<boolean>(false);
+  /**
+   * 結果発表から苦手フラッシュへ渡す、直前のセットで落とした語。
+   * タブでモードを選び直したら外す（通常の苦手フラッシュに戻る）。
+   */
+  const [reviewIndices, setReviewIndices] = useState<number[] | null>(null);
   /** 同一セッションで連続プレイした回数。多いほどフロー係数が上がる */
   const [flowPlayCount, setFlowPlayCount] = useState<number>(1);
   /**
@@ -212,6 +233,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const [dailyProgress, setDailyProgress] = useState<DailyProgressMap>(EMPTY_DAILY_PROGRESS);
   /** 受験予定日（"YYYY-MM-DD"）。端末ローカルだけで持つ */
   const [examDate, setExamDate] = useState<string | null>(null);
+  /** 今日何セット解き終えたか（1日の目標用）。端末ローカルだけで持つ */
+  const [dailySets, setDailySets] = useState<DailySetsMap>({});
+  const [dailyGoal, setDailyGoalState] = useState<number>(GAME.DAILY_GOAL_DEFAULT);
   const [approvedAnswers, setApprovedAnswers] = useState<Record<string, string[]>>(() => {
     // 旧ID `w${i}` で保存されたキーもここで安定IDへ移行する
     try {
@@ -270,6 +294,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     entries,
     setId,
     startSet,
+    markShown,
     setInput,
     commit,
     canAdvance,
@@ -296,7 +321,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * 効果音は回答ごとには鳴らさない。1問ずつ鳴らすとそこで正誤が漏れて、
-   * 結果発表まで伏せる意味が無くなる。プールが解放される出来にだけ鳴らす。
+   * 結果発表まで伏せる意味が無くなる。セットの締めで、まれにしか起きない
+   * 前進（プールの解放・全問正解）にだけ鳴らす。
    */
   const playCorrectSound = useCallback(() => {
     const sound = correctSoundRef.current;
@@ -340,6 +366,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     storage.set(STORAGE_KEYS.EXAM_DATE, next);
   }, []);
 
+  const handleDailyGoalChange = useCallback((value: number) => {
+    const clamped = clampDailyGoal(value);
+    setDailyGoalState(clamped);
+    storage.set(STORAGE_KEYS.DAILY_GOAL, clamped);
+  }, []);
+
   const handleMistakeThresholdChange = useCallback((value: number) => {
     const clamped = Math.min(
       FLASH.MISTAKE_THRESHOLD_MAX,
@@ -353,6 +385,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   // `/` にしか無いので、結果発表（`/result`）から選んだときはそこへ戻す。
   const handleModeChange = useCallback((next: StudyMode) => {
     setMode(next);
+    setReviewIndices(null);
     if (next === "flash" || next === "mistakeFlash") {
       markDailyPlay();
       if (pathname !== "/") router.push("/");
@@ -360,7 +393,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   }, [markDailyPlay, pathname, router]);
 
   /**
-   * 設問へカーソルを送る。呼び出し元は常にいま見えている窓（上下2問）の
+   * 設問へカーソルを送る。呼び出し元は常にいま見えている窓（3問）の
    * 中の添字だけを渡すので、対象の入力欄はすでに描かれている。
    * 窓そのものを進める（まだ描かれていない下を出す）場合は advanceWindow
    * のほうで flushSync してから focus する。
@@ -396,6 +429,10 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         );
 
         setExamDate(normalizeExamDate(storage.get<unknown>(STORAGE_KEYS.EXAM_DATE, null)));
+        setDailySets(normalizeDailySets(storage.get<unknown>(STORAGE_KEYS.DAILY_SETS, {})));
+        setDailyGoalState(
+          clampDailyGoal(storage.get<unknown>(STORAGE_KEYS.DAILY_GOAL, GAME.DAILY_GOAL_DEFAULT)),
+        );
 
         const savedSpeed = Number(
           storage.get(STORAGE_KEYS.FLASH_SPEED, FLASH.DEFAULT_SPEED_SEC),
@@ -550,6 +587,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
 
+    setDailySets((prev) => {
+      const next = recordSetCompleted(prev, toDateKey(new Date()));
+      storage.set(STORAGE_KEYS.DAILY_SETS, next);
+      return next;
+    });
+
     setSetAnswers(answers);
     setSetScore(score);
     setResultEvaluation(
@@ -573,7 +616,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     );
 
     unlockMore(step);
-    if (step > 0) playCorrectSound();
+    if (step > 0 || score === GAME.PLAY_LIMIT) playCorrectSound();
 
     pendingPhaseRef.current = "result";
     router.push("/result");
@@ -612,7 +655,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    */
   const advanceWindow = useCallback(() => {
     const next = windowStart + 1;
-    const newBottom = next + 1;
+    // 窓の中は確定済みなので、新しく補充される末尾の設問がいま答えるべき欄
+    const newBottom = next + QUIZ_WINDOW_SIZE - 1;
     if (newBottom < entries.length) {
       // preventScroll: true — 直後に始まるコンベアアニメーションの最中に
       // ブラウザ側のスクロール調整が入ると、transform と競合して見た目が
@@ -636,14 +680,15 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    */
   const submitSlot = useCallback((slot: number) => {
     commit(slot);
-    if (slot !== windowStart + 1) {
-      const bottom = windowStart + 1;
-      if (bottom < entries.length && !entries[bottom].committed) {
-        focusQuestion(bottom);
-      }
+    if (canAdvance(windowStart)) {
+      advanceWindow();
       return;
     }
-    if (canAdvance(windowStart)) advanceWindow();
+    // 窓の中でまだ確定していない設問へカーソルを送る（上から順に）
+    const open = windowSlots(windowStart, entries.length).find(
+      (s) => s !== slot && !entries[s].committed,
+    );
+    if (open !== undefined) focusQuestion(open);
   }, [commit, canAdvance, advanceWindow, windowStart, entries, focusQuestion]);
 
   // 下を確定した時点では上の採点がまだ返っていなかった場合のフォールバック。
@@ -655,14 +700,15 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     advanceWindow();
   }, [phase, entries, windowStart, canAdvance, advanceWindow]);
 
-  /** 回答欄にカーソルが入ったら、その設問を読み上げる */
+  /** 回答欄にカーソルが入ったら、その設問を読み上げ、想起時間の計測を始める */
   const handleFocusSlot = useCallback((slot: number) => {
     if (phase !== "quiz") return;
     const entry = entries[slot];
     if (!entry) return;
+    markShown(slot);
     const { target, collocation } = entry.item;
     speakEnglishWord(collocation ? `${target} ${collocation}` : target);
-  }, [entries, phase]);
+  }, [entries, phase, markShown]);
 
   /**
    * リザルトから次の10問セットへ。出題画面（`/`）へ遷移して中身を入れ替える。
@@ -712,6 +758,22 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     router,
   ]);
 
+  /**
+   * 結果発表で落とした語だけを、苦手フラッシュで流す。読むだけの復習を
+   * 「自分で次へ押す」より受け身で済ませられるようにする。
+   * テストのタブへ戻ると、同じ結果発表から次のセットへ進める（phase は result のまま）。
+   */
+  const reviewMistakesInFlash = useCallback(() => {
+    const missed = entries
+      .filter((entry) => entry.outcome !== null && !entry.outcome.correct)
+      .map((entry) => entry.poolIndex);
+    if (missed.length === 0) return;
+    setReviewIndices(missed);
+    setMode("mistakeFlash");
+    markDailyPlay();
+    if (pathname !== "/") router.push("/");
+  }, [entries, markDailyPlay, pathname, router]);
+
   // phase は URL が実際に着いてから確定させる（router.push は非同期）。
   // 自分で仕掛けた遷移（pendingPhaseRef）が URL に反映されたらそこで phase を
   // 追従させ、そうでない `/result` への直接アクセスや再読み込みは結果データを
@@ -737,7 +799,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Enter" || isComposing) return;
       const target = e.target as HTMLElement | null;
-      if (target?.closest?.("button")) return;
+      // ボタンと「くわしく」の開閉（summary）は、それ自体の操作に任せる
+      if (target?.closest?.("button, summary")) return;
 
       if (phase === "result") {
         // 猶予チェックは continueToNextSet 側にある（ボタン経由とも共通化）。
@@ -747,8 +810,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       }
       // 回答欄の中のEnterは行側（TypingAnswerRow）が確定として処理する
       if (target?.closest?.("[data-quiz-answer]")) return;
-      // いま見えている上下2問のうち、まだ確定していないほうへ戻す
-      const slot = [windowStart, windowStart + 1].find(
+      // いま見えている窓のうち、まだ確定していない最初の設問へ戻す
+      const slot = windowSlots(windowStart, entries.length).find(
         (s) => s < entries.length && !entries[s].committed,
       );
       if (slot !== undefined) focusQuestion(slot);
@@ -871,6 +934,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       levelCounts: countRetentionLevels(allIndices, stats),
       totalWords: VOCAB_ITEMS.length,
       dailyGains,
+      calendar: getActivityCalendar(dailyProgress, todayKey, 8),
       exam: examDate
         ? {
             examDate,
@@ -897,12 +961,13 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       ),
     [dailyStreak, dailyProgress],
   );
+  const todaySets = getTodaySets(dailySets, toDateKey(new Date()));
   const setSize = entries.length || GAME.PLAY_LIMIT;
 
   /**
    * 答案のうち、いま画面に出す設問。
    *
-   * 出題中は窓（上＝採点中／採点済み、下＝回答中）の2問だけを出す。10問を
+   * 出題中は窓（上＝採点中／採点済み、下のほう＝回答中）の3問だけを出す。10問を
    * 縦に並べるとスクロールが要り、打つたびに紙が動いて視線が毎問リセット
    * される。結果発表では10問すべてを出す——どの語を落としたかを読む場
    * なので、ここで隠すものは無い。
@@ -941,6 +1006,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         mode,
         mistakeOnly: mode === "mistakeFlash",
         mistakeThreshold,
+        focusIndices: mode === "mistakeFlash" ? reviewIndices : null,
         onModeChange: handleModeChange,
         onOpenSettings,
       },
@@ -953,6 +1019,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           score: setScore,
           progressPct,
           weeklyGoal,
+          todaySets,
+          dailyGoal,
           unlockedWordCount: displayIndices.length,
           totalWords: VOCAB_ITEMS.length,
           tier: currentTier,
@@ -977,7 +1045,10 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           // 切り替わるほうが割り込みになる
           autoContinue: setScore >= setSize,
           examDaysLeft: progress.exam?.daysLeft ?? null,
+          // 結果発表に着いた時点で todaySets はこのセットを数え終えている
+          goalJustReached: todaySets === dailyGoal,
           onContinue: continueToNextSet,
+          onReviewMistakes: reviewMistakesInFlash,
         },
         onOpenSettings,
       },
@@ -1000,6 +1071,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         onMistakeThresholdChange: handleMistakeThresholdChange,
         examDate,
         onExamDateChange: handleExamDateChange,
+        dailyGoal,
+        onDailyGoalChange: handleDailyGoalChange,
         cloudSync,
       },
       progress,
@@ -1013,6 +1086,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       progress,
       currentTier,
       weeklyGoal,
+      todaySets,
+      dailyGoal,
+      handleDailyGoalChange,
       flashSpeed,
       mistakeThreshold,
       handleModeChange,
@@ -1034,6 +1110,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       lastUnlockCount,
       retention,
       continueToNextSet,
+      reviewIndices,
+      reviewMistakesInFlash,
       isSettingsOpen,
       soundVolume,
       handleSoundVolumeChange,

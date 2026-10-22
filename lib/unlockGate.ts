@@ -71,3 +71,22 @@ export function evaluateUnlockGate(levelCounts: number[]): UnlockGate {
     step: meetsAvgLevel && meetsUnlearnedRatio ? GAME.UNLOCK_STEP : 0,
   };
 }
+
+/**
+ * 次の解放までの進み具合（0〜1）。結果発表のゲージ1本に使う。
+ *
+ * 解放には2条件（平均Lv・未正解の割合）が両方要るので、それぞれの達成度
+ * （0〜1）のうち低いほうを全体の進み具合とする。足りていないほうが
+ * ゲージを止めるので、「あと少し」が条件の数式を読まなくても伝わる。
+ *   平均Lv      … 0 → UNLOCK_AVG_LEVEL で 0 → 1
+ *   未正解の割合 … 1 → UNLOCK_UNLEARNED_RATIO で 0 → 1
+ */
+export function unlockProgress(gate: UnlockGate): number {
+  if (gate.poolSize <= 0) return 0;
+  const clamp = (value: number) => Math.min(1, Math.max(0, value));
+  const avg = clamp(gate.avgLevel / GAME.UNLOCK_AVG_LEVEL);
+  const unlearned = clamp(
+    (1 - gate.unlearnedRatio) / (1 - GAME.UNLOCK_UNLEARNED_RATIO),
+  );
+  return Math.min(avg, unlearned);
+}

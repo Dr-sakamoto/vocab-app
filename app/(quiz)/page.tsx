@@ -29,7 +29,8 @@ export default function Page() {
   return (
     <>
       {mode === "flash" || mode === "mistakeFlash" ? (
-        <FlashScreen {...flash} />
+        // 落とした語だけを流す復習と通常のフラッシュは、進行状態を共有しない
+        <FlashScreen key={flash.focusIndices ? "focus" : "pool"} {...flash} />
       ) : (
         <StudyScreen phase={phase} {...study} />
       )}
