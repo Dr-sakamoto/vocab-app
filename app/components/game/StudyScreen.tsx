@@ -40,6 +40,8 @@ export interface StudyScreenProps {
     retention: RetentionSummary;
     /** 復習する誤答が無いときだけ自動で次のセットへ流す */
     autoContinue: boolean;
+    /** 試験日まであと何日。未設定なら null */
+    examDaysLeft: number | null;
     /** このセットでちょうど今日の目標に届いた */
     goalJustReached: boolean;
     onContinue: () => void;
@@ -192,6 +194,7 @@ export default function StudyScreen({
               unlockedThisRun={result.unlockedThisRun}
               retention={result.retention}
               autoContinue={result.autoContinue}
+              examDaysLeft={result.examDaysLeft}
               goalJustReached={result.goalJustReached}
               todaySets={status.todaySets}
               dailyGoal={status.dailyGoal}

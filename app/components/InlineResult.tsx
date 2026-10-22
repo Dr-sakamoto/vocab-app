@@ -51,6 +51,8 @@ interface InlineResultProps {
    * 復習の途中で画面が切り替わらないようにする。
    */
   autoContinue?: boolean;
+  /** 試験日まであと何日。未設定なら null */
+  examDaysLeft?: number | null;
   /** このセットでちょうど今日の目標セット数に届いたか */
   goalJustReached?: boolean;
   /** 今日解き終えたセット数（このセットを含む）と目標セット数 */
@@ -90,6 +92,7 @@ export default function InlineResult({
   retention,
   answerSheet,
   autoContinue = true,
+  examDaysLeft = null,
   goalJustReached = false,
   todaySets = 0,
   dailyGoal = 0,
@@ -195,6 +198,12 @@ export default function InlineResult({
             </span>
           )}
         </button>
+        {/* 遠い目標を、セットの区切りごとに手元の数字で思い出させる */}
+        {examDaysLeft !== null && examDaysLeft >= 0 && (
+          <div className="mt-1.5 text-center text-xs tabular-nums text-ink-3">
+            {examDaysLeft === 0 ? "今日が試験日" : `試験まであと ${examDaysLeft} 日`}
+          </div>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 sm:px-6">

@@ -77,6 +77,7 @@ import {
   normalizeDailyProgress,
   recordDailyProgress,
 } from "@/lib/dailyProgress";
+import { ExamPlan, buildExamPlan, getPacePerDay, normalizeExamDate } from "@/lib/examPlan";
 import {
   DailySetsMap,
   clampDailyGoal,
@@ -122,6 +123,8 @@ interface SettingsProps {
   onFlashSpeedChange: (value: number) => void;
   mistakeThreshold: number;
   onMistakeThresholdChange: (value: number) => void;
+  examDate: string | null;
+  onExamDateChange: (value: string | null) => void;
   dailyGoal: number;
   onDailyGoalChange: (value: number) => void;
   cloudSync: ReturnType<typeof useCloudSync>;
@@ -134,6 +137,8 @@ export interface ProgressProps {
   totalWords: number;
   /** 直近14日ぶんの、定着語数の推移と前日比 */
   dailyGains: DailyGainPoint[];
+  /** 試験日が設定されていれば、残り日数と定着ペースの見積もり */
+  exam: (ExamPlan & { examDate: string }) | null;
   /** 直近8週の学習カレンダー（月曜始まり、古い週が先頭） */
   calendar: CalendarDay[][];
 }
@@ -234,6 +239,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
 
   const [dailyStreak, setDailyStreak] = useState<StreakState>(EMPTY_STREAK);
   const [dailyProgress, setDailyProgress] = useState<DailyProgressMap>(EMPTY_DAILY_PROGRESS);
+  /** 受験予定日（"YYYY-MM-DD"）。端末ローカルだけで持つ */
+  const [examDate, setExamDate] = useState<string | null>(null);
   /** 今日何セット解き終えたか（1日の目標用）。端末ローカルだけで持つ */
   const [dailySets, setDailySets] = useState<DailySetsMap>({});
   const [dailyGoal, setDailyGoalState] = useState<number>(GAME.DAILY_GOAL_DEFAULT);
@@ -361,6 +368,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     storage.set(STORAGE_KEYS.FLASH_SPEED, clamped);
   }, []);
 
+  const handleExamDateChange = useCallback((value: string | null) => {
+    const next = normalizeExamDate(value);
+    setExamDate(next);
+    storage.set(STORAGE_KEYS.EXAM_DATE, next);
+  }, []);
+
   const handleDailyGoalChange = useCallback((value: number) => {
     const clamped = clampDailyGoal(value);
     setDailyGoalState(clamped);
@@ -423,6 +436,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           normalizeDailyProgress(storage.get(STORAGE_KEYS.DAILY_PROGRESS, EMPTY_DAILY_PROGRESS)),
         );
 
+        setExamDate(normalizeExamDate(storage.get<unknown>(STORAGE_KEYS.EXAM_DATE, null)));
         setDailySets(normalizeDailySets(storage.get<unknown>(STORAGE_KEYS.DAILY_SETS, {})));
         setDailyGoalState(
           clampDailyGoal(storage.get<unknown>(STORAGE_KEYS.DAILY_GOAL, GAME.DAILY_GOAL_DEFAULT)),
@@ -936,15 +950,28 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    * こちらは「今どれだけ育っているか」の全体像を見せる場なので、
    * 1セット分の変化を見やすくする InlineResult のプール限定リングとは分母が違う。
    */
-  const progress = useMemo<ProgressProps>(
-    () => ({
+  const progress = useMemo<ProgressProps>(() => {
+    const todayKey = toDateKey(new Date());
+    const dailyGains = getDailyGains(dailyProgress, todayKey, 14);
+    return {
       levelCounts: countRetentionLevels(allIndices, stats),
       totalWords: VOCAB_ITEMS.length,
-      dailyGains: getDailyGains(dailyProgress, toDateKey(new Date()), 14),
-      calendar: getActivityCalendar(dailyProgress, toDateKey(new Date()), 8),
-    }),
-    [allIndices, stats, dailyProgress],
-  );
+      dailyGains,
+      calendar: getActivityCalendar(dailyProgress, todayKey, 8),
+      exam: examDate
+        ? {
+            examDate,
+            ...buildExamPlan({
+              examDate,
+              todayKey,
+              retained: countRetained(allIndices, stats),
+              totalWords: VOCAB_ITEMS.length,
+              pacePerDay: getPacePerDay(dailyGains),
+            }),
+          }
+        : null,
+    };
+  }, [allIndices, stats, dailyProgress, examDate]);
   /**
    * 週次目標の進み具合。プレイ日の記録（playedDates）を足す前の分は、
    * 連続日数と日次の定着記録（セットを解き終えた日）から埋める。
@@ -1040,6 +1067,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           // 落とした語がある回は読ませる。読んでいる途中で次のセットへ
           // 切り替わるほうが割り込みになる
           autoContinue: setScore >= setSize,
+          examDaysLeft: progress.exam?.daysLeft ?? null,
           // 結果発表に着いた時点で todaySets はこのセットを数え終えている
           goalJustReached: todaySets === dailyGoal,
           onContinue: continueToNextSet,
@@ -1064,6 +1092,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         onFlashSpeedChange: handleFlashSpeedChange,
         mistakeThreshold,
         onMistakeThresholdChange: handleMistakeThresholdChange,
+        examDate,
+        onExamDateChange: handleExamDateChange,
         dailyGoal,
         onDailyGoalChange: handleDailyGoalChange,
         cloudSync,
@@ -1113,6 +1143,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       handlePronunciationVolumeChange,
       handleFlashSpeedChange,
       handleMistakeThresholdChange,
+      examDate,
+      handleExamDateChange,
       cloudSync,
     ],
   );

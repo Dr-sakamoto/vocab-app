@@ -19,6 +19,8 @@ export interface SettingsModalProps {
   onFlashSpeedChange: (value: number) => void;
   mistakeThreshold: number;
   onMistakeThresholdChange: (value: number) => void;
+  examDate: string | null;
+  onExamDateChange: (value: string | null) => void;
   dailyGoal: number;
   onDailyGoalChange: (value: number) => void;
   cloudSync: CloudSyncController;
@@ -38,6 +40,8 @@ export default function SettingsModal({
   onFlashSpeedChange,
   mistakeThreshold,
   onMistakeThresholdChange,
+  examDate,
+  onExamDateChange,
   dailyGoal,
   onDailyGoalChange,
   cloudSync,
@@ -57,6 +61,22 @@ export default function SettingsModal({
           >
             ×
           </button>
+        </div>
+
+        <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
+          <label className="flex items-center justify-between gap-3">
+            <span className="text-sm text-ink-1">試験日</span>
+            <input
+              type="date"
+              value={examDate ?? ""}
+              onChange={(e) => onExamDateChange(e.target.value || null)}
+              aria-label="英検の試験日"
+              className="answer-field rounded-md px-2 py-1 text-sm tabular-nums"
+            />
+          </label>
+          <p className="mt-1.5 text-[11px] text-ink-3">
+            設定すると、進捗ページに残り日数と今のペースでの到達見込みが出る
+          </p>
         </div>
 
         <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
