@@ -3,7 +3,7 @@
 import { useState } from "react";
 import SyncButton from "./SyncButton";
 import { buildReminderIcs, parseReminderTime } from "@/lib/reminderCalendar";
-import { SOUND, FLASH } from "@/lib/constants";
+import { SOUND, FLASH, GAME } from "@/lib/constants";
 import type { CloudSyncController } from "@/app/hooks/useCloudSync";
 
 export interface SettingsModalProps {
@@ -19,6 +19,8 @@ export interface SettingsModalProps {
   onFlashSpeedChange: (value: number) => void;
   mistakeThreshold: number;
   onMistakeThresholdChange: (value: number) => void;
+  dailyGoal: number;
+  onDailyGoalChange: (value: number) => void;
   cloudSync: CloudSyncController;
 }
 
@@ -36,6 +38,8 @@ export default function SettingsModal({
   onFlashSpeedChange,
   mistakeThreshold,
   onMistakeThresholdChange,
+  dailyGoal,
+  onDailyGoalChange,
   cloudSync,
 }: SettingsModalProps) {
   if (!isOpen) return null;
@@ -53,6 +57,25 @@ export default function SettingsModal({
           >
             ×
           </button>
+        </div>
+
+        <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm text-ink-1">1日の目標</span>
+            <span className="text-xs tabular-nums text-ink-3">
+              {dailyGoal} セット
+            </span>
+          </div>
+          <input
+            type="range"
+            min={GAME.DAILY_GOAL_MIN}
+            max={GAME.DAILY_GOAL_MAX}
+            step={1}
+            value={dailyGoal}
+            onChange={(e) => onDailyGoalChange(Number(e.target.value))}
+            aria-label="1日の目標セット数"
+            className="w-full accent-[var(--accent)]"
+          />
         </div>
 
         <div className="mb-4 rounded-xl border border-line px-3 py-2.5">
