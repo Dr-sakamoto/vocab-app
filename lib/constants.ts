@@ -63,6 +63,13 @@ export const GAME = {
    * 入る（lib/vocabPool.ts）ので、周回明けは全語が重み付き抽選の対象になる。
    */
   LAP_LOCK_COUNT: 1,
+  /**
+   * 1日の目標セット数（lib/dailyGoal.ts）。1セットは10問なので、既定の3セットでも
+   * 数分で終わる。「これだけやれば今日は勝ち」と思える小ささにする。
+   */
+  DAILY_GOAL_DEFAULT: 3,
+  DAILY_GOAL_MIN: 1,
+  DAILY_GOAL_MAX: 10,
 } as const;
 
 /**
@@ -71,6 +78,16 @@ export const GAME = {
  */
 export const WEEKLY_GOAL = {
   DAYS: 5,
+} as const;
+
+/** 音だけの出題（判定は lib/audioQuestion.ts） */
+export const AUDIO_ONLY = {
+  /** 対象にする定着レベルの下限（lib/retention.ts の Lv）。Lv.3 = 正解2〜3回 */
+  MIN_LEVEL: 3,
+  /** 対象の語が音だけで出る確率 */
+  RATE: 0.2,
+  /** 1セットあたりの上限 */
+  MAX_PER_SET: 2,
 } as const;
 
 export const SOUND = {
@@ -114,6 +131,9 @@ export const STORAGE_KEYS = {
   DAILY_PROGRESS: "vocab-daily-progress",
   LAP_ORDER: "vocab-lap-order",
   DAILY_TIME: "vocab-daily-time",
+  EXAM_DATE: "vocab-exam-date",
+  DAILY_SETS: "vocab-daily-sets",
+  DAILY_GOAL: "vocab-daily-goal",
 } as const;
 
 export const BUTTON_CLASSES = {

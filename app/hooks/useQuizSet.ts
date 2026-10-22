@@ -16,6 +16,8 @@ interface UseQuizSetProps {
 export interface PickedQuestion {
   poolIndex: number;
   item: VocabItem;
+  /** 単語を見せず読み上げだけで出すか */
+  audioOnly?: boolean;
 }
 
 /**
@@ -62,16 +64,30 @@ export function useQuizSet({
   const startSet = useCallback((picked: PickedQuestion[]) => {
     // 飛んでいる採点が新しいセットの設問に紛れ込まないよう番号を進める
     requestIdsRef.current = picked.map((_, slot) => (requestIdsRef.current[slot] ?? 0) + 1);
-    const next = picked.map(({ poolIndex, item }) => ({
+    const next = picked.map(({ poolIndex, item, audioOnly }) => ({
       poolIndex,
       item,
       input: "",
       committed: false,
       outcome: null,
+      ...(audioOnly ? { audioOnly: true } : {}),
     }));
     entriesRef.current = next;
     setEntries(next);
     setSetId((id) => id + 1);
+  }, []);
+
+  /**
+   * 回答欄に初めてカーソルが入った時刻を記録する（想起時間の起点）。
+   * 戻って開き直しても最初の時刻のまま。描画には影響しないので鏡だけ書き換え、
+   * 再描画は起こさない（次の setState で一緒に反映される）。
+   */
+  const markShown = useCallback((slot: number) => {
+    const entry = entriesRef.current[slot];
+    if (!entry || entry.shownAt !== undefined) return;
+    const next = [...entriesRef.current];
+    next[slot] = { ...entry, shownAt: Date.now() };
+    entriesRef.current = next;
   }, []);
 
   const setInput = useCallback((slot: number, value: string) => {
@@ -79,9 +95,14 @@ export function useQuizSet({
     if (!entry || entry.input === value) return;
     // 打ち直したら、その設問について飛んでいる採点の結果は捨てる
     requestIdsRef.current[slot] = (requestIdsRef.current[slot] ?? 0) + 1;
+    // 最初の1文字を打った時点で想起時間を確定する
+    const recallMs =
+      entry.recallMs === undefined && entry.shownAt !== undefined && value.length > 0
+        ? Date.now() - entry.shownAt
+        : entry.recallMs;
     apply((prev) => {
       const next = [...prev];
-      next[slot] = { ...prev[slot], input: value, committed: false, outcome: null };
+      next[slot] = { ...prev[slot], input: value, committed: false, outcome: null, recallMs };
       return next;
     });
   }, [apply]);
@@ -155,6 +176,7 @@ export function useQuizSet({
     entries,
     setId,
     startSet,
+    markShown,
     setInput,
     commit,
     canAdvance,

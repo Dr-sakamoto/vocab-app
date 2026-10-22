@@ -17,6 +17,7 @@ import {
 import { FLASH, STORAGE_KEYS } from "@/lib/constants";
 import storage from "@/lib/storage";
 import { VocabItem, WordStat, PoolTier } from "@/lib/types";
+import { getPromptPhrase } from "@/lib/vocab/phrase";
 import { WeeklyGoalStatus } from "@/lib/weeklyGoal";
 import WeeklyGoalBadge from "../WeeklyGoalBadge";
 
@@ -34,6 +35,12 @@ export interface FlashScreenProps {
   mistakeOnly?: boolean;
   /** mistakeOnly時の出題範囲。wrong数がこの値以上の語を対象にする */
   mistakeThreshold?: number;
+  /**
+   * 直前のセットで落とした語（VOCAB_ITEMS の添字）。渡されたときは苦手度の
+   * しきい値ではなく、この語だけを流す（結果発表の「フラッシュで流す」から）。
+   * 一時的な復習なので、苦手フラッシュの続きの位置は上書きしない。
+   */
+  focusIndices?: number[] | null;
   onModeChange: (mode: StudyMode) => void;
   onOpenSettings: () => void;
 }
@@ -64,22 +71,27 @@ export default function FlashScreen({
   mode,
   mistakeOnly = false,
   mistakeThreshold = FLASH.MISTAKE_THRESHOLD_DEFAULT,
+  focusIndices = null,
   onModeChange,
   onOpenSettings,
 }: FlashScreenProps) {
   // filter系は毎回新しい配列を返すため、useMemo で参照を安定させる。
   // そうしないと下の poolSnapshot 比較が毎レンダー不一致になり無限ループする。
+  const isFocused = focusIndices !== null && focusIndices.length > 0;
   const candidates = useMemo(
     () =>
-      mistakeOnly
-        ? filterMistakeIndices(unlockedIndices, stats, mistakeThreshold)
-        : filterNewIndices(unlockedIndices, stats),
-    [mistakeOnly, unlockedIndices, stats, mistakeThreshold],
+      isFocused
+        ? focusIndices
+        : mistakeOnly
+          ? filterMistakeIndices(unlockedIndices, stats, mistakeThreshold)
+          : filterNewIndices(unlockedIndices, stats),
+    [isFocused, focusIndices, mistakeOnly, unlockedIndices, stats, mistakeThreshold],
   );
 
   // プール内で何語ユニークに見たか、プールを何周したかもまとめて追跡する。
   // 前回終了時の続きから再開できるよう、localStorage に保存した進行状態があれば復元する。
   const [progress, setProgress] = useState<FlashProgress>(() => {
+    if (isFocused) return createFlashProgress(candidates, stats);
     const stored = storage.get<StoredFlashProgress | null>(STORAGE_KEYS.FLASH_PROGRESS, null);
     return (
       fromStoredFlashProgress(stored, candidates, mistakeOnly) ?? createFlashProgress(candidates, stats)
@@ -89,9 +101,9 @@ export default function FlashScreen({
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
   useEffect(() => {
-    if (candidates.length === 0) return;
+    if (candidates.length === 0 || isFocused) return;
     storage.set(STORAGE_KEYS.FLASH_PROGRESS, toStoredFlashProgress(progress, mistakeOnly));
-  }, [progress, mistakeOnly, candidates.length]);
+  }, [progress, mistakeOnly, candidates.length, isFocused]);
 
   // 解放プール自体が変わったら（レベルアップ等）周回カウントをやり直す
   const [poolSnapshot, setPoolSnapshot] = useState(candidates);
@@ -118,7 +130,8 @@ export default function FlashScreen({
   const q = candidates.length > 0 ? vocabItems[index] : undefined;
 
   // 出題と同じく、句動詞は目的語まで含めて読み上げる
-  const spokenText = q ? (q.collocation ? `${q.target} ${q.collocation}` : q.target) : "";
+  const phrase = q ? getPromptPhrase(q) : undefined;
+  const spokenText = q ? (phrase ? `${q.target} ${phrase}` : q.target) : "";
 
   useEffect(() => {
     if (!spokenText) return undefined;
@@ -167,7 +180,12 @@ export default function FlashScreen({
             </div>
           </div>
           <p className="mt-1.5 text-xs text-ink-3">
-            {mistakeOnly ? (
+            {isFocused ? (
+              <>
+                このセットで落とした{" "}
+                <span className="tabular-nums">{candidates.length}</span> 語を流している
+              </>
+            ) : mistakeOnly ? (
               <>
                 苦手度: {mistakeThreshold}回以上間違えて未定着の語が対象・該当{" "}
                 <span className="tabular-nums">{candidates.length}</span> 語
@@ -204,9 +222,9 @@ export default function FlashScreen({
                       </div>
                       <div className="mt-3 break-words font-word text-xl tracking-[0.01em] text-ink-2 sm:text-3xl">
                         {q.target}
-                        {q.collocation && (
+                        {phrase && (
                           <span className="ml-2 inline-block text-sm text-ink-3 sm:text-lg">
-                            [{q.collocation}]
+                            [{phrase}]
                           </span>
                         )}
                       </div>

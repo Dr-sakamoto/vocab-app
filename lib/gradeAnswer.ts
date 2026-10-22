@@ -1,5 +1,6 @@
 import { normalizeAnswer } from "./answerNormalization";
 import { GradeOutcome, VocabItem } from "./types";
+import { getPromptPhrase } from "./vocab/phrase";
 
 /**
  * 1回答ぶんの採点。小テスト形式では、この関数の呼び出しを待たずに
@@ -64,8 +65,11 @@ export async function gradeAnswer({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         input: answerText,
+        // AI判定の集計（lib/aiVerdictLog.ts）で語を特定するため
+        wordId: item.id,
         target: item.target,
-        collocation: item.collocation ?? "",
+        // 句動詞の目的語、無ければ多義語の連語。AIはこの文脈での語義で採点する
+        collocation: getPromptPhrase(item) ?? "",
         answers: item.answers ?? [],
         partOfSpeech: item.partOfSpeech,
       }),

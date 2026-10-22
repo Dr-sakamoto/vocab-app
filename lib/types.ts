@@ -20,6 +20,11 @@ export interface VocabItem {
    * 持たない語のほうが多いので任意。データは lib/vocab/collocations.ts。
    */
   collocation?: string;
+  /**
+   * 句動詞以外の多義語の意味を固定する短い連語（lib/vocab/contextPhrases.ts）。
+   * 表示・読み上げ・AI判定では collocation が無いときにこちらを使う
+   */
+  context?: string;
 }
 
 export interface WordStat {
@@ -103,4 +108,13 @@ export interface QuizEntry {
   committed: boolean;
   /** 採点が返ってきていれば入る。未確定・採点中は null */
   outcome: GradeOutcome | null;
+  /** 単語を見せず読み上げだけで出す設問か（lib/audioQuestion.ts）。採点が返ったら単語を見せる */
+  audioOnly?: boolean;
+  /** 回答欄に初めてカーソルが入った時刻（epoch ミリ秒）。想起時間の起点 */
+  shownAt?: number;
+  /**
+   * 想起時間：shownAt から最初の1文字を打つまで（ミリ秒）。打ち直しても
+   * 最初の値のまま。正解でも長ければ間隔を伸ばさない（lib/reviewSchedule.ts）
+   */
+  recallMs?: number;
 }
