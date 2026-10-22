@@ -20,6 +20,11 @@ export interface VocabItem {
    * 持たない語のほうが多いので任意。データは lib/vocab/collocations.ts。
    */
   collocation?: string;
+  /**
+   * 句動詞以外の多義語の意味を固定する短い連語（lib/vocab/contextPhrases.ts）。
+   * 表示・読み上げ・AI判定では collocation が無いときにこちらを使う
+   */
+  context?: string;
 }
 
 export interface WordStat {

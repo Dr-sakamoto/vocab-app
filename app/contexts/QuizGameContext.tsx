@@ -46,6 +46,7 @@ import {
 } from "@/lib/lapOrder";
 import { getPoolTier } from "@/lib/poolTier";
 import { VOCAB_ITEMS } from "@/lib/vocab";
+import { getPromptPhrase } from "@/lib/vocab/phrase";
 import {
   buildStatsMapFromStoredProgress,
   hydrateStats,
@@ -713,8 +714,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     const entry = entries[slot];
     if (!entry) return;
     markShown(slot);
-    const { target, collocation } = entry.item;
-    speakEnglishWord(collocation ? `${target} ${collocation}` : target);
+    const { target } = entry.item;
+    const phrase = getPromptPhrase(entry.item);
+    speakEnglishWord(phrase ? `${target} ${phrase}` : target);
   }, [entries, phase, markShown]);
 
   /**
