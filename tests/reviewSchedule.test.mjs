@@ -3,8 +3,11 @@ import test from "node:test";
 
 import {
   REVIEW_INTERVAL_DAYS,
+  HESITANT_RECALL_MS,
+  IGNORED_RECALL_MS,
   applyAnswerToStat,
   getRetentionFactor,
+  isHesitantRecall,
   getReviewIntervalMs,
 } from "../lib/reviewSchedule.js";
 import { getQuestionWeight } from "../lib/questionWeight.js";
@@ -187,4 +190,27 @@ test("時刻を持たない既存データに初めて解答しても壊れな�
     lastAnswered: NOW,
     correctStreak: 0,
   });
+});
+
+// ── 想起時間 ──────────────────────────────────────────────────────────────
+
+test("迷って正解した語は連続正解を据え置き、正解数と解答時刻だけ進める", () => {
+  const next = applyAnswerToStat({ correct: 3, wrong: 0, correctStreak: 3 }, true, NOW, true);
+  assert.equal(next.correct, 4);
+  assert.equal(next.correctStreak, 3);
+  assert.equal(next.lastAnswered, NOW);
+});
+
+test("迷って正解しても誤答のようには連続正解をリセットしない", () => {
+  const next = applyAnswerToStat({ correct: 1, wrong: 0, correctStreak: 1 }, true, NOW, true);
+  assert.equal(next.correctStreak, 1);
+});
+
+test("想起時間の判定は閾値の範囲だけを迷いとみなす", () => {
+  assert.equal(isHesitantRecall(undefined), false); // 測れていない
+  assert.equal(isHesitantRecall(1_500), false);
+  assert.equal(isHesitantRecall(HESITANT_RECALL_MS), true);
+  assert.equal(isHesitantRecall(IGNORED_RECALL_MS - 1), true);
+  assert.equal(isHesitantRecall(IGNORED_RECALL_MS), false); // よそ見とみなして使わない
+  assert.equal(isHesitantRecall(Number.NaN), false);
 });

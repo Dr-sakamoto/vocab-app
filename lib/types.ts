@@ -105,4 +105,11 @@ export interface QuizEntry {
   outcome: GradeOutcome | null;
   /** 単語を見せず読み上げだけで出す設問か（lib/audioQuestion.ts）。採点が返ったら単語を見せる */
   audioOnly?: boolean;
+  /** 回答欄に初めてカーソルが入った時刻（epoch ミリ秒）。想起時間の起点 */
+  shownAt?: number;
+  /**
+   * 想起時間：shownAt から最初の1文字を打つまで（ミリ秒）。打ち直しても
+   * 最初の値のまま。正解でも長ければ間隔を伸ばさない（lib/reviewSchedule.ts）
+   */
+  recallMs?: number;
 }

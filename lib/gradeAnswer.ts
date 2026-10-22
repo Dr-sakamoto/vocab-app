@@ -64,6 +64,8 @@ export async function gradeAnswer({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         input: answerText,
+        // AI判定の集計（lib/aiVerdictLog.ts）で語を特定するため
+        wordId: item.id,
         target: item.target,
         collocation: item.collocation ?? "",
         answers: item.answers ?? [],
