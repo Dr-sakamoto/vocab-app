@@ -60,9 +60,11 @@ import {
   toDateKey,
 } from "@/lib/streak";
 import {
+  CalendarDay,
   DailyGainPoint,
   DailyProgressMap,
   EMPTY_DAILY_PROGRESS,
+  getActivityCalendar,
   getDailyGains,
   normalizeDailyProgress,
   recordDailyProgress,
@@ -115,6 +117,8 @@ export interface ProgressProps {
   totalWords: number;
   /** 直近14日ぶんの、定着語数の推移と前日比 */
   dailyGains: DailyGainPoint[];
+  /** 直近8週の学習カレンダー（月曜始まり、古い週が先頭） */
+  calendar: CalendarDay[][];
 }
 
 interface QuizGameContextValue {
@@ -885,6 +889,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       levelCounts: countRetentionLevels(allIndices, stats),
       totalWords: VOCAB_ITEMS.length,
       dailyGains: getDailyGains(dailyProgress, toDateKey(new Date()), 14),
+      calendar: getActivityCalendar(dailyProgress, toDateKey(new Date()), 8),
     }),
     [allIndices, stats, dailyProgress],
   );
