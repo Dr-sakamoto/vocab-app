@@ -11,6 +11,32 @@ const CONFUSABLE_LABELS: Record<ConfusableRelation, string> = {
   opposite: "反対の語",
 };
 
+/** 窓送りのコンベアアニメーション（QuizSheet の 0.32 秒）が落ち着くまで待つ */
+const KEEP_IN_VIEW_DELAY_MS = 350;
+const KEEP_IN_VIEW_MARGIN_PX = 8;
+
+/**
+ * 回答中の欄が答案の表示枠（`data-quiz-viewport`）の下に隠れないよう、
+ * 必要なぶんだけ枠を送る。窓の3問が画面に収まる背の高い画面では何も動かず、
+ * キーボードで縦が詰まった小さい画面でだけ、回答中の欄が見える位置まで送る。
+ * 余白ができれば上へ戻すので、上の答え合わせはできるだけ見えたままになる。
+ * 利用者が自分でスクロールすることはない（枠は overflow-hidden のまま）。
+ */
+function keepInView(input: HTMLInputElement) {
+  window.setTimeout(() => {
+    const viewport = input.closest<HTMLElement>("[data-quiz-viewport]");
+    if (!viewport || document.activeElement !== input) return;
+    const overflow =
+      input.getBoundingClientRect().bottom +
+      KEEP_IN_VIEW_MARGIN_PX -
+      viewport.getBoundingClientRect().bottom;
+    const target = Math.max(0, viewport.scrollTop + overflow);
+    if (Math.abs(target - viewport.scrollTop) >= 1) {
+      viewport.scrollTo({ top: target, behavior: "smooth" });
+    }
+  }, KEEP_IN_VIEW_DELAY_MS);
+}
+
 export interface TypingAnswerRowProps {
   inputRef?: Ref<HTMLInputElement>;
   input: string;
@@ -96,7 +122,10 @@ export default function TypingAnswerRow({
           onKeyDown={handleKeyDown}
           onCompositionStart={onCompositionStart}
           onCompositionEnd={onCompositionEnd}
-          onFocus={onFocus}
+          onFocus={(e) => {
+            keepInView(e.currentTarget);
+            onFocus?.();
+          }}
           readOnly={revealed}
           placeholder={revealed ? "未回答" : "日本語訳（ひらがなのままでOK）"}
           aria-label="日本語訳を入力してください"
