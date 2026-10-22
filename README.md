@@ -5,9 +5,9 @@ AI（Gemini）が判定するため、選択式より「思い出す」負荷を
 
 - 10問を一枚の小テストとして出す。上から順に打って Enter で次の設問へ送るだけ
 - 採点は回答の確定ごとに裏で走り、次の設問を打つ時間と並走する（待ち時間がループから消える）
-- 正誤は1問ずつ出さず、10問ぶんまとめて結果発表で見せる
+- 正誤は設問ごとに採点が返り次第、回答欄の枠色と◯✕でその場に見せる（随時採点）
 - 1回答の判定は `/api/check` の1往復で確定する（完全一致 → 形態素解析＋同義語 → AI判定）
-- 結果発表は画面遷移せず中身だけ入れ替わり、続けて次のセットへ
+- 10問の区切りで結果発表（`/result`）へ移り、間違えた問題だけを読み返して次のセットへ
 - 出題プールは定着ドーナツの分布（平均Lvと未正解の割合）が条件を満たしたときに解放される
 - 進捗は localStorage 保存。メール+パスワードでログインすると Supabase へクラウド同期
 
@@ -37,6 +37,7 @@ npm run build
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 公開鍵 |
 | `GEMINI_API_KEY` | AI判定（`/api/check` のフォールバック）。**サーバー側のみ**。未設定でも形態素解析による判定だけで動作する |
+| `SUPABASE_SERVICE_ROLE_KEY` | AI判定の結果を語×回答ごとに集計する（`ai_answer_verdicts`）。**サーバー側のみ**。未設定なら集計しないだけで採点は変わらない |
 
 ### DBスキーマ
 
@@ -55,3 +56,16 @@ npx supabase@latest db push                       # 未適用分を本番へ適�
 **列を足すコードをマージしたら、同じタイミングで `db push` すること。**
 コードだけ先に出るとクライアントが存在しない列を要求し、同期が失敗する
 （実際に8/20〜8/27、`rejected_answers` の適用漏れで同期が止まった）。
+
+### AIが認めた回答の確認
+
+正解データ（`lib/vocab/`）に足す候補は、SQL Editor で次のように引ける。
+人が確認してから `answers` に追加する。
+
+```sql
+select word_id, answer, hits, last_seen
+from ai_answer_verdicts
+where approved
+order by hits desc
+limit 100;
+```

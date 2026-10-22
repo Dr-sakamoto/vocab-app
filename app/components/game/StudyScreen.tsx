@@ -4,7 +4,9 @@ import Link from "next/link";
 import InlineResult, { RetentionSummary } from "../InlineResult";
 import ModeTabs, { StudyMode } from "../ModeTabs";
 import QuizSheet, { QuizSheetProps } from "./QuizSheet";
+import WeeklyGoalBadge from "../WeeklyGoalBadge";
 import { PlayEvaluation, PoolTier } from "@/lib/types";
+import { WeeklyGoalStatus } from "@/lib/weeklyGoal";
 
 export interface StudyScreenProps {
   phase: "quiz" | "result";
@@ -19,7 +21,7 @@ export interface StudyScreenProps {
     /** 結果発表でだけ使う正解数 */
     score: number;
     progressPct: number;
-    streakDays: number;
+    weeklyGoal: WeeklyGoalStatus;
     /** 実際に出題対象となっている語数（解放カウンタではなくプールの実数） */
     unlockedWordCount: number;
     totalWords: number;
@@ -45,7 +47,7 @@ export interface StudyScreenProps {
  *
  * 画面遷移を持たず、10問の小テストとそのリザルトが問題ウィンドウの中身だけ
  * 入れ替わって見える（連続プレイのフロー状態を切らさない）。
- * 出題中の答案は常に上下2問（上＝採点中／採点済み、下＝回答中）で、
+ * 出題中の答案は常に窓の3問（上＝採点中／採点済み、下のほう＝回答中）で、
  * 1画面に収まってスクロールしない。
  * 回答はPC・スマホともにタイピング固定。日本語IMEで自由記述し、
  * 完全一致で拾えない表記ゆれはAI判定に回す。採点は回答の確定ごとに裏で走り、
@@ -86,9 +88,7 @@ export default function StudyScreen({
                   </>
                 )}
               </span>
-              {status.streakDays > 0 && (
-                <span className="tabular-nums">連続 {status.streakDays} 日</span>
-              )}
+              <WeeklyGoalBadge status={status.weeklyGoal} />
             </div>
             <div className="flex items-center gap-3">
               {/* 到達段階だけは色で示す。順序尺度なので明度が単調に上がる
@@ -168,6 +168,7 @@ export default function StudyScreen({
               answerSheet={
                 <QuizSheet
                   {...sheet}
+                  showConfusables
                   visibleSlots={sheet.visibleSlots.filter((slot) => {
                     const outcome = sheet.entries[slot]?.outcome;
                     return outcome != null && !outcome.correct;
@@ -177,10 +178,10 @@ export default function StudyScreen({
               onContinue={result.onContinue}
             />
           ) : (
-            /* 上詰め固定・スクロールなし。出題中に見えているのは上下2問だけで、
+            /* 上詰め固定・スクロールなし。出題中に見えているのは窓の3問だけで、
                下の答え合わせが済み次第、窓が1つずつ前へ進む。打っているあいだ
                答案が動かないので、次の設問を目で探し直す手間が要らない。 */
-            <div className="min-h-0 flex-1 overflow-hidden">
+            <div data-quiz-viewport className="min-h-0 flex-1 overflow-hidden">
               <div className="w-full px-1 pt-2 pb-4">
                 <QuizSheet {...sheet} />
 

@@ -4,11 +4,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import QuestionCard from "./QuestionCard";
 import TypingAnswerRow from "./TypingAnswerRow";
 import { QuizEntry } from "@/lib/types";
+import { getConfusable } from "@/lib/vocab";
 
 export interface QuizSheetProps {
   entries: QuizEntry[];
   /**
-   * いま画面に出す設問の添字。出題中は上下2問ぶん（lib/quizSet.ts の
+   * いま画面に出す設問の添字。出題中は窓の3問ぶん（lib/quizSet.ts の
    * windowSlots）、結果発表では10問すべて。番号は添字から出すので、窓が
    * 進んでも「3」「4」と1セットの通し番号が続く。
    */
@@ -20,6 +21,8 @@ export interface QuizSheetProps {
   onCompositionStart: () => void;
   onCompositionEnd: () => void;
   registerInput: (slot: number, element: HTMLInputElement | null) => void;
+  /** 誤答に紛らわしい語を添えるか。結果発表でだけ true */
+  showConfusables?: boolean;
 }
 
 /** いま見えている設問のうち、まだ確定していない最初の1問（答えるべき欄） */
@@ -28,16 +31,16 @@ function firstOpenSlot(entries: QuizEntry[], visibleSlots: number[]): number | u
 }
 
 /**
- * 10問の小テストの答案用紙。出題中は上下2問ずつ、結果発表では10問ぶんを描く。
+ * 10問の小テストの答案用紙。出題中は窓の3問ずつ、結果発表では10問ぶんを描く。
  *
  * 画面遷移を挟まず、上から順に打って Enter で next へ送るだけにする。
  * 確定した回答は裏で採点に回り、正誤は設問ごとに採点が返り次第見せる
  * （随時採点＝`entry.outcome !== null` を revealed とする）。採点の待ち時間は
  * ユーザーのタイピングと重なって消える。
  *
- * 出題中に見せる数を上下2問に絞るのは、打っているあいだ紙を動かさないため。
+ * 出題中に見せる数を3問に絞るのは、打っているあいだ紙を動かさないため。
  * 10問を縦に並べるとスマホではスクロールが要り、1問送るたびに画面が
- * ずれる。2問なら収まるので、答案は「入れ替わる」だけで動かない。
+ * ずれる。3問なら収まるので、答案は「入れ替わる」だけで動かない。
  *
  * 窓が進むとき（下が上へ繰り上がり、新しい設問が下に補充される）は
  * 瞬間的な差し替えにせず、コンベアのように動かす。上だった設問は
@@ -60,6 +63,7 @@ export default function QuizSheet({
   onCompositionStart,
   onCompositionEnd,
   registerInput,
+  showConfusables = false,
 }: QuizSheetProps) {
   const activeSlot = firstOpenSlot(entries, visibleSlots);
   return (
@@ -98,6 +102,7 @@ export default function QuizSheet({
                   revealed={entry.outcome !== null}
                   outcome={entry.outcome}
                   autoFocus={slot === activeSlot}
+                  confusable={showConfusables ? getConfusable(entry.item.id) : null}
                 />
               </div>
             </motion.li>

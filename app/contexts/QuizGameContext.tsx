@@ -32,6 +32,7 @@ import {
   resolveResultContinue,
   windowSlots,
   summarizeSet,
+  QUIZ_WINDOW_SIZE,
 } from "@/lib/quizSet";
 import { evaluateUnlockGate } from "@/lib/unlockGate";
 import {
@@ -54,7 +55,6 @@ import { GAME, STORAGE_KEYS, FLASH, SOUND } from "@/lib/constants";
 import {
   EMPTY_STREAK,
   StreakState,
-  getDisplayStreak,
   normalizeStreak,
   recordPlay,
   toDateKey,
@@ -67,6 +67,7 @@ import {
   normalizeDailyProgress,
   recordDailyProgress,
 } from "@/lib/dailyProgress";
+import { collectPlayedDates, getWeeklyGoalStatus, WeeklyGoalStatus } from "@/lib/weeklyGoal";
 import { WordStat, PlayEvaluation, SessionAnswer } from "@/lib/types";
 import storage from "@/lib/storage";
 import { StudyScreenProps } from "../components/game/StudyScreen";
@@ -80,7 +81,7 @@ interface FlashProps {
   unlockedIndices: number[];
   totalWords: number;
   tier: ReturnType<typeof getPoolTier>;
-  streakDays: number;
+  weeklyGoal: WeeklyGoalStatus;
   speedSeconds: number;
   mode: StudyMode;
   mistakeOnly: boolean;
@@ -130,7 +131,7 @@ const QuizGameContext = createContext<QuizGameContextValue | null>(null);
  * クイズ本編の状態と、結果発表への遷移をまとめて持つプロバイダ。
  *
  * 10問を一枚の小テストとして出し、英単語を見て日本語訳をタイピングで答える。
- * 答案は1セット10問のまま、画面に出るのは常に上下2問（上＝採点中／採点済み、
+ * 答案は1セット10問のまま、画面に出るのは常に窓の3問（上＝採点中／採点済み、
  * 下＝いま回答中）で、スクロールしない。
  * 確定した回答はその場で裏の採点へ回り（完全一致で拾えない表記ゆれは
  * /api/check が形態素解析→AI判定まで1往復で確定させる）、正誤は設問ごとに
@@ -150,7 +151,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   /** 問題ウィンドウの中身。`/` が出題、`/result` が結果発表 */
   const [phase, setPhase] = useState<"quiz" | "result">("quiz");
   /**
-   * 出題中に見せる上下2問の「上」の添字。上＝採点中／採点済み、下＝いま回答中。
+   * 出題中に見せる窓（3問）の「上」の添字。上＝採点中／採点済み、下のほう＝いま回答中。
    * 常に前進のみで、`canAdvance` が許すとき（下を確定していて、上の採点が
    * すでに返っているとき）だけ1つ進む。
    */
@@ -263,6 +264,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     entries,
     setId,
     startSet,
+    markShown,
     setInput,
     commit,
     canAdvance,
@@ -347,7 +349,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   }, [markDailyPlay, pathname, router]);
 
   /**
-   * 設問へカーソルを送る。呼び出し元は常にいま見えている窓（上下2問）の
+   * 設問へカーソルを送る。呼び出し元は常にいま見えている窓（3問）の
    * 中の添字だけを渡すので、対象の入力欄はすでに描かれている。
    * 窓そのものを進める（まだ描かれていない下を出す）場合は advanceWindow
    * のほうで flushSync してから focus する。
@@ -597,7 +599,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    */
   const advanceWindow = useCallback(() => {
     const next = windowStart + 1;
-    const newBottom = next + 1;
+    // 窓の中は確定済みなので、新しく補充される末尾の設問がいま答えるべき欄
+    const newBottom = next + QUIZ_WINDOW_SIZE - 1;
     if (newBottom < entries.length) {
       // preventScroll: true — 直後に始まるコンベアアニメーションの最中に
       // ブラウザ側のスクロール調整が入ると、transform と競合して見た目が
@@ -621,14 +624,15 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    */
   const submitSlot = useCallback((slot: number) => {
     commit(slot);
-    if (slot !== windowStart + 1) {
-      const bottom = windowStart + 1;
-      if (bottom < entries.length && !entries[bottom].committed) {
-        focusQuestion(bottom);
-      }
+    if (canAdvance(windowStart)) {
+      advanceWindow();
       return;
     }
-    if (canAdvance(windowStart)) advanceWindow();
+    // 窓の中でまだ確定していない設問へカーソルを送る（上から順に）
+    const open = windowSlots(windowStart, entries.length).find(
+      (s) => s !== slot && !entries[s].committed,
+    );
+    if (open !== undefined) focusQuestion(open);
   }, [commit, canAdvance, advanceWindow, windowStart, entries, focusQuestion]);
 
   // 下を確定した時点では上の採点がまだ返っていなかった場合のフォールバック。
@@ -640,14 +644,15 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     advanceWindow();
   }, [phase, entries, windowStart, canAdvance, advanceWindow]);
 
-  /** 回答欄にカーソルが入ったら、その設問を読み上げる */
+  /** 回答欄にカーソルが入ったら、その設問を読み上げ、想起時間の計測を始める */
   const handleFocusSlot = useCallback((slot: number) => {
     if (phase !== "quiz") return;
     const entry = entries[slot];
     if (!entry) return;
+    markShown(slot);
     const { target, collocation } = entry.item;
     speakEnglishWord(collocation ? `${target} ${collocation}` : target);
-  }, [entries, phase]);
+  }, [entries, phase, markShown]);
 
   /**
    * リザルトから次の10問セットへ。出題画面（`/`）へ遷移して中身を入れ替える。
@@ -722,7 +727,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Enter" || isComposing) return;
       const target = e.target as HTMLElement | null;
-      if (target?.closest?.("button")) return;
+      // ボタンと「くわしく」の開閉（summary）は、それ自体の操作に任せる
+      if (target?.closest?.("button, summary")) return;
 
       if (phase === "result") {
         // 猶予チェックは continueToNextSet 側にある（ボタン経由とも共通化）。
@@ -732,8 +738,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       }
       // 回答欄の中のEnterは行側（TypingAnswerRow）が確定として処理する
       if (target?.closest?.("[data-quiz-answer]")) return;
-      // いま見えている上下2問のうち、まだ確定していないほうへ戻す
-      const slot = [windowStart, windowStart + 1].find(
+      // いま見えている窓のうち、まだ確定していない最初の設問へ戻す
+      const slot = windowSlots(windowStart, entries.length).find(
         (s) => s < entries.length && !entries[s].committed,
       );
       if (slot !== undefined) focusQuestion(slot);
@@ -812,15 +818,26 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const currentTier = useMemo(() => getPoolTier(unlockedPoolSize), [unlockedPoolSize]);
 
   /**
+   * 画面に出す「出題プール」。周回出題の期間中は全語をシャッフル順で流すので、
+   * 出題対象は解放プールではなく収録語全体になる。解放プール（上位N語 ∪
+   * 挑戦済みの語）を分母にすると、周回で触れた語の分だけ毎セット分母が増え、
+   * 定着の割合が伸びないうえ、ヘッダーの語数も実際の出題範囲と食い違う。
+   * 周回中かどうかは復元前（null）も周回の最初として扱う。
+   */
+  const lapLocked = lapState ? isLapLocked(lapState, GAME.LAP_LOCK_COUNT) : true;
+  const displayIndices = lapLocked ? allIndices : unlockedIndices;
+
+  /**
    * 定着ドーナツの中身。新しい保存データは持たず、既存の correct/wrong 統計と
    * そのセットの回答だけから出す（＝同期済みのデータだけで完結する）。
+   * 分母は displayIndices（周回中は収録語全体）。
    */
   const retention = useMemo(
     () => ({
-      retained: countRetained(unlockedIndices, stats),
-      poolSize: unlockedIndices.length,
+      retained: countRetained(displayIndices, stats),
+      poolSize: displayIndices.length,
       gain: countRetentionGain(setAnswers),
-      levelCounts: countRetentionLevels(unlockedIndices, stats),
+      levelCounts: countRetentionLevels(displayIndices, stats),
       totalWords: VOCAB_ITEMS.length,
       lap:
         resultFromLap && lapState
@@ -831,7 +848,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
             }
           : undefined,
     }),
-    [unlockedIndices, stats, setAnswers, resultFromLap, lapState],
+    [displayIndices, stats, setAnswers, resultFromLap, lapState],
   );
   /**
    * 進捗欄（ドーナツ＋毎日の伸び率）の中身。解放プールではなく収録語全体を見る。
@@ -846,13 +863,24 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     }),
     [allIndices, stats, dailyProgress],
   );
-  const displayStreak = getDisplayStreak(dailyStreak, toDateKey(new Date()));
+  /**
+   * 週次目標の進み具合。プレイ日の記録（playedDates）を足す前の分は、
+   * 連続日数と日次の定着記録（セットを解き終えた日）から埋める。
+   */
+  const weeklyGoal = useMemo(
+    () =>
+      getWeeklyGoalStatus(
+        collectPlayedDates(dailyStreak, Object.keys(dailyProgress)),
+        toDateKey(new Date()),
+      ),
+    [dailyStreak, dailyProgress],
+  );
   const setSize = entries.length || GAME.PLAY_LIMIT;
 
   /**
    * 答案のうち、いま画面に出す設問。
    *
-   * 出題中は窓（上＝採点中／採点済み、下＝回答中）の2問だけを出す。10問を
+   * 出題中は窓（上＝採点中／採点済み、下のほう＝回答中）の3問だけを出す。10問を
    * 縦に並べるとスクロールが要り、打つたびに紙が動いて視線が毎問リセット
    * される。結果発表では10問すべてを出す——どの語を落としたかを読む場
    * なので、ここで隠すものは無い。
@@ -886,7 +914,7 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
         unlockedIndices,
         totalWords: VOCAB_ITEMS.length,
         tier: currentTier,
-        streakDays: displayStreak,
+        weeklyGoal,
         speedSeconds: flashSpeed,
         mode,
         mistakeOnly: mode === "mistakeFlash",
@@ -902,8 +930,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
           setSize,
           score: setScore,
           progressPct,
-          streakDays: displayStreak,
-          unlockedWordCount: unlockedIndices.length,
+          weeklyGoal,
+          unlockedWordCount: displayIndices.length,
           totalWords: VOCAB_ITEMS.length,
           tier: currentTier,
         },
@@ -956,9 +984,10 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       mode,
       stats,
       unlockedIndices,
+      displayIndices,
       progress,
       currentTier,
-      displayStreak,
+      weeklyGoal,
       flashSpeed,
       mistakeThreshold,
       handleModeChange,

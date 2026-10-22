@@ -1,4 +1,4 @@
-import { applyAnswerToStat } from "./reviewSchedule";
+import { applyAnswerToStat, isHesitantRecall } from "./reviewSchedule";
 import { QuizEntry, SessionAnswer, WordStat } from "./types";
 
 /**
@@ -7,36 +7,45 @@ import { QuizEntry, SessionAnswer, WordStat } from "./types";
  */
 
 /**
- * 出題中に画面へ出す設問の添字。`windowStart`（上）とその次（下）の2問だけを
- * 返す（末尾では上の1問だけになる）。
+ * 出題中に同時に見せる設問の数。
  *
- * 10問は1セットのまま、常に見えているのは上下2問。上は採点中／採点済み、
- * 下がいま回答中の設問にあたる。窓は `canAdvanceWindow` が許すときだけ
- * 1つずつ前へ進み、静的な2問区切りのページ送りはしない。
+ * 窓は「いちばん上の採点が返る」まで進めない。2問だと、上の採点を待つあいだに
+ * 打てるのは下の1問だけで、AI判定の往復が長いとそこで手が止まっていた。
+ * 3問にすると2問先まで打ち進められ、採点の往復がタイピングの裏に隠れる。
+ */
+export const QUIZ_WINDOW_SIZE = 3;
+
+/**
+ * 出題中に画面へ出す設問の添字。`windowStart`（上）から QUIZ_WINDOW_SIZE 問を
+ * 返す（末尾では残りの問題だけになる）。
+ *
+ * 10問は1セットのまま、常に見えているのは窓の中の数問。上は採点中／採点済み、
+ * 下のほうがいま回答中の設問にあたる。窓は `canAdvanceWindow` が許すときだけ
+ * 1つずつ前へ進み、静的なページ送りはしない。
  */
 export function windowSlots(windowStart: number, total: number): number[] {
   if (total <= 0) return [];
   const clamped = Math.min(Math.max(Math.floor(windowStart), 0), total - 1);
-  const slots = [clamped];
-  if (clamped + 1 < total) slots.push(clamped + 1);
+  const slots: number[] = [];
+  for (let slot = clamped; slot < Math.min(clamped + QUIZ_WINDOW_SIZE, total); slot += 1) {
+    slots.push(slot);
+  }
   return slots;
 }
 
 /**
- * 窓（`windowStart`＝上、その次＝下）を1つ前へ進めてよいかを判定する。
+ * 窓（`windowStart`＝上）を1つ前へ進めてよいかを判定する。
  *
- * 進めてよいのは「下を確定していて」「かつ上の採点がすでに返っている」とき
- * だけ。上の答え合わせを一度も見せないまま下が上に繰り上がる（＝答え合わせを
- * 見ずに次の問題が出る）ことがないようにするための唯一の条件。
- * 下がまだ無い（末尾）ときは進めない。
+ * 進めてよいのは「窓の中をすべて確定していて」「かつ上の採点がすでに返って
+ * いる」ときだけ。上の答え合わせを一度も見せないまま窓の外へ押し出す
+ * （＝答え合わせを見ずに次の問題が出る）ことがないようにするための条件。
+ * 上の次の設問が無い（末尾）ときは進めない。
  */
 export function canAdvanceWindow(entries: QuizEntry[], windowStart: number): boolean {
   const top = entries[windowStart];
-  const bottom = entries[windowStart + 1];
-  if (!top || !bottom) return false;
+  if (!top || !entries[windowStart + 1]) return false;
   if (!top.committed || top.outcome === null) return false;
-  if (!bottom.committed) return false;
-  return true;
+  return windowSlots(windowStart, entries.length).every((slot) => entries[slot].committed);
 }
 
 export interface ResultContinueGate {
@@ -121,6 +130,7 @@ export function applySetToStats(
       next[entry.poolIndex],
       entry.outcome?.correct ?? false,
       now,
+      isHesitantRecall(entry.recallMs),
     );
   }
   return next;
