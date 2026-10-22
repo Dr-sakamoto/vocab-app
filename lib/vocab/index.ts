@@ -3,6 +3,7 @@ import { QUESTIONS as advanced } from "./advanced";
 import { QUESTIONS as staples } from "./staples";
 import { COLLOCATIONS } from "./collocations";
 import { CONTEXT_PHRASES } from "./contextPhrases";
+import { CONFUSABLES, Confusable } from "./confusables";
 import { DIFFICULTY_ORDER } from "./difficultyOrder";
 import { LEGACY_WORD_ID_ORDER } from "./legacyWordIds";
 import { parseLegacyWordId, toWordId } from "./wordId";
@@ -85,3 +86,40 @@ export function resolveWordId(rawId: string): string | null {
 export { toWordId } from "./wordId";
 export { COLLOCATIONS } from "./collocations";
 export { CONTEXT_PHRASES } from "./contextPhrases";
+
+const INDEX_BY_TARGET = new Map<string, number>();
+VOCAB_ITEMS.forEach((item, i) => {
+  if (!INDEX_BY_TARGET.has(item.target)) INDEX_BY_TARGET.set(item.target, i);
+});
+
+/**
+ * 逆向きの紛らわしい語。CONFUSABLES の相手が収録語にあり、相手側に
+ * 自前の記載が無ければ、元の語とその代表的な訳を相手側へ添える
+ * （evaluate → evacuate を書けば evacuate → evaluate も出る）。
+ */
+const REVERSE_CONFUSABLES: Map<string, Confusable> = (() => {
+  const reverse = new Map<string, Confusable>();
+  for (const [id, confusable] of Object.entries(CONFUSABLES)) {
+    const source = INDEX_BY_ID.get(id);
+    const partner = INDEX_BY_TARGET.get(confusable.word);
+    if (source === undefined || partner === undefined) continue;
+    const partnerId = VOCAB_ITEMS[partner].id;
+    if (CONFUSABLES[partnerId] || reverse.has(partnerId)) continue;
+    const { target, answers } = VOCAB_ITEMS[source];
+    reverse.set(partnerId, {
+      word: target,
+      // 「を描写する」「に捧げる」のような目的語の助詞は、語だけを並べる
+      // この場では読みにくいので落とす
+      meaning: (answers[0] ?? "").replace(/^[をに]/, ""),
+      relation: confusable.relation,
+    });
+  }
+  return reverse;
+})();
+
+/** その語の紛らわしい語（lib/vocab/confusables.ts）。無ければ null */
+export function getConfusable(id: string): Confusable | null {
+  return CONFUSABLES[id] ?? REVERSE_CONFUSABLES.get(id) ?? null;
+}
+
+export type { Confusable } from "./confusables";

@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import RetentionRing from "./game/RetentionRing";
 import { RETENTION_LEVELS } from "@/lib/retention";
-import { evaluateUnlockGate } from "@/lib/unlockGate";
+import { evaluateUnlockGate, unlockProgress } from "@/lib/unlockGate";
 import { GAME } from "@/lib/constants";
 import { PlayEvaluation } from "@/lib/types";
 
@@ -120,6 +120,33 @@ export default function InlineResult({
   const shownAvgLevel = (Math.floor(gate.avgLevel * 10) / 10).toFixed(1);
   const shownUnlearnedPct = Math.ceil(gate.unlearnedRatio * 100);
 
+  // 結果発表のゲージは1本だけ。周回中は周回の進み、そのあとは次の解放までの進み
+  const gauge: { label: string; note: string; value: number } | null = lap
+    ? lap.completedLaps >= lap.lockCount
+      ? {
+          label: `${lap.lockCount} 周完了`,
+          note: "次のセットから苦手に合わせた出題",
+          value: 1,
+        }
+      : lap.cursor === 0 && lap.completedLaps > 0
+        ? {
+            label: `${lap.completedLaps} 周目を完走`,
+            note: `残り ${lap.lockCount - lap.completedLaps} 周`,
+            value: 1,
+          }
+        : {
+            label: `周回 ${lap.completedLaps + 1} / ${lap.lockCount} 周目`,
+            note: `${lap.cursor.toLocaleString()} / ${totalWords.toLocaleString()} 語`,
+            value: totalWords > 0 ? lap.cursor / totalWords : 0,
+          }
+    : poolSize > 0 && poolSize < totalWords
+      ? {
+          label: "次の解放まで",
+          note: gate.step > 0 ? "解放" : `${Math.floor(unlockProgress(gate) * 100)}%`,
+          value: unlockProgress(gate),
+        }
+      : null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -168,18 +195,15 @@ export default function InlineResult({
             </div>
           </div>
 
-          {/* セットの成果は「解放プールのうち何語が定着したか」で見せる。
-              プールが解放されると分母が増えて割合は下がりうるので、
-              割合の隣に必ず実数の増減（+N語）を添える。 */}
+          {/* 一目で読む層は3つだけ：評価・このセットで増えた定着語・次の解放
+              までのゲージ。凡例や条件の内訳は「くわしく」に畳む。10問ごとに
+              必ず通る画面なので、読む量がそのままテンポの重さになる。 */}
           <div className="mt-2 flex items-center gap-3 rounded-md bg-surface-2 px-3 py-2">
             <RetentionRing levelCounts={levelCounts} poolSize={poolSize} />
             <div className="min-w-0">
-              <div className="tabular-nums text-xs text-ink-3">
-                定着 {retained.toLocaleString()} / 出題プール{" "}
-                {poolSize.toLocaleString()} 語
-              </div>
+              {/* 割合は解放で分母が増えると下がりうるので、実数の増減を主役にする */}
               <div
-                className="tabular-nums text-sm"
+                className="tabular-nums text-base"
                 style={{
                   color:
                     gain > 0
@@ -195,72 +219,35 @@ export default function InlineResult({
                     ? `${gain} 語が定着から外れた`
                     : "定着した語の増減なし"}
               </div>
-            </div>
-          </div>
-
-          {/* ドーナツの色分けが何を指しているかを、実数つきの凡例として文字でも出す。
-              色の意味を色だけに頼らせない（判定色の凡例と同じ考え方）。 */}
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 px-1">
-            {RETENTION_LEVELS.map(({ level, label, color }) => (
-              <div key={level} className="flex items-center gap-1 text-[11px] text-ink-3">
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: color }}
-                />
-                <span>{label}</span>
-                <span className="tabular-nums">{(levelCounts[level] ?? 0).toLocaleString()}語</span>
+              <div className="tabular-nums text-xs text-ink-3">
+                定着 {retained.toLocaleString()} / 出題プール{" "}
+                {poolSize.toLocaleString()} 語
               </div>
-            ))}
+            </div>
           </div>
 
-          {/* 次の解放に何が足りていないか。どちらの数字もすぐ上のドーナツから
-              読める値（中央の平均Lvと、いちばん暗い2色の割合）なので、
-              新しい指標を覚えなくても対応が付く。 */}
-          {/* 周回出題の進み具合。全語を何周目のどこまで流したか */}
-          {lap && (
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-surface-2 px-2.5 py-1.5 text-[11px] text-ink-3">
-              {lap.completedLaps < lap.lockCount && lap.cursor === 0 && lap.completedLaps > 0 ? (
-                <span>
-                  {lap.completedLaps} 周目を完走（残り {lap.lockCount - lap.completedLaps} 周）
-                </span>
-              ) : lap.completedLaps < lap.lockCount ? (
-                <>
-                  <span>
-                    周回 {lap.completedLaps + 1} / {lap.lockCount} 周目
-                  </span>
-                  <span className="tabular-nums">
-                    {lap.cursor.toLocaleString()} / {totalWords.toLocaleString()} 語
-                  </span>
-                </>
-              ) : (
-                <span>
-                  {lap.lockCount} 周完了。次のセットから苦手に合わせた出題に切り替わる
-                </span>
-              )}
-            </div>
-          )}
-
-          {!lap && poolSize > 0 && poolSize < totalWords && (
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-surface-2 px-2.5 py-1.5 text-[11px] text-ink-3">
-              <span>次の解放まで</span>
-              <span
-                className="tabular-nums"
-                style={{ color: gate.meetsAvgLevel ? "var(--positive)" : undefined }}
+          {gauge && (
+            <div className="mt-2 px-1">
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="text-ink-2">{gauge.label}</span>
+                <span className="tabular-nums text-ink-3">{gauge.note}</span>
+              </div>
+              <div
+                className="gauge-track mt-1 h-1.5 w-full overflow-hidden rounded-full"
+                role="progressbar"
+                aria-label={gauge.label}
+                aria-valuenow={Math.round(gauge.value * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
               >
-                平均Lv {shownAvgLevel} / {GAME.UNLOCK_AVG_LEVEL.toFixed(1)}以上
-              </span>
-              <span
-                className="tabular-nums"
-                style={{ color: gate.meetsUnlearnedRatio ? "var(--positive)" : undefined }}
-              >
-                未正解（未出題＋Lv.1） {shownUnlearnedPct}% /{" "}
-                {Math.round(GAME.UNLOCK_UNLEARNED_RATIO * 100)}%以下
-              </span>
+                <motion.div
+                  className="h-full rounded-full bg-accent"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${gauge.value * 100}%` }}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+                />
+              </div>
             </div>
-          )}
-
-          {message && (
-            <p className="mt-2 text-xs leading-relaxed text-ink-2">{message}</p>
           )}
 
           {/* 解放は稀にしか起きない前進の合図。ここは操作色を使ってよい */}
@@ -269,6 +256,56 @@ export default function InlineResult({
               新たに {unlockedThisRun} 語がプールに追加された
             </div>
           )}
+
+          {message && (
+            <p className="mt-2 text-xs leading-relaxed text-ink-2">{message}</p>
+          )}
+
+          <details className="mt-2 px-1 text-[11px] text-ink-3">
+            <summary className="cursor-pointer select-none py-1">くわしく</summary>
+            {/* ドーナツの色分けが何を指しているかを、実数つきの凡例として文字でも出す。
+                色の意味を色だけに頼らせない（判定色の凡例と同じ考え方）。 */}
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+              {RETENTION_LEVELS.map(({ level, label, color }) => (
+                <div key={level} className="flex items-center gap-1">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span>{label}</span>
+                  <span className="tabular-nums">{(levelCounts[level] ?? 0).toLocaleString()}語</span>
+                </div>
+              ))}
+            </div>
+
+            {/* 次の解放に何が足りていないか。どちらの数字もすぐ上のドーナツから
+                読める値（中央の平均Lvと、いちばん暗い2色の割合）なので、
+                新しい指標を覚えなくても対応が付く。ゲージはこの2つのうち
+                足りていないほうで止まる。 */}
+            {!lap && poolSize > 0 && poolSize < totalWords && (
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                <span>次の解放の条件</span>
+                <span
+                  className="tabular-nums"
+                  style={{ color: gate.meetsAvgLevel ? "var(--positive)" : undefined }}
+                >
+                  平均Lv {shownAvgLevel} / {GAME.UNLOCK_AVG_LEVEL.toFixed(1)}以上
+                </span>
+                <span
+                  className="tabular-nums"
+                  style={{ color: gate.meetsUnlearnedRatio ? "var(--positive)" : undefined }}
+                >
+                  未正解（未出題＋Lv.1） {shownUnlearnedPct}% /{" "}
+                  {Math.round(GAME.UNLOCK_UNLEARNED_RATIO * 100)}%以下
+                </span>
+              </div>
+            )}
+            {lap && (
+              <div className="mt-2">
+                最初の {lap.lockCount} 周は全語を順に流し、苦手に合わせた出題はそのあとに切り替わる
+              </div>
+            )}
+          </details>
         </div>
 
         {answerSheet && <div className="mt-4">{answerSheet}</div>}

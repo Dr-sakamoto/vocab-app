@@ -17,6 +17,11 @@ export interface QuestionCardProps {
    * 1問ごとに正誤が出ると、そこで手が止まって小テストにならない。
    */
   answered?: boolean;
+  /**
+   * 単語と目的語を伏せ、読み上げだけで出す（lib/audioQuestion.ts）。
+   * 呼び出し側は採点が返るまでだけ true にする。
+   */
+  audioOnly?: boolean;
 }
 
 /**
@@ -38,6 +43,7 @@ export default function QuestionCard({
   word,
   collocation,
   answered = false,
+  audioOnly = false,
 }: QuestionCardProps) {
   // 目的語まで含めて読み上げる。チャンクごと音で覚えるほうが、
   // 句動詞単体で覚えるより意味の想起が速い。
@@ -53,11 +59,19 @@ export default function QuestionCard({
         {number}
       </span>
       <div className="min-w-0 flex-1">
-        <span className="break-words font-word text-2xl leading-tight tracking-[0.01em] text-ink-1 sm:text-3xl">
-          {word}
-        </span>
-        {collocation && (
-          <span className="ml-1.5 text-base text-ink-3">[{collocation}]</span>
+        {audioOnly ? (
+          /* 単語の代わりに置く。押すものではなく「聞いて答える」の説明。
+             もう一度聞くのは右端の再生ボタン（ふだんと同じ位置） */
+          <span className="text-base text-ink-2">音を聞いて答える</span>
+        ) : (
+          <>
+            <span className="break-words font-word text-2xl leading-tight tracking-[0.01em] text-ink-1 sm:text-3xl">
+              {word}
+            </span>
+            {collocation && (
+              <span className="ml-1.5 text-base text-ink-3">[{collocation}]</span>
+            )}
+          </>
         )}
         <span className="ml-2 whitespace-nowrap text-[11px] tracking-[0.16em] text-ink-3">
           {partOfSpeech}
@@ -66,7 +80,7 @@ export default function QuestionCard({
       <button
         type="button"
         onClick={() => speakEnglishWord(spokenText)}
-        aria-label={`${word} を読み上げる`}
+        aria-label={audioOnly ? "もう一度聞く" : `${word} を読み上げる`}
         className="flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-md text-ink-3 transition hover:bg-surface-2 hover:text-ink-2"
       >
         <svg

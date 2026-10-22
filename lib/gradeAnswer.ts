@@ -65,6 +65,8 @@ export async function gradeAnswer({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         input: answerText,
+        // AI判定の集計（lib/aiVerdictLog.ts）で語を特定するため
+        wordId: item.id,
         target: item.target,
         // 句動詞の目的語、無ければ多義語の連語。AIはこの文脈での語義で採点する
         collocation: getPromptPhrase(item) ?? "",

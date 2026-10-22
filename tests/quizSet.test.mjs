@@ -125,3 +125,20 @@ test("未回答（採点なし）の設問は誤答として畳み込む", () =>
   const next = applySetToStats(entries, [{ correct: 0, wrong: 0 }]);
   assert.equal(next[0].wrong, 1);
 });
+
+test("想起に時間がかかった正解は連続正解を伸ばさない", () => {
+  const stats = [
+    { correct: 2, wrong: 0, correctStreak: 2 },
+    { correct: 2, wrong: 0, correctStreak: 2 },
+  ];
+  const entries = [
+    { ...entry({ poolIndex: 0, committed: true, correct: true }), recallMs: 1_200 },
+    { ...entry({ poolIndex: 1, committed: true, correct: true }), recallMs: 9_000 },
+  ];
+
+  const next = applySetToStats(entries, stats, 1_700_000_000_000);
+
+  assert.equal(next[0].correctStreak, 3, "すぐ思い出せた語は伸びる");
+  assert.equal(next[1].correctStreak, 2, "迷った語は据え置き");
+  assert.equal(next[1].correct, 3);
+});

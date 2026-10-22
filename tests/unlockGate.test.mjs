@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
-import { evaluateUnlockGate, UNLEARNED_MAX_LEVEL } from "../lib/unlockGate.js";
+import { evaluateUnlockGate, unlockProgress, UNLEARNED_MAX_LEVEL } from "../lib/unlockGate.js";
 import { getRetentionLevel } from "../lib/retention.js";
 import { GAME } from "../lib/constants.js";
 
@@ -103,4 +103,30 @@ test("解放の判定にセットの正答率を使っていない", () => {
     !/UNLOCK_ACCURACY|PERFECT_UNLOCK_STEP/.test(page),
     "正答率で解放量を決める分岐が残っている",
   );
+});
+
+test("解放ゲージ: 空のプールは0", () => {
+  assert.equal(unlockProgress(evaluateUnlockGate([])), 0);
+});
+
+test("解放ゲージ: 両条件を満たせば1（満杯）", () => {
+  // 全語 Lv.3：平均Lv 3、未正解 0%
+  assert.equal(unlockProgress(evaluateUnlockGate([0, 0, 0, 10])), 1);
+});
+
+test("解放ゲージ: 足りていないほうの条件で止まる", () => {
+  // 全語 Lv.1：未正解100% → 裾の達成度0
+  assert.equal(unlockProgress(evaluateUnlockGate([0, 10])), 0);
+  // 全語 Lv.2：未正解0%（裾は満杯）だが平均Lv 2 = 閾値ちょうど → 1
+  assert.equal(unlockProgress(evaluateUnlockGate([0, 0, 10])), 1);
+  // 半分 Lv.1・半分 Lv.3：平均Lv2（満杯）、未正解50% → (1-0.5)/(1-0.25)
+  const p = unlockProgress(evaluateUnlockGate([0, 5, 0, 5]));
+  assert.ok(Math.abs(p - 0.5 / (1 - GAME.UNLOCK_UNLEARNED_RATIO)) < 1e-9);
+});
+
+test("解放ゲージ: 満杯なら必ず解放される（ゲージと判定がズレない）", () => {
+  for (const counts of [[0, 0, 0, 10], [1, 1, 3, 5], [0, 2, 6, 2], [3, 0, 0, 0, 0, 7]]) {
+    const gate = evaluateUnlockGate(counts);
+    assert.equal(unlockProgress(gate) >= 1, gate.step > 0, JSON.stringify(counts));
+  }
 });

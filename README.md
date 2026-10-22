@@ -37,6 +37,7 @@ npm run build
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 公開鍵 |
 | `GEMINI_API_KEY` | AI判定（`/api/check` のフォールバック）。**サーバー側のみ**。未設定でも形態素解析による判定だけで動作する |
+| `SUPABASE_SERVICE_ROLE_KEY` | AI判定の結果を語×回答ごとに集計する（`ai_answer_verdicts`）。**サーバー側のみ**。未設定なら集計しないだけで採点は変わらない |
 
 ### DBスキーマ
 
@@ -55,3 +56,16 @@ npx supabase@latest db push                       # 未適用分を本番へ適�
 **列を足すコードをマージしたら、同じタイミングで `db push` すること。**
 コードだけ先に出るとクライアントが存在しない列を要求し、同期が失敗する
 （実際に8/20〜8/27、`rejected_answers` の適用漏れで同期が止まった）。
+
+### AIが認めた回答の確認
+
+正解データ（`lib/vocab/`）に足す候補は、SQL Editor で次のように引ける。
+人が確認してから `answers` に追加する。
+
+```sql
+select word_id, answer, hits, last_seen
+from ai_answer_verdicts
+where approved
+order by hits desc
+limit 100;
+```
