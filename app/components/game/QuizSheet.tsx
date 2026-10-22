@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import QuestionCard from "./QuestionCard";
 import TypingAnswerRow from "./TypingAnswerRow";
 import { QuizEntry } from "@/lib/types";
+import { getConfusable } from "@/lib/vocab";
 
 export interface QuizSheetProps {
   entries: QuizEntry[];
@@ -20,6 +21,8 @@ export interface QuizSheetProps {
   onCompositionStart: () => void;
   onCompositionEnd: () => void;
   registerInput: (slot: number, element: HTMLInputElement | null) => void;
+  /** 誤答に紛らわしい語を添えるか。結果発表でだけ true */
+  showConfusables?: boolean;
 }
 
 /**
@@ -55,6 +58,7 @@ export default function QuizSheet({
   onCompositionStart,
   onCompositionEnd,
   registerInput,
+  showConfusables = false,
 }: QuizSheetProps) {
   return (
     <ol className="flex flex-col gap-4">
@@ -91,6 +95,7 @@ export default function QuizSheet({
                   committed={entry.committed}
                   revealed={entry.outcome !== null}
                   outcome={entry.outcome}
+                  confusable={showConfusables ? getConfusable(entry.item.id) : null}
                 />
               </div>
             </motion.li>

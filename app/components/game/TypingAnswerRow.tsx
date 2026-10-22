@@ -3,6 +3,13 @@
 import { KeyboardEvent, Ref } from "react";
 import { motion } from "framer-motion";
 import { GradeOutcome } from "@/lib/types";
+import type { Confusable, ConfusableRelation } from "@/lib/vocab/confusables";
+
+const CONFUSABLE_LABELS: Record<ConfusableRelation, string> = {
+  form: "形が似た語",
+  meaning: "意味が近い語",
+  opposite: "反対の語",
+};
 
 export interface TypingAnswerRowProps {
   inputRef?: Ref<HTMLInputElement>;
@@ -21,6 +28,11 @@ export interface TypingAnswerRowProps {
   revealed: boolean;
   /** 採点結果。revealed が false のあいだは使わない */
   outcome: GradeOutcome | null;
+  /**
+   * 不正解のとき、正解の訳語の下に添える紛らわしい語（lib/vocab/confusables.ts）。
+   * 結果発表でだけ渡す。出題中に読ませる行を増やすと手が止まる
+   */
+  confusable?: Confusable | null;
 }
 
 /**
@@ -55,6 +67,7 @@ export default function TypingAnswerRow({
   committed,
   revealed,
   outcome,
+  confusable = null,
 }: TypingAnswerRowProps) {
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") return;
@@ -163,6 +176,13 @@ export default function TypingAnswerRow({
           )}
           {outcome.aiFeedback && (
             <div className="mt-0.5 text-xs text-ink-3">{outcome.aiFeedback}</div>
+          )}
+          {confusable && (
+            <div className="mt-1 text-xs text-ink-3">
+              {CONFUSABLE_LABELS[confusable.relation]}
+              <span className="ml-1.5 text-sm text-ink-2">{confusable.word}</span>
+              <span className="ml-1.5">{confusable.meaning}</span>
+            </div>
           )}
         </motion.div>
       )}
