@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import QuestionCard from "./QuestionCard";
 import TypingAnswerRow from "./TypingAnswerRow";
 import { QuizEntry } from "@/lib/types";
+import { getPromptPhrase } from "@/lib/vocab/phrase";
 import { getConfusable } from "@/lib/vocab";
 
 export interface QuizSheetProps {
@@ -85,8 +86,9 @@ export default function QuizSheet({
                 number={slot + 1}
                 partOfSpeech={entry.item.partOfSpeech}
                 word={entry.item.target}
-                collocation={entry.item.collocation}
+                collocation={getPromptPhrase(entry.item)}
                 answered={entry.committed}
+                audioOnly={entry.audioOnly === true && entry.outcome === null}
               />
               <div className="mt-1.5">
                 <TypingAnswerRow
