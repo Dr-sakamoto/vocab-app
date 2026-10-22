@@ -722,7 +722,8 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Enter" || isComposing) return;
       const target = e.target as HTMLElement | null;
-      if (target?.closest?.("button")) return;
+      // ボタンと「くわしく」の開閉（summary）は、それ自体の操作に任せる
+      if (target?.closest?.("button, summary")) return;
 
       if (phase === "result") {
         // 猶予チェックは continueToNextSet 側にある（ボタン経由とも共通化）。
