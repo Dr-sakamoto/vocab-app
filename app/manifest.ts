@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "英単語の日本語訳を記述式で入力し、表記ゆれはAIが判定する英単語学習アプリ",
     start_url: "/",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#6366f1",
+    background_color: "#f6f4ef",
+    theme_color: "#f6f4ef",
     icons: [
       {
         src: "/icon.svg",

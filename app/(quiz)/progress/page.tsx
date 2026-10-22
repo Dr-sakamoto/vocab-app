@@ -6,6 +6,7 @@ import DailyGainChart from "../../components/DailyGainChart";
 import ActivityCalendar from "../../components/ActivityCalendar";
 import { RETENTION_LEVELS } from "@/lib/retention";
 import { ProgressProps, useQuizGame } from "../../contexts/QuizGameContext";
+import { schemeColor } from "@/lib/schemeColor";
 
 /**
  * 進捗欄（`/progress`）。
@@ -67,9 +68,12 @@ export default function ProgressPage() {
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
-            {RETENTION_LEVELS.map(({ level, label, color }) => (
+            {RETENTION_LEVELS.map(({ level, label, color, lightColor }) => (
               <div key={level} className="flex items-center gap-1 text-[11px] text-ink-3">
-                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: schemeColor({ color, lightColor }) }}
+                />
                 <span>{label}</span>
                 <span className="tabular-nums">{(levelCounts[level] ?? 0).toLocaleString()}語</span>
               </div>

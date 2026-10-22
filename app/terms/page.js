@@ -4,9 +4,9 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10 text-sm leading-relaxed text-gray-800">
+    <main className="mx-auto max-w-2xl px-5 py-10 text-sm leading-relaxed text-ink-2">
       <h1 className="mb-6 text-xl font-bold">利用規約</h1>
-      <p className="mb-6 text-xs text-gray-500">
+      <p className="mb-6 text-xs text-ink-3">
         本規約は雛形です。公開前に事業者の実情・準拠法に合わせて精査してください（【要記入】箇所あり）。
       </p>
 
@@ -63,7 +63,7 @@ export default function TermsPage() {
         <p>本規約は日本法に準拠し、【要記入：管轄裁判所】を専属的合意管轄とします。</p>
       </Section>
 
-      <p className="mt-8 text-xs text-gray-500">最終更新日: 【要記入】</p>
+      <p className="mt-8 text-xs text-ink-3">最終更新日: 【要記入】</p>
     </main>
   );
 }
@@ -72,7 +72,7 @@ function Section({ title, children }) {
   return (
     <section className="mb-6">
       <h2 className="mb-2 text-base font-semibold">{title}</h2>
-      <div className="text-gray-700">{children}</div>
+      <div className="text-ink-2">{children}</div>
     </section>
   );
 }

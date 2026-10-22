@@ -7,6 +7,7 @@ import QuizSheet, { QuizSheetProps } from "./QuizSheet";
 import WeeklyGoalBadge from "../WeeklyGoalBadge";
 import { PlayEvaluation, PoolTier } from "@/lib/types";
 import { WeeklyGoalStatus } from "@/lib/weeklyGoal";
+import { schemeColor } from "@/lib/schemeColor";
 
 export interface StudyScreenProps {
   phase: "quiz" | "result";
@@ -125,7 +126,7 @@ export default function StudyScreen({
             >
               {/* 到達段階だけは色で示す。順序尺度なので明度が単調に上がる
                   連続スケールにしてある（lib/poolTier.ts）。 */}
-              <span className="tabular-nums" style={{ color: status.tier.color }}>
+              <span className="tabular-nums" style={{ color: schemeColor(status.tier) }}>
                 {status.tier.label}
               </span>
               <span className="tabular-nums">

@@ -46,9 +46,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  // アプリの地の色（--surface-0）と揃える。ブラウザのUIとアプリの間に
+  // アプリの地の色（--surface-0）と揃える。OS のテーマに合わせて切り替わる。ブラウザのUIとアプリの間に
   // 色の段差ができると、そのつど視線が境界に引かれる。
-  themeColor: "#12141a",
+  // ライト/ダークそれぞれの --surface-0。
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f4ef" },
+    { media: "(prefers-color-scheme: dark)", color: "#12141a" },
+  ],
 };
 
 export default function RootLayout({
