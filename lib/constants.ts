@@ -80,6 +80,16 @@ export const WEEKLY_GOAL = {
   DAYS: 5,
 } as const;
 
+/** 音だけの出題（判定は lib/audioQuestion.ts） */
+export const AUDIO_ONLY = {
+  /** 対象にする定着レベルの下限（lib/retention.ts の Lv）。Lv.3 = 正解2〜3回 */
+  MIN_LEVEL: 3,
+  /** 対象の語が音だけで出る確率 */
+  RATE: 0.2,
+  /** 1セットあたりの上限 */
+  MAX_PER_SET: 2,
+} as const;
+
 export const SOUND = {
   DEFAULT_VOLUME: 0.7,
   MIN_VOLUME: 0,
