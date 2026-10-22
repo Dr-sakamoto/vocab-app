@@ -36,10 +36,7 @@ export function isRetained(stat: WordStat | undefined): boolean {
 export interface RetentionLevel {
   level: 0 | 1 | 2 | 3 | 4 | 5;
   label: string;
-  /** ダークテーマ用 */
   color: string;
-  /** ライトテーマ用。濃いほど（地とのコントラストが高いほど）定着している */
-  lightColor: string;
 }
 
 /**
@@ -47,7 +44,6 @@ export interface RetentionLevel {
  * 上がる連続スケール。「灰色＝まだ手つかず」「黄＝育ってきた」「緑＝定着」
  * という信号機的な直感に合わせており、一目で段階の進み具合がわかることを
  * 優先している。全色 --surface-0(#12141A) 上で 4.5:1 以上。
- * ライトテーマでは lightColor（同じ色相で明度を下げ、段階が進むほど濃くなる）を使う。
  * リング側は隣接する段どうしの境目が輝度差だけでは見えづらいため、
  * RetentionRing の SEGMENT_GAP（区間の隙間）で区切って見分けられるようにしている。
  *
@@ -56,12 +52,12 @@ export interface RetentionLevel {
  * はっきりずらしつつ、彩度は抑えめにして他のUI要素と喧嘩しないようにしている。
  */
 export const RETENTION_LEVELS: RetentionLevel[] = [
-  { level: 0, label: "未出題", color: "#92897f", lightColor: "#71695f" },
-  { level: 1, label: "Lv.1", color: "#bc9837", lightColor: "#745c1d" },
-  { level: 2, label: "Lv.2", color: "#bbb236", lightColor: "#5c5717" },
-  { level: 3, label: "Lv.3", color: "#abca61", lightColor: "#425419" },
-  { level: 4, label: "Lv.4", color: "#a7d992", lightColor: "#294f18" },
-  { level: 5, label: "Lv.5", color: "#b1e1c0", lightColor: "#194928" },
+  { level: 0, label: "未出題", color: "#92897f" },
+  { level: 1, label: "Lv.1", color: "#bc9837" },
+  { level: 2, label: "Lv.2", color: "#bbb236" },
+  { level: 3, label: "Lv.3", color: "#abca61" },
+  { level: 4, label: "Lv.4", color: "#a7d992" },
+  { level: 5, label: "Lv.5", color: "#b1e1c0" },
 ];
 
 /**

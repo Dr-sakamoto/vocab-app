@@ -1,7 +1,6 @@
 "use client";
 
 import { RETENTION_LEVELS } from "@/lib/retention";
-import { schemeColor } from "@/lib/schemeColor";
 
 const RADIUS = 18;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -57,10 +56,10 @@ export default function RetentionRing({ levelCounts, poolSize }: RetentionRingPr
 
   const arcs = RETENTION_LEVELS.reduce<
     { level: number; color: string; start: number; ratio: number }[]
-  >((acc, { level, color, lightColor }, i) => {
+  >((acc, { level, color }, i) => {
     const ratio = ratios[i];
     const start = acc.length > 0 ? acc[acc.length - 1].start + acc[acc.length - 1].ratio : 0;
-    return [...acc, { level, color: schemeColor({ color, lightColor }), start, ratio }];
+    return [...acc, { level, color, start, ratio }];
   }, []);
 
   return (

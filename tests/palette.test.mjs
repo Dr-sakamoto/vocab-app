@@ -58,7 +58,7 @@ function readTokens() {
 
 const THEMES = readTokens();
 
-// Tier・定着レベルのデータ色。ダークは color、ライトは lightColor。
+// Tier のデータ色。ダークは color、ライトは lightColor。
 const dataColor = { dark: (d) => d.color, light: (d) => d.lightColor };
 
 for (const [theme, T] of Object.entries(THEMES)) {
@@ -162,34 +162,30 @@ for (const [theme, T] of Object.entries(THEMES)) {
     }
   });
 
-  test(`[${theme}] 定着レベルの色は段階どおりに地から際立つ連続スケール`, () => {
-    const bg = T["surface-0"];
-    for (let i = 1; i < RETENTION_LEVELS.length; i += 1) {
-      const lower = contrastRatio(colorOf(RETENTION_LEVELS[i - 1]), bg);
-      const higher = contrastRatio(colorOf(RETENTION_LEVELS[i]), bg);
-      assert.ok(
-        higher > lower,
-        `${RETENTION_LEVELS[i].label} が ${RETENTION_LEVELS[i - 1].label} より目立たない（段階が色から読めない）`,
-      );
-    }
-  });
-
-  test(`[${theme}] 定着レベルの色はすべて地の上で読める`, () => {
-    for (const l of RETENTION_LEVELS) {
-      const ratio = contrastRatio(colorOf(l), T["surface-0"]);
-      assert.ok(ratio >= 4.5, `${l.label}: ${ratio}`);
-    }
-  });
 }
 
-test("ダークの Tier・定着レベルは明るいほど上位（元の連続スケールを保つ）", () => {
+// 定着レベル（ドーナツ）の色はライト/ダーク共通。基準は地がダークのときで測る。
+test("定着レベルの色は段階どおりに明るくなる連続スケール", () => {
+  for (let i = 1; i < RETENTION_LEVELS.length; i += 1) {
+    const lower = relativeLuminance(RETENTION_LEVELS[i - 1].color);
+    const higher = relativeLuminance(RETENTION_LEVELS[i].color);
+    assert.ok(
+      higher > lower,
+      `${RETENTION_LEVELS[i].label} が ${RETENTION_LEVELS[i - 1].label} より暗い（段階が色から読めない）`,
+    );
+  }
+});
+
+test("定着レベルの色はすべて地の上で読める", () => {
+  for (const l of RETENTION_LEVELS) {
+    const ratio = contrastRatio(l.color, THEMES.dark["surface-0"]);
+    assert.ok(ratio >= 4.5, `${l.label}: ${ratio}`);
+  }
+});
+
+test("ダークの Tier は明るいほど上位（元の連続スケールを保つ）", () => {
   for (let i = 1; i < POOL_TIERS.length; i += 1) {
     assert.ok(relativeLuminance(POOL_TIERS[i - 1].color) > relativeLuminance(POOL_TIERS[i].color));
-  }
-  for (let i = 1; i < RETENTION_LEVELS.length; i += 1) {
-    assert.ok(
-      relativeLuminance(RETENTION_LEVELS[i].color) > relativeLuminance(RETENTION_LEVELS[i - 1].color),
-    );
   }
 });
 

@@ -8,7 +8,6 @@ import { evaluateUnlockGate, unlockProgress } from "@/lib/unlockGate";
 import { GAME } from "@/lib/constants";
 import { formatDayTime, formatSetDuration } from "@/lib/studyTime";
 import { PlayEvaluation } from "@/lib/types";
-import { schemeColor } from "@/lib/schemeColor";
 
 const AUTO_CONTINUE_SECONDS = 10;
 
@@ -349,11 +348,11 @@ export default function InlineResult({
             {/* ドーナツの色分けが何を指しているかを、実数つきの凡例として文字でも出す。
                 色の意味を色だけに頼らせない（判定色の凡例と同じ考え方）。 */}
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-              {RETENTION_LEVELS.map(({ level, label, color, lightColor }) => (
+              {RETENTION_LEVELS.map(({ level, label, color }) => (
                 <div key={level} className="flex items-center gap-1">
                   <span
                     className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: schemeColor({ color, lightColor }) }}
+                    style={{ backgroundColor: color }}
                   />
                   <span>{label}</span>
                   <span className="tabular-nums">{(levelCounts[level] ?? 0).toLocaleString()}語</span>
