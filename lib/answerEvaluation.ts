@@ -268,6 +268,12 @@ export interface AnswerAnalysis {
   normalized: string;
   baseKey: string;
   readingKey: string;
+  /**
+   * 助詞・助動詞も含めた全トークンの読み。readingKey は内容語だけを繋ぐので
+   * 「避けられない」が「さけ」になり、ひらがなで「さけられない」と打つと
+   * 一致しない。ひらがなのまま答えた回答との完全一致の照合にだけ使う。
+   */
+  fullReadingKey: string;
   termKeys: string[];
   terms: Term[];
   tokens: IpadicFeatures[];
@@ -280,12 +286,14 @@ export async function analyzeAnswer(value: string): Promise<AnswerAnalysis> {
   const terms = getCoreTermsFromTokens(tokens);
   const baseKey = terms.map(term => term.base).join("");
   const readingKey = terms.map(term => term.reading).join("");
+  const fullReadingKey = tokens.map(tokenReading).join("");
   const termKeys = unique(terms.flatMap(term => [term.base, term.reading, term.surface]));
 
   return {
     normalized,
     baseKey: baseKey || normalized,
     readingKey: readingKey || normalized,
+    fullReadingKey: fullReadingKey || normalized,
     termKeys: termKeys.length ? termKeys : [normalized],
     terms,
     tokens,
@@ -372,6 +380,9 @@ function isAlternativeMatch(userAnalysis: AnswerAnalysis, answerAnalysis: Answer
   if (userAnalysis.baseKey === answerAnalysis.baseKey) return true;
   if (isKanaOnly(userAnalysis.normalized) && isCloseReading(userAnalysis.normalized, answerAnalysis.readingKey)) return true;
   if (isKanaOnly(answerAnalysis.normalized) && isCloseReading(answerAnalysis.normalized, userAnalysis.readingKey)) return true;
+  // 全トークンの読みは打ち間違いを許容しない。助動詞まで含むので、1文字差で
+  // 「さけられる」と「さけられない」のように否定が入れ替わってしまう。
+  if (isKanaOnly(userAnalysis.normalized) && userAnalysis.normalized === answerAnalysis.fullReadingKey) return true;
 
   const userKeys = unique([
     userAnalysis.normalized,
