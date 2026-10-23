@@ -20,6 +20,7 @@ import { VocabItem, WordStat, PoolTier } from "@/lib/types";
 import { getPromptPhrase } from "@/lib/vocab/phrase";
 import { WeeklyGoalStatus } from "@/lib/weeklyGoal";
 import WeeklyGoalBadge from "../WeeklyGoalBadge";
+import { schemeColor } from "@/lib/schemeColor";
 
 export interface FlashScreenProps {
   vocabItems: VocabItem[];
@@ -151,7 +152,7 @@ export default function FlashScreen({
               <WeeklyGoalBadge status={weeklyGoal} />
             </div>
             <div className="flex items-center gap-3">
-              <span className="tabular-nums" style={{ color: tier.color }}>
+              <span className="tabular-nums" style={{ color: schemeColor(tier) }}>
                 {tier.label}
               </span>
               <span className="tabular-nums">

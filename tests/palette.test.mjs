@@ -35,113 +35,136 @@ function contrastRatio(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** globals.css の :root から --トークン: #色; を読み出す */
+/**
+ * globals.css から --トークン: #色; をテーマ別に読み出す。
+ * ライトは :root の既定値、ダークは prefers-color-scheme: dark の中の上書き。
+ */
 function readTokens() {
   const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
-  const tokens = {};
-  for (const [, name, value] of css.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6});/g)) {
-    tokens[name] = value;
-  }
-  return tokens;
+  const darkAt = css.indexOf("@media (prefers-color-scheme: dark)");
+  assert.ok(darkAt >= 0, "ダークテーマの上書きが見つからない");
+  const parse = (chunk) => {
+    const tokens = {};
+    for (const [, name, value] of chunk.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6});/g)) {
+      tokens[name] = value;
+    }
+    return tokens;
+  };
+  const light = parse(css.slice(0, darkAt));
+  // ダークは指定されたトークンだけを上書きするので、ライトを土台に重ねる
+  const dark = { ...light, ...parse(css.slice(darkAt, css.indexOf("@theme inline"))) };
+  return { light, dark };
 }
 
-const T = readTokens();
+const THEMES = readTokens();
 
-test("配色トークンが globals.css に揃っている", () => {
-  for (const name of [
-    "surface-0",
-    "surface-1",
-    "surface-2",
-    "ink-1",
-    "ink-2",
-    "ink-3",
-    "line",
-    "line-strong",
-    "accent",
-    "positive",
-    "negative",
-    "negative-surface",
-  ]) {
-    assert.ok(T[name], `--${name} が定義されていない`);
-  }
-});
+// Tier のデータ色。ダークは color、ライトは lightColor。
+const dataColor = { dark: (d) => d.color, light: (d) => d.lightColor };
 
-test("文字色は地の上で必要なコントラストを満たす", () => {
-  const bg = T["surface-0"];
-  // 出題語・正解語。読ませることが目的なので AAA（7:1）を要求する
-  assert.ok(contrastRatio(T["ink-1"], bg) >= 7, `ink-1: ${contrastRatio(T["ink-1"], bg)}`);
-  assert.ok(contrastRatio(T["ink-2"], bg) >= 7, `ink-2: ${contrastRatio(T["ink-2"], bg)}`);
-  // 補助情報は AA（4.5:1）
-  assert.ok(contrastRatio(T["ink-3"], bg) >= 4.5, `ink-3: ${contrastRatio(T["ink-3"], bg)}`);
-  // カード面の上でも成立すること（面が変わって読めなくなるのを防ぐ）
-  assert.ok(contrastRatio(T["ink-3"], T["surface-1"]) >= 4.5);
-  assert.ok(contrastRatio(T["ink-3"], T["surface-2"]) >= 4.5);
-});
+for (const [theme, T] of Object.entries(THEMES)) {
+  const colorOf = dataColor[theme];
 
-test("主要文字のコントラストを上げすぎない（純黒×純白のハレーション回避）", () => {
-  // 21:1（#000×#fff）に近づくほど、暗所のOLEDで白文字がにじむ。
-  // AAA を十分超えたところで頭打ちにする。
-  assert.ok(contrastRatio(T["ink-1"], T["surface-0"]) <= 17);
-});
+  test(`[${theme}] 配色トークンが globals.css に揃っている`, () => {
+    for (const name of [
+      "surface-0",
+      "surface-1",
+      "surface-2",
+      "ink-1",
+      "ink-2",
+      "ink-3",
+      "line",
+      "line-strong",
+      "accent",
+      "accent-ink",
+      "positive",
+      "negative",
+      "negative-surface",
+    ]) {
+      assert.ok(T[name], `--${name} が定義されていない`);
+    }
+  });
 
-test("操作色・判定色は本文と同じ基準で読める", () => {
-  const bg = T["surface-0"];
-  for (const name of ["accent", "positive", "negative"]) {
-    const ratio = contrastRatio(T[name], bg);
-    assert.ok(ratio >= 4.5, `${name}: ${ratio}`);
-  }
-  // 塗りつぶしボタン（.btn-accent）の上の文字
-  assert.ok(contrastRatio(T["accent-ink"], T["accent"]) >= 4.5);
-});
+  test(`[${theme}] 文字色は地の上で必要なコントラストを満たす`, () => {
+    const bg = T["surface-0"];
+    // 出題語・正解語。読ませることが目的なので AAA（7:1）を要求する
+    assert.ok(contrastRatio(T["ink-1"], bg) >= 7, `ink-1: ${contrastRatio(T["ink-1"], bg)}`);
+    assert.ok(contrastRatio(T["ink-2"], bg) >= 7, `ink-2: ${contrastRatio(T["ink-2"], bg)}`);
+    // 補助情報は AA（4.5:1）
+    assert.ok(contrastRatio(T["ink-3"], bg) >= 4.5, `ink-3: ${contrastRatio(T["ink-3"], bg)}`);
+    // カード面の上でも成立すること（面が変わって読めなくなるのを防ぐ）
+    assert.ok(contrastRatio(T["ink-3"], T["surface-1"]) >= 4.5);
+    assert.ok(contrastRatio(T["ink-3"], T["surface-2"]) >= 4.5);
+  });
 
-test("不正解パネルでは、覚えるべき訳語がいちばん読みやすい色になっている", () => {
-  const panel = T["negative-surface"];
-  const answer = contrastRatio(T["ink-1"], panel); // 正解の訳語
-  const label = contrastRatio(T["negative"], panel); // 「不正解」ラベル
-  assert.ok(answer >= 7, `正解の訳語が AAA 未満: ${answer}`);
-  assert.ok(label >= 4.5, `ラベルが AA 未満: ${label}`);
-  assert.ok(
-    answer > label,
-    "赤いラベルより訳語のほうが読みやすくあること（学習対象を最も読みやすく）",
-  );
-});
+  test(`[${theme}] 主要文字のコントラストを上げすぎない（純黒×純白のハレーション回避）`, () => {
+    // 21:1（#000×#fff）に近づくほど、暗所のOLEDで白文字がにじむ。
+    // ライトでも純白×純黒は明所で眩しい。AAA を十分超えたところで頭打ちにする。
+    assert.ok(contrastRatio(T["ink-1"], T["surface-0"]) <= 17);
+  });
 
-test("操作可能なUI部品の輪郭は 3:1 以上（SC 1.4.11）", () => {
-  assert.ok(contrastRatio(T["line-strong"], T["surface-0"]) >= 3);
-  assert.ok(contrastRatio(T["line-strong"], T["surface-2"]) >= 3);
-});
+  test(`[${theme}] 操作色・判定色は本文と同じ基準で読める`, () => {
+    const bg = T["surface-0"];
+    for (const name of ["accent", "positive", "negative"]) {
+      const ratio = contrastRatio(T[name], bg);
+      assert.ok(ratio >= 4.5, `${name}: ${ratio}`);
+    }
+    // 塗りつぶしボタン（.btn-accent）の上の文字
+    assert.ok(contrastRatio(T["accent-ink"], T["accent"]) >= 4.5);
+  });
 
-test("判定色どうしが輝度でも区別できる（色相だけに頼らない）", () => {
-  // 赤緑の色覚特性では正解/不正解の色相差が縮む。輝度差を残しておけば
-  // 色相が潰れても区別が残る。テキスト（◯/✕）と併用しているため
-  // SC 1.4.1 は満たすが、色の側でも冗長性を持たせる。
-  const positive = relativeLuminance(T["positive"]);
-  const negative = relativeLuminance(T["negative"]);
-  assert.ok(
-    Math.abs(positive - negative) / Math.max(positive, negative) >= 0.2,
-    `正解色と不正解色の輝度差が小さい: ${positive} vs ${negative}`,
-  );
-});
-
-test("Tier の色は順位どおりに明るくなる連続スケール（虹色を使わない）", () => {
-  // POOL_TIERS は minPool の降順（上位が先頭）。上位ほど輝度が高いこと。
-  for (let i = 1; i < POOL_TIERS.length; i += 1) {
-    const upper = relativeLuminance(POOL_TIERS[i - 1].color);
-    const lower = relativeLuminance(POOL_TIERS[i].color);
+  test(`[${theme}] 不正解パネルでは、覚えるべき訳語がいちばん読みやすい色になっている`, () => {
+    const panel = T["negative-surface"];
+    const answer = contrastRatio(T["ink-1"], panel); // 正解の訳語
+    const label = contrastRatio(T["negative"], panel); // 「不正解」ラベル
+    assert.ok(answer >= 7, `正解の訳語が AAA 未満: ${answer}`);
+    assert.ok(label >= 4.5, `ラベルが AA 未満: ${label}`);
     assert.ok(
-      upper > lower,
-      `${POOL_TIERS[i - 1].label} が ${POOL_TIERS[i].label} より暗い（順位が色から読めない）`,
+      answer > label,
+      "赤いラベルより訳語のほうが読みやすくあること（学習対象を最も読みやすく）",
     );
-  }
-});
+  });
 
-test("Tier の色はすべて地の上で読める", () => {
-  for (const tier of POOL_TIERS) {
-    const ratio = contrastRatio(tier.color, T["surface-0"]);
-    assert.ok(ratio >= 4.5, `${tier.label}: ${ratio}`);
-  }
-});
+  test(`[${theme}] 操作可能なUI部品の輪郭は 3:1 以上（SC 1.4.11）`, () => {
+    assert.ok(contrastRatio(T["line-strong"], T["surface-0"]) >= 3);
+    assert.ok(contrastRatio(T["line-strong"], T["surface-2"]) >= 3);
+  });
 
+  test(`[${theme}] 判定色どうしが輝度でも区別できる（色相だけに頼らない）`, () => {
+    // 赤緑の色覚特性では正解/不正解の色相差が縮む。輝度差を残しておけば
+    // 色相が潰れても区別が残る。テキスト（◯/✕）と併用しているため
+    // SC 1.4.1 は満たすが、色の側でも冗長性を持たせる。
+    const positive = relativeLuminance(T["positive"]);
+    const negative = relativeLuminance(T["negative"]);
+    assert.ok(
+      Math.abs(positive - negative) / Math.max(positive, negative) >= 0.2,
+      `正解色と不正解色の輝度差が小さい: ${positive} vs ${negative}`,
+    );
+  });
+
+  test(`[${theme}] Tier の色は順位どおりに地から際立つ連続スケール（虹色を使わない）`, () => {
+    // POOL_TIERS は minPool の降順（上位が先頭）。上位ほど地とのコントラストが高いこと。
+    // ダークでは「明るいほど上位」、ライトでは「濃いほど上位」になる。
+    const bg = T["surface-0"];
+    for (let i = 1; i < POOL_TIERS.length; i += 1) {
+      const upper = contrastRatio(colorOf(POOL_TIERS[i - 1]), bg);
+      const lower = contrastRatio(colorOf(POOL_TIERS[i]), bg);
+      assert.ok(
+        upper > lower,
+        `${POOL_TIERS[i - 1].label} が ${POOL_TIERS[i].label} より目立たない（順位が色から読めない）`,
+      );
+    }
+  });
+
+  test(`[${theme}] Tier の色はすべて地の上で読める`, () => {
+    for (const tier of POOL_TIERS) {
+      const ratio = contrastRatio(colorOf(tier), T["surface-0"]);
+      assert.ok(ratio >= 4.5, `${tier.label}: ${ratio}`);
+    }
+  });
+
+}
+
+// 定着レベル（ドーナツ）の色はライト/ダーク共通。基準は地がダークのときで測る。
 test("定着レベルの色は段階どおりに明るくなる連続スケール", () => {
   for (let i = 1; i < RETENTION_LEVELS.length; i += 1) {
     const lower = relativeLuminance(RETENTION_LEVELS[i - 1].color);
@@ -155,8 +178,14 @@ test("定着レベルの色は段階どおりに明るくなる連続スケー�
 
 test("定着レベルの色はすべて地の上で読める", () => {
   for (const l of RETENTION_LEVELS) {
-    const ratio = contrastRatio(l.color, T["surface-0"]);
+    const ratio = contrastRatio(l.color, THEMES.dark["surface-0"]);
     assert.ok(ratio >= 4.5, `${l.label}: ${ratio}`);
+  }
+});
+
+test("ダークの Tier は明るいほど上位（元の連続スケールを保つ）", () => {
+  for (let i = 1; i < POOL_TIERS.length; i += 1) {
+    assert.ok(relativeLuminance(POOL_TIERS[i - 1].color) > relativeLuminance(POOL_TIERS[i].color));
   }
 });
 

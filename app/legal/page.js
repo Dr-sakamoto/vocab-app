@@ -22,17 +22,17 @@ const ROWS = [
 
 export default function LegalPage() {
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10 text-sm leading-relaxed text-gray-800">
+    <main className="mx-auto max-w-2xl px-5 py-10 text-sm leading-relaxed text-ink-2">
       <h1 className="mb-6 text-xl font-bold">特定商取引法に基づく表記</h1>
-      <dl className="divide-y divide-gray-200 rounded-lg border border-gray-200">
+      <dl className="divide-y divide-line rounded-lg border border-line">
         {ROWS.map(([label, value]) => (
           <div key={label} className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-3">
-            <dt className="font-semibold text-gray-600">{label}</dt>
+            <dt className="font-semibold text-ink-3">{label}</dt>
             <dd className="sm:col-span-2">{value}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-6 text-xs text-gray-500">最終更新日: 【要記入】</p>
+      <p className="mt-6 text-xs text-ink-3">最終更新日: 【要記入】</p>
     </main>
   );
 }

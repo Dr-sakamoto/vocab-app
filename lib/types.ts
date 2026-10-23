@@ -63,7 +63,10 @@ export interface PoolTier {
   minPool: number;
   multiplier: number;
   label: string;
+  /** ダークテーマ用 */
   color: string;
+  /** ライトテーマ用（lib/poolTier.ts 参照） */
+  lightColor: string;
 }
 
 export interface PlayEvaluation {
