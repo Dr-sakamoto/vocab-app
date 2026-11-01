@@ -173,10 +173,17 @@ test("下の回答の確定は、上の採点が済んでいればその場で�
 test("上の採点が確定後に返ってきた場合も、自動で窓を進める", () => {
   const page = readSrc("app/contexts/QuizGameContext.tsx");
   assert.ok(
-    /useEffect\(\(\) => \{\s*if \(phase !== "quiz"\) return;\s*if \(!canAdvance\(windowStart\)\) return;\s*advanceWindow\(\);/.test(
+    /useEffect\(\(\) => \{\s*if \(phase !== "quiz"\) return;\s*if \(!canAdvance\(windowStart\)\) return;[\s\S]{0,120}?queueMicrotask\(\(\) => \{\s*if \(!cancelled\) advanceWindow\(\);/.test(
       page,
     ),
     "採点待ちで足止めされたあとの自動進行が無い",
+  );
+  // advanceWindow は中で flushSync する。副作用の中から直接呼ぶと React が
+  // "flushSync was called from inside a lifecycle method" を出し、直後の
+  // focus() が空振りする。マイクロタスクへ逃がしたまま保つ。
+  assert.ok(
+    !/if \(!canAdvance\(windowStart\)\) return;\s*advanceWindow\(\);/.test(page),
+    "副作用の中から advanceWindow（flushSync）を直接呼んでいる",
   );
 });
 
