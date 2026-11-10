@@ -698,9 +698,9 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
    * ユーザー操作（Enter）の中で描画とフォーカスまで済ませないと、
    * スマホでは次の入力欄がまだ存在せず focus() が空振りしてキーボードが
    * 閉じる。ただし採点待ちで足止めされたあとの自動進行（フォールバックの
-   * 副作用から呼ばれる場合）はユーザー操作の外なので、その場合だけは
-   * スマホでキーボードが開き直らないことがある（次の欄をタップし直せば
-   * 入力できる）。
+   * 副作用からマイクロタスク経由で呼ばれる場合）はユーザー操作の外なので、
+   * その場合だけはスマホでキーボードが開き直らないことがある（次の欄を
+   * タップし直せば入力できる）。
    */
   const advanceWindow = useCallback(() => {
     const next = windowStart + 1;
@@ -745,10 +745,22 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   // 下を確定した時点では上の採点がまだ返っていなかった場合のフォールバック。
   // 採点が返り次第（entries の更新のたびに）進めるかどうかを見直し、
   // 進めてよくなった時点で自動的に窓を進める。
+  //
+  // advanceWindow は中で flushSync するので、副作用の中から直接は呼べない
+  // （React が "flushSync was called from inside a lifecycle method" を出して
+  // 同期描画を諦め、直後の focus() が空振りする）。描画を終えたあとの
+  // マイクロタスクへ逃がす。副作用が先に組み直されたら（窓が進んだ・
+  // 採点がさらに返った等）古い予約は捨てる。
   useEffect(() => {
     if (phase !== "quiz") return;
     if (!canAdvance(windowStart)) return;
-    advanceWindow();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) advanceWindow();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [phase, entries, windowStart, canAdvance, advanceWindow]);
 
   /** 回答欄にカーソルが入ったら、その設問を読み上げ、想起時間の計測を始める */
